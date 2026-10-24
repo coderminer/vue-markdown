@@ -1,0 +1,16 @@
+[data-vmd-part='math'] {
+  color: var(--vmd-math-color);
+  background: var(--vmd-math-bg);
+}
+
+[data-vmd-part='math'][data-display='true'] {
+  display: block;
+  margin-block: var(--vmd-space-4);
+  overflow-x: auto;
+  text-align: center;
+}
+
+[data-vmd-part='math-error'] {
+  color: var(--vmd-color-danger);
+  font-family: var(--vmd-font-mono);
+}

@@ -1,0 +1,198 @@
+[data-vmd-part='root'] {
+  color: var(--vmd-color-text);
+  background: var(--vmd-color-bg);
+  font-family: var(--vmd-font-family);
+  font-size: var(--vmd-font-size);
+  line-height: var(--vmd-line-height);
+  text-align: start;
+  overflow-wrap: break-word;
+}
+
+[data-vmd-part='content'] > :first-child {
+  margin-block-start: 0;
+}
+
+[data-vmd-part='content'] > :last-child {
+  margin-block-end: 0;
+}
+
+[data-vmd-part='paragraph'] {
+  margin-block: 0 var(--vmd-space-4);
+}
+
+[data-vmd-part='heading'] {
+  margin-block: var(--vmd-space-5) var(--vmd-space-3);
+  line-height: 1.25;
+  scroll-margin-block-start: var(--vmd-space-5);
+}
+
+[data-vmd-part='heading-anchor'] {
+  margin-inline-start: var(--vmd-space-2);
+  color: var(--vmd-color-muted);
+  text-decoration: none;
+  opacity: 0;
+  transition: opacity var(--vmd-motion-duration) var(--vmd-motion-easing);
+}
+
+[data-vmd-part='heading']:hover [data-vmd-part='heading-anchor'],
+[data-vmd-part='heading-anchor']:focus-visible {
+  opacity: 1;
+}
+
+[data-vmd-part='link'] {
+  color: var(--vmd-color-accent);
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+[data-vmd-part='image'] {
+  max-width: 100%;
+  height: auto;
+}
+
+[data-vmd-part='list'] {
+  margin-block: 0 var(--vmd-space-4);
+  padding-inline-start: var(--vmd-space-5);
+}
+
+[data-vmd-part='list-item'] {
+  margin-block: var(--vmd-space-1);
+}
+
+[data-vmd-part='blockquote'] {
+  margin: 0 0 var(--vmd-space-4);
+  padding-inline-start: var(--vmd-space-4);
+  border-inline-start: 3px solid var(--vmd-color-border);
+  color: var(--vmd-color-muted);
+}
+
+[data-vmd-part='hr'] {
+  height: 1px;
+  margin-block: var(--vmd-space-5);
+  border: 0;
+  background: var(--vmd-color-border);
+}
+
+[data-vmd-part='table'] {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  margin-block: 0 var(--vmd-space-4);
+  overflow: auto;
+  border-collapse: collapse;
+}
+
+[data-vmd-part='table-cell'] {
+  padding: var(--vmd-space-2) var(--vmd-space-3);
+  border: 1px solid var(--vmd-color-border);
+}
+
+[data-vmd-part='table-section'] {
+  background: var(--vmd-color-surface);
+}
+
+[data-vmd-part='inline-code'] {
+  padding: 0.15em 0.35em;
+  border-radius: var(--vmd-radius-sm);
+  background: var(--vmd-code-bg);
+  color: var(--vmd-code-text);
+  font-family: var(--vmd-font-mono);
+  font-size: 0.9em;
+}
+
+[data-vmd-part='code'] {
+  display: block;
+  margin-block: 0 var(--vmd-space-4);
+  padding: var(--vmd-space-3) var(--vmd-space-4);
+  overflow: auto;
+  border: 1px solid var(--vmd-code-border);
+  border-radius: var(--vmd-radius-md);
+  background: var(--vmd-code-bg);
+  color: var(--vmd-code-text);
+  font-family: var(--vmd-font-mono);
+  font-size: 0.9em;
+  line-height: 1.6;
+}
+
+[data-vmd-part='code'] code {
+  font: inherit;
+}
+
+[data-vmd-part='toc'] {
+  font-size: 0.925em;
+}
+
+[data-vmd-part='toc-nav'] {
+  position: sticky;
+  inset-block-start: var(--vmd-space-4);
+  max-height: calc(100vh - var(--vmd-space-6));
+  overflow: auto;
+}
+
+[data-vmd-part='toc-item'] {
+  display: block;
+  padding-block: var(--vmd-space-1);
+  padding-inline-start: calc(var(--vmd-toc-depth, 1) - 1) * var(--vmd-space-3);
+  color: var(--vmd-color-muted);
+  text-decoration: none;
+}
+
+[data-vmd-part='toc-item'][aria-current='true'] {
+  color: var(--vmd-color-accent);
+  font-weight: 600;
+}
+
+[data-vmd-part='error'] {
+  margin-block: var(--vmd-space-3);
+  padding: var(--vmd-space-3) var(--vmd-space-4);
+  border: 1px solid var(--vmd-color-danger);
+  border-radius: var(--vmd-radius-md);
+  color: var(--vmd-color-danger);
+}
+
+[data-vmd-part='empty'],
+[data-vmd-part='loading'] {
+  color: var(--vmd-color-muted);
+}
+
+[data-vmd-part='custom-tag'] {
+  display: inline-block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-vmd-part] {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+@media print {
+  [data-vmd-part='root'] {
+    color: #000;
+    background: #fff;
+  }
+
+  [data-vmd-part='toc'],
+  [data-vmd-part='heading-anchor'] {
+    display: none;
+  }
+
+  [data-vmd-part='code'] {
+    white-space: pre-wrap;
+    border-color: #999;
+  }
+}
+
+@media (forced-colors: active) {
+  [data-vmd-part='link'],
+  [data-vmd-part='toc-item'] {
+    color: LinkText;
+  }
+
+  [data-vmd-part='code'],
+  [data-vmd-part='table-cell'],
+  [data-vmd-part='blockquote'] {
+    border: 1px solid CanvasText;
+  }
+}
