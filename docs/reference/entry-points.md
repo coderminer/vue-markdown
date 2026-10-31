@@ -5,7 +5,8 @@ description: Public package entry points, optional engines, and CSS layers.
 # Entry points
 
 The package exposes small entries so optional engines and preset components stay
-out of bundles that do not use them.
+out of bundles that do not use them. See the [Public API](./api.md) for the
+complete export index.
 
 | Entry | Contents |
 | --- | --- |

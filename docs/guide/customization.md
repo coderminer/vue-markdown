@@ -281,6 +281,79 @@ An absent or empty slot keeps the default rendering.
 
 See [Slots](../reference/renderer.md#slots) for every context.
 
+### TOC
+
+The TOC is opt-in through the `toc` prop. It is derived from headings and is
+available as `TocItem[]`:
+
+```ts
+interface TocItem {
+  id: string
+  text: string
+  level: number
+}
+```
+
+Customize it at four layers:
+
+| Layer | API |
+| --- | --- |
+| Whole TOC | `#toc` slot or `regions.toc` |
+| One item | `#toc-item` slot or `regions.tocItem` |
+| Label | `labels.toc` |
+| Behaviour | `toc`, `syncHash`, `idPrefix`, `getToc()`, `scrollToHeading(id)` |
+
+Replace the whole TOC:
+
+```vue
+<MarkdownRenderer :source="source" toc>
+  <template #toc="{ items, activeId, label, navigate }">
+    <nav class="my-toc" :aria-label="label">
+      <button
+        v-for="item in items"
+        :key="item.id"
+        :data-active="item.id === activeId"
+        @click="navigate(item.id)"
+      >
+        {{ item.text }}
+      </button>
+    </nav>
+  </template>
+</MarkdownRenderer>
+```
+
+Replace only one item and keep the default `<nav>`:
+
+```vue
+<MarkdownRenderer :source="source" toc>
+  <template #toc-item="{ item, active, navigate }">
+    <a
+      :href="`#${item.id}`"
+      :aria-current="active ? 'location' : undefined"
+      @click.prevent="navigate(item.id)"
+    >
+      {{ item.level }}. {{ item.text }}
+    </a>
+  </template>
+</MarkdownRenderer>
+```
+
+With region components, `MyToc` receives `items`, `activeId`, `label`, and an
+optional `tocItem`; it emits `navigate(id)`. `MyTocItem` receives `item` and
+`active`; it also emits `navigate(id)`.
+
+```ts
+const regions = {
+  toc: MyToc,
+  tocItem: MyTocItem,
+}
+```
+
+Use `idPrefix` when one page contains multiple renderers, `syncHash` to update
+the URL hash during navigation, and the exposed `getToc()` /
+`scrollToHeading(id)` methods for an external TOC. See the
+[Public API](../reference/api.md#toc) for the complete TOC contract.
+
 ### Custom tags
 
 `customTagsPlugin` converts selected elements into custom nodes that map to your

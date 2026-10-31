@@ -5,7 +5,8 @@ description: Public components, regions, rich nodes, and the component manifest 
 # Components
 
 Everything is exported from `vue-markdown-suite` and available through
-`vue-markdown-suite/components/*` for per-component entries.
+`vue-markdown-suite/components/*` for per-component entries. See the
+[Public API](./api.md) for the full export index.
 
 ## Renderer and regions
 

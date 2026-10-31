@@ -141,6 +141,16 @@ An absent or empty slot keeps the default rendering.
 </MarkdownRenderer>
 ```
 
+## TOC
+
+The TOC is opt-in with `toc`. Use `#toc` to replace the whole navigation,
+`#toc-item` to replace one entry, `labels.toc` for the accessible label, and
+`getToc()` / `scrollToHeading(id)` for an external TOC. Custom region components
+receive `items`, `activeId`, `label`, and optional `tocItem`; item components
+receive `item` and `active` and emit `navigate`.
+
+See [Public API § TOC](./api.md#toc) for the complete API and examples.
+
 ## Regions
 
 `regions` replaces structural components with the same props as the default:

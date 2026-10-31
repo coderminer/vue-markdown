@@ -49,7 +49,7 @@ export default defineConfig({
     siteTitle: 'Vue Markdown Suite',
     nav: [
       { text: 'Guide', link: '/guide/getting-started', activeMatch: '/guide/' },
-      { text: 'Reference', link: '/reference/renderer', activeMatch: '/reference/' },
+      { text: 'Reference', link: '/reference/api', activeMatch: '/reference/' },
       { text: 'Examples', link: '/examples/playground', activeMatch: '/examples/' },
     ],
     sidebar: {
@@ -98,6 +98,7 @@ export default defineConfig({
         {
           text: 'API reference',
           items: [
+            { text: 'Public API', link: '/reference/api' },
             { text: 'Renderer', link: '/reference/renderer' },
             { text: 'Components', link: '/reference/components' },
             { text: 'Adapters', link: '/reference/adapters' },
