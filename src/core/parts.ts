@@ -56,6 +56,7 @@ export const PARTS = {
   mermaidHeader: 'mermaid-header',
   mermaidTabs: 'mermaid-tabs',
   mermaidActions: 'mermaid-actions',
+  mermaidAction: 'mermaid-action',
   mermaidPreview: 'mermaid-preview',
   mermaidSource: 'mermaid-source',
   mermaidPending: 'mermaid-pending',

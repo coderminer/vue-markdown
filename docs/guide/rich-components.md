@@ -421,12 +421,28 @@ const diagram = `flowchart LR
 | `enableZoom` | `boolean` | `true` | Shows zoom controls. |
 | `allowFullscreen` | `boolean` | `true` | Allows fullscreen. |
 | `compact` | `boolean` | `false` | Hides the block action toolbar for embedded previews. |
+| `actions` | `MermaidAction[]` | `[]` | Extra toolbar buttons with `key`, `label`, and `run`. |
 
 Events: `rendered(result)`, `error(message)`, `copy(source)`,
-`export('png' | 'svg')`, and `fullscreen(active)`.
-Slots: `mermaid` and `mermaid-error`.
+`export('png' | 'svg')`, `fullscreen(active)`, and `action(key)`.
+Slots: `header`, `tabs`, `actions`, `mermaid`, and `mermaid-error`.
 Exposed: `render()`, `copy()`, `exportPng()`, `downloadSvg()`, and
 `toggleFullscreen()`.
+
+```vue
+<MermaidBlock :source="diagram">
+  <template #actions="{ actions }">
+    <button type="button" @click="actions.zoomIn">+</button>
+    <button type="button" @click="actions.copy">Copy</button>
+  </template>
+</MermaidBlock>
+```
+
+`#header` replaces the complete header content and receives
+`{ source, label, view, status, copied, fullscreen, compact, actions, showPreview, showSource }`.
+`#tabs` replaces only the Preview/Source tabs; `#actions` replaces only the
+right-side action group. Both receive the current actions so a custom header can
+keep copy, export, zoom, fullscreen, and retry behavior.
 
 A failed first render always shows a lightweight fallback and keeps the source
 tab available. `show-errors` expands the detailed parser or missing-peer
@@ -560,9 +576,10 @@ readable and reports `math-engine-unavailable` instead of rendering nothing.
 
 `MarkdownMermaid` is the semantic node wrapper used by the renderer. It forwards
 `node`, `code`, `renderer`, `theme`, `showErrors`, `enableZoom`,
-`allowFullscreen`, and `compact` to `MermaidBlock`, and it exposes the same
-`render()`, `copy()`, `exportPng()`, `downloadSvg()`, and `toggleFullscreen()`
-actions. Use it when you need the semantic wrapper or want to replace
+`allowFullscreen`, `compact`, and `actions` to `MermaidBlock`, forwards the
+`header`, `tabs`, `actions`, `mermaid`, and `mermaid-error` slots, and exposes
+the same `render()`, `copy()`, `exportPng()`, `downloadSvg()`, and
+`toggleFullscreen()` actions. Use it when you need the semantic wrapper or want to replace
 `nodeComponents.mermaid`.
 
 ## Renderer integration

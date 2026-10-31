@@ -226,6 +226,22 @@ export interface CodeBlockAction {
   }): void | Promise<void>
 }
 
+export interface MermaidAction {
+  key: string
+  label: MarkdownLabelValue
+  run(context: {
+    source: string
+    copy(): Promise<void>
+    exportPng(): Promise<void>
+    downloadSvg(): void
+    fullscreen(): Promise<void> | void
+    retry(): Promise<void>
+    zoomIn(): void
+    zoomOut(): void
+    resetZoom(): void
+  }): void | Promise<void>
+}
+
 export interface MarkdownHighlighter {
   id: string
   load?(): Promise<void>

@@ -15,13 +15,17 @@ function renderer(overrides: Partial<MermaidRenderer> = {}): MermaidRenderer {
   }
 }
 
-function mountBlock(props: Record<string, unknown> = {}) {
+function mountBlock(
+  props: Record<string, unknown> = {},
+  slots: Record<string, unknown> = {},
+) {
   return mount(MermaidBlock, {
     props: {
       source: 'graph TD; A-->B',
       renderer: renderer(),
       ...props,
     },
+    slots: slots as never,
   })
 }
 
@@ -296,6 +300,117 @@ describe('MermaidBlock', () => {
 
     await wrapper.find('[data-action="fullscreen"]').trigger('click')
     expect(wrapper.attributes('data-fullscreen')).toBe('true')
+  })
+
+  it('replaces the header and exposes the default actions', async () => {
+    const wrapper = mountBlock(
+      {},
+      {
+        header: (ctx: {
+          label: string
+          view: string
+          actions: { copy: unknown }
+        }) =>
+          h(
+            'div',
+            { 'data-custom-header': '' },
+            `${ctx.label}:${ctx.view}:${typeof ctx.actions.copy}`,
+          ),
+      },
+    )
+    await flushPromises()
+    expect(wrapper.find('[data-custom-header]').text()).toBe(
+      'Diagram:preview:function',
+    )
+    expect(wrapper.find('[data-vmd-part="mermaid-tabs"]').exists()).toBe(false)
+  })
+
+  it('replaces tabs and actions independently', async () => {
+    const tabs = mountBlock(
+      {},
+      {
+        tabs: (ctx: {
+          view: string
+          actions: { source(): void }
+        }) =>
+          h(
+            'button',
+            {
+              'data-custom-tabs': '',
+              onClick: ctx.actions.source,
+            },
+            ctx.view,
+          ),
+      },
+    )
+    await flushPromises()
+    expect(tabs.find('[data-custom-tabs]').text()).toBe('preview')
+    expect(tabs.find('[data-vmd-part="mermaid-actions"]').exists()).toBe(true)
+    await tabs.find('[data-custom-tabs]').trigger('click')
+    expect(tabs.find('[data-custom-tabs]').text()).toBe('source')
+
+    const actions = mountBlock(
+      {},
+      {
+        actions: (ctx: { source: string }) =>
+          h('button', { 'data-custom-actions': '' }, ctx.source),
+      },
+    )
+    await flushPromises()
+    expect(actions.find('[data-action="copy"]').exists()).toBe(false)
+    expect(actions.find('[data-custom-actions]').text()).toBe('graph TD; A-->B')
+  })
+
+  it('runs custom actions and emits action errors', async () => {
+    const run = vi.fn()
+    const wrapper = mountBlock({
+      actions: [
+        { key: 'log', label: 'Log', run },
+        {
+          key: 'boom',
+          label: 'Boom',
+          run() {
+            throw new Error('nope')
+          },
+        },
+      ],
+    })
+    await flushPromises()
+    await wrapper.find('[data-action="log"]').trigger('click')
+    expect(run).toHaveBeenCalledWith(
+      expect.objectContaining({ source: 'graph TD; A-->B' }),
+    )
+    expect(wrapper.emitted('action')?.[0]).toEqual(['log'])
+
+    await wrapper.find('[data-action="boom"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.emitted('error')?.[0]?.[0]).toContain('nope')
+  })
+
+  it('forwards header slots and actions through MarkdownMermaid', async () => {
+    const wrapper = mount(MarkdownMermaid, {
+      props: {
+        code: 'graph TD; A-->B',
+        renderer: renderer(),
+        actions: [{ key: 'log', label: 'Log', run: vi.fn() }],
+      },
+      slots: {
+        header: (ctx: { label: string }) =>
+          h('div', { 'data-mm-header': '' }, ctx.label),
+      },
+    })
+    await flushPromises()
+    expect(wrapper.find('[data-mm-header]').text()).toBe('Diagram')
+
+    const actions = mount(MarkdownMermaid, {
+      props: {
+        code: 'graph TD; A-->B',
+        renderer: renderer(),
+        actions: [{ key: 'log', label: 'Log', run: vi.fn() }],
+      },
+    })
+    await flushPromises()
+    expect(actions.find('[data-action="log"]').exists()).toBe(true)
   })
 
   it('forwards display props through MarkdownMermaid', async () => {

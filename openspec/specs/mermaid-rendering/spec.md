@@ -127,15 +127,19 @@ The block SHALL export the currently rendered diagram as a PNG when export is av
 
 ### Requirement: Customization and parts
 
-The block SHALL expose documented tokens for preview background, border, controls, pending, and error states; stable parts for the root, header, tabs, actions, preview viewport, source view, pending overlay, and error region; slots for actions, toolbar, header, pending, error, and preview; and labels for all controls.
+The block SHALL expose documented tokens for preview background, border, controls, pending, and error states; stable parts for the root, header, tabs, actions, preview viewport, source view, pending overlay, and error region; slots for `header`, `tabs`, `actions`, `mermaid`, and `mermaid-error`; and labels for all controls.
 
 #### Scenario: Custom header
 - **WHEN** a host provides a header slot
 - **THEN** the default header is replaced while preview, zoom, and fullscreen behavior remain available through scoped context
 
-#### Scenario: Custom pending state
-- **WHEN** a host provides a pending slot
-- **THEN** the custom pending content is shown while the last good diagram remains underneath or hidden according to host markup
+#### Scenario: Custom actions
+- **WHEN** a host provides an actions slot or custom action descriptors
+- **THEN** the default action group is replaced or extended while the default handlers remain available through scoped context
+
+#### Scenario: Custom tabs
+- **WHEN** a host provides a tabs slot
+- **THEN** the Preview/Source tabs are replaced while the current view and view-switch actions remain available through scoped context
 
 ### Requirement: Server rendering and client-only behavior
 

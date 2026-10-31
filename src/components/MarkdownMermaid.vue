@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import type {
   MarkdownNode,
   MarkdownTheme,
+  MermaidAction,
   MermaidRenderResult,
   MermaidRenderer,
 } from '../core/types'
@@ -19,6 +20,7 @@ const props = withDefaults(
     enableZoom?: boolean
     allowFullscreen?: boolean
     compact?: boolean
+    actions?: MermaidAction[]
   }>(),
   {
     node: undefined,
@@ -29,6 +31,7 @@ const props = withDefaults(
     enableZoom: true,
     allowFullscreen: true,
     compact: false,
+    actions: () => [],
   },
 )
 
@@ -38,6 +41,7 @@ const emit = defineEmits<{
   copy: [source: string]
   export: [format: 'png' | 'svg']
   fullscreen: [active: boolean]
+  action: [key: string]
 }>()
 
 const context = useRenderContext()
@@ -88,12 +92,30 @@ defineExpose({
     :enable-zoom="enableZoom"
     :allow-fullscreen="allowFullscreen"
     :compact="compact"
+    :actions="actions"
     @rendered="emit('rendered', $event)"
     @error="emit('error', $event)"
     @copy="emit('copy', $event)"
     @export="emit('export', $event)"
     @fullscreen="emit('fullscreen', $event)"
-  />
+    @action="emit('action', $event)"
+  >
+    <template v-if="$slots.header" #header="slotProps">
+      <slot name="header" v-bind="slotProps || {}" />
+    </template>
+    <template v-if="$slots.tabs" #tabs="slotProps">
+      <slot name="tabs" v-bind="slotProps || {}" />
+    </template>
+    <template v-if="$slots.actions" #actions="slotProps">
+      <slot name="actions" v-bind="slotProps || {}" />
+    </template>
+    <template v-if="$slots.mermaid" #mermaid="slotProps">
+      <slot name="mermaid" v-bind="slotProps || {}" />
+    </template>
+    <template v-if="$slots['mermaid-error']" #mermaid-error="slotProps">
+      <slot name="mermaid-error" v-bind="slotProps || {}" />
+    </template>
+  </component>
   <MermaidBlock
     v-else
     ref="block"
@@ -105,10 +127,28 @@ defineExpose({
     :enable-zoom="enableZoom"
     :allow-fullscreen="allowFullscreen"
     :compact="compact"
+    :actions="actions"
     @rendered="emit('rendered', $event)"
     @error="emit('error', $event)"
     @copy="emit('copy', $event)"
     @export="emit('export', $event)"
     @fullscreen="emit('fullscreen', $event)"
-  />
+    @action="emit('action', $event)"
+  >
+    <template v-if="$slots.header" #header="slotProps">
+      <slot name="header" v-bind="slotProps || {}" />
+    </template>
+    <template v-if="$slots.tabs" #tabs="slotProps">
+      <slot name="tabs" v-bind="slotProps || {}" />
+    </template>
+    <template v-if="$slots.actions" #actions="slotProps">
+      <slot name="actions" v-bind="slotProps || {}" />
+    </template>
+    <template v-if="$slots.mermaid" #mermaid="slotProps">
+      <slot name="mermaid" v-bind="slotProps || {}" />
+    </template>
+    <template v-if="$slots['mermaid-error']" #mermaid-error="slotProps">
+      <slot name="mermaid-error" v-bind="slotProps || {}" />
+    </template>
+  </MermaidBlock>
 </template>

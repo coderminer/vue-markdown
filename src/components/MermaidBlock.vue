@@ -13,16 +13,17 @@ import {
 import type {
   MarkdownNode,
   MarkdownTheme,
+  MermaidAction,
   MermaidRenderResult,
   MermaidRenderer,
 } from '../core/types'
-import { createDiagnostic } from '../core/diagnostics'
+import { createDiagnostic, errorMessage } from '../core/diagnostics'
 import { resolveLabel } from '../core/labels'
 import { isValidMermaidRenderer } from '../core/adapters'
 import { isEmptySlotContent, useRenderContext } from './context'
 import { renderNodes } from './render'
 import { createMermaidRenderId, renderMermaid } from '../mermaid/runtime'
-import Icon from './Icon'
+import Icon, { type IconName } from './Icon'
 import { sanitizeMermaidNodes, sanitizeSvg } from '../mermaid/sanitize'
 
 const props = withDefaults(
@@ -35,6 +36,7 @@ const props = withDefaults(
     enableZoom?: boolean
     allowFullscreen?: boolean
     compact?: boolean
+    actions?: MermaidAction[]
   }>(),
   {
     node: undefined,
@@ -45,6 +47,7 @@ const props = withDefaults(
     enableZoom: true,
     allowFullscreen: true,
     compact: false,
+    actions: () => [],
   },
 )
 
@@ -54,6 +57,7 @@ const emit = defineEmits<{
   copy: [source: string]
   export: [format: 'png' | 'svg']
   fullscreen: [active: boolean]
+  action: [key: string]
 }>()
 
 const context = useRenderContext()
@@ -287,6 +291,78 @@ function resetZoom(): void {
   scale.value = 1
 }
 
+function showPreview(): void {
+  view.value = 'preview'
+}
+
+function showSource(): void {
+  view.value = 'source'
+}
+
+const actionHandlers = computed(() => ({
+  copy,
+  exportPng,
+  downloadSvg,
+  fullscreen: () => toggleFullscreen(),
+  retry: render,
+  zoomIn: () => zoom(0.25),
+  zoomOut: () => zoom(-0.25),
+  resetZoom,
+}))
+
+async function runAction(action: MermaidAction): Promise<void> {
+  try {
+    await action.run({
+      source: source.value,
+      ...actionHandlers.value,
+    })
+    emit('action', action.key)
+  } catch (exception) {
+    const message = `The "${action.key}" action failed: ${errorMessage(exception)}`
+    emit('error', message)
+    context.onRenderError?.(
+      createDiagnostic('action-error', message, {
+        severity: 'warning',
+        phase: 'render',
+        plugin: 'mermaid',
+      }),
+    )
+  }
+}
+
+const headerContext = computed(() => ({
+  source: source.value,
+  label: label.value,
+  view: view.value,
+  status: status.value,
+  copied: copied.value,
+  fullscreen: fullscreen.value,
+  compact: props.compact,
+  actions: actionHandlers.value,
+  showPreview,
+  showSource,
+}))
+
+const tabsContext = computed(() => ({
+  view: view.value,
+  status: status.value,
+  actions: {
+    preview: showPreview,
+    source: showSource,
+  },
+}))
+
+const actionsSlotContext = computed(() => ({
+  source: source.value,
+  status: status.value,
+  copied: copied.value,
+  fullscreen: fullscreen.value,
+  enableZoom: props.enableZoom,
+  allowFullscreen: props.allowFullscreen,
+  compact: props.compact,
+  actions: actionHandlers.value,
+}))
+
 const PreviewContent = defineComponent({
   setup() {
     return () =>
@@ -379,9 +455,7 @@ const ErrorContent = defineComponent({
           source: source.value,
           error: error.value,
           retry: render,
-          focusSource: () => {
-            view.value = 'source'
-          },
+          focusSource: showSource,
         },
         () => {
           const slot = ownSlots['mermaid-error']
@@ -390,9 +464,7 @@ const ErrorContent = defineComponent({
               source: source.value,
               error: error.value,
               retry: render,
-              focusSource: () => {
-                view.value = 'source'
-              },
+              focusSource: showSource,
             })
             if (!isEmptySlotContent(output)) return output
           }
@@ -407,6 +479,200 @@ const ErrorContent = defineComponent({
           )
         },
       )
+  },
+})
+
+const TabsContent = defineComponent({
+  setup() {
+    return () =>
+      context.renderHostSlot('tabs', tabsContext.value, () => {
+        const slot = ownSlots.tabs
+        if (slot) {
+          const output = slot(tabsContext.value)
+          if (!isEmptySlotContent(output)) return output
+        }
+        return h(
+          'div',
+          {
+            'data-vmd-part': 'mermaid-tabs',
+            class: 'vmd-mermaid-tabs',
+            role: 'tablist',
+          },
+          [
+            h(
+              'button',
+              {
+                type: 'button',
+                role: 'tab',
+                'data-action': 'preview',
+                'aria-selected': view.value === 'preview' ? 'true' : 'false',
+                'data-active': view.value === 'preview' ? 'true' : undefined,
+                onClick: showPreview,
+              },
+              [
+                h(Icon, { name: 'preview' }),
+                resolveLabel(context.labels.preview),
+              ],
+            ),
+            h(
+              'button',
+              {
+                type: 'button',
+                role: 'tab',
+                'data-action': 'source',
+                'aria-selected': view.value === 'source' ? 'true' : 'false',
+                'data-active': view.value === 'source' ? 'true' : undefined,
+                onClick: showSource,
+              },
+              [
+                h(Icon, { name: 'source' }),
+                resolveLabel(context.labels.source),
+              ],
+            ),
+          ],
+        )
+      })
+  },
+})
+
+const ActionsContent = defineComponent({
+  setup() {
+    return () =>
+      context.renderHostSlot('actions', actionsSlotContext.value, () => {
+        const slot = ownSlots.actions
+        if (slot) {
+          const output = slot(actionsSlotContext.value)
+          if (!isEmptySlotContent(output)) return output
+        }
+        if (props.compact) return null
+
+        const copyLabel = copied.value
+          ? resolveLabel(context.labels.copied)
+          : resolveLabel(context.labels.copy)
+        const iconButton = (
+          action: string,
+          label: string,
+          icon: IconName,
+          onClick: () => void | Promise<void>,
+        ) =>
+          h(
+            'button',
+            {
+              type: 'button',
+              class: 'vmd-mermaid-action',
+              'data-vmd-part': 'mermaid-action',
+              'data-action': action,
+              'data-icon': 'true',
+              'aria-label': label,
+              title: label,
+              onClick,
+            },
+            [
+              h(Icon, { name: icon }),
+              h('span', { class: 'vmd-visually-hidden' }, label),
+            ],
+          )
+
+        const children = []
+        if (props.enableZoom) {
+          children.push(
+            iconButton(
+              'zoom-in',
+              resolveLabel(context.labels.zoomIn),
+              'zoom-in',
+              () => zoom(0.25),
+            ),
+            iconButton(
+              'zoom-out',
+              resolveLabel(context.labels.zoomOut),
+              'zoom-out',
+              () => zoom(-0.25),
+            ),
+            iconButton(
+              'reset-zoom',
+              resolveLabel(context.labels.reset),
+              'reset',
+              resetZoom,
+            ),
+          )
+        }
+        children.push(
+          iconButton('copy', copyLabel, copied.value ? 'check' : 'copy', copy),
+          iconButton(
+            'export-png',
+            resolveLabel(context.labels.exportPng),
+            'image',
+            exportPng,
+          ),
+          iconButton(
+            'download-svg',
+            `${resolveLabel(context.labels.download)} SVG`,
+            'download',
+            downloadSvg,
+          ),
+        )
+        if (props.allowFullscreen) {
+          children.push(
+            iconButton(
+              'fullscreen',
+              fullscreen.value
+                ? resolveLabel(context.labels.exitFullscreen)
+                : resolveLabel(context.labels.fullscreen),
+              fullscreen.value ? 'exit-fullscreen' : 'fullscreen',
+              () => toggleFullscreen(),
+            ),
+          )
+        }
+        children.push(
+          iconButton('retry', resolveLabel(context.labels.retry), 'retry', render),
+        )
+
+        for (const action of props.actions) {
+          const actionLabel = resolveLabel(action.label)
+          children.push(
+            h(
+              'button',
+              {
+                type: 'button',
+                class: 'vmd-mermaid-action',
+                'data-vmd-part': 'mermaid-action',
+                'data-action': action.key,
+                onClick: () => void runAction(action),
+              },
+              actionLabel,
+            ),
+          )
+        }
+        return h(
+          'div',
+          {
+            'data-vmd-part': 'mermaid-actions',
+            class: 'vmd-mermaid-actions',
+          },
+          children,
+        )
+      })
+  },
+})
+
+const HeaderContent = defineComponent({
+  setup() {
+    return () =>
+      context.renderHostSlot('header', headerContext.value, () => {
+        const slot = ownSlots.header
+        if (slot) {
+          const output = slot(headerContext.value)
+          if (!isEmptySlotContent(output)) return output
+        }
+        return [
+          h('span', { class: 'vmd-mermaid-label' }, [
+            h(Icon, { name: 'diagram' }),
+            label.value,
+          ]),
+          h(TabsContent),
+          h(ActionsContent),
+        ]
+      })
   },
 })
 
@@ -429,146 +695,7 @@ defineExpose({ render, copy, exportPng, downloadSvg, toggleFullscreen })
     tabindex="-1"
   >
     <div data-vmd-part="mermaid-header" class="vmd-mermaid-header">
-      <span class="vmd-mermaid-label">
-        <Icon name="diagram" />
-        {{ label }}
-      </span>
-      <div data-vmd-part="mermaid-tabs" class="vmd-mermaid-tabs" role="tablist">
-        <button
-          type="button"
-          role="tab"
-          :aria-selected="view === 'preview'"
-          :data-active="view === 'preview' ? 'true' : undefined"
-          @click="view = 'preview'"
-        >
-          <Icon name="preview" />
-          {{ resolveLabel(context.labels.preview) }}
-        </button>
-        <button
-          type="button"
-          role="tab"
-          :aria-selected="view === 'source'"
-          :data-active="view === 'source' ? 'true' : undefined"
-          @click="view = 'source'"
-        >
-          <Icon name="source" />
-          {{ resolveLabel(context.labels.source) }}
-        </button>
-      </div>
-      <div
-        v-if="!compact"
-        data-vmd-part="mermaid-actions"
-        class="vmd-mermaid-actions"
-      >
-        <button
-          v-if="enableZoom"
-          type="button"
-          data-action="zoom-in"
-          data-icon="true"
-          :aria-label="resolveLabel(context.labels.zoomIn)"
-          :title="resolveLabel(context.labels.zoomIn)"
-          @click="zoom(0.25)"
-        >
-          <Icon name="zoom-in" />
-          <span class="vmd-visually-hidden">
-            {{ resolveLabel(context.labels.zoomIn) }}
-          </span>
-        </button>
-        <button
-          v-if="enableZoom"
-          type="button"
-          data-action="zoom-out"
-          data-icon="true"
-          :aria-label="resolveLabel(context.labels.zoomOut)"
-          :title="resolveLabel(context.labels.zoomOut)"
-          @click="zoom(-0.25)"
-        >
-          <Icon name="zoom-out" />
-          <span class="vmd-visually-hidden">
-            {{ resolveLabel(context.labels.zoomOut) }}
-          </span>
-        </button>
-        <button
-          v-if="enableZoom"
-          type="button"
-          data-action="reset-zoom"
-          data-icon="true"
-          :aria-label="resolveLabel(context.labels.reset)"
-          :title="resolveLabel(context.labels.reset)"
-          @click="resetZoom"
-        >
-          <Icon name="reset" />
-          <span class="vmd-visually-hidden">
-            {{ resolveLabel(context.labels.reset) }}
-          </span>
-        </button>
-        <button
-          type="button"
-          data-action="copy"
-          data-icon="true"
-          :aria-label="copied ? resolveLabel(context.labels.copied) : resolveLabel(context.labels.copy)"
-          :title="copied ? resolveLabel(context.labels.copied) : resolveLabel(context.labels.copy)"
-          @click="copy"
-        >
-          <Icon :name="copied ? 'check' : 'copy'" />
-          <span class="vmd-visually-hidden">
-            {{ copied ? resolveLabel(context.labels.copied) : resolveLabel(context.labels.copy) }}
-          </span>
-        </button>
-        <button
-          type="button"
-          data-action="export-png"
-          data-icon="true"
-          :aria-label="resolveLabel(context.labels.exportPng)"
-          :title="resolveLabel(context.labels.exportPng)"
-          @click="exportPng"
-        >
-          <Icon name="image" />
-          <span class="vmd-visually-hidden">
-            {{ resolveLabel(context.labels.exportPng) }}
-          </span>
-        </button>
-        <button
-          type="button"
-          data-action="download-svg"
-          data-icon="true"
-          :aria-label="`${resolveLabel(context.labels.download)} SVG`"
-          :title="`${resolveLabel(context.labels.download)} SVG`"
-          @click="downloadSvg"
-        >
-          <Icon name="download" />
-          <span class="vmd-visually-hidden">
-            {{ resolveLabel(context.labels.download) }} SVG
-          </span>
-        </button>
-        <button
-          v-if="allowFullscreen"
-          type="button"
-          data-action="fullscreen"
-          data-icon="true"
-          :aria-label="fullscreen ? resolveLabel(context.labels.exitFullscreen) : resolveLabel(context.labels.fullscreen)"
-          :title="fullscreen ? resolveLabel(context.labels.exitFullscreen) : resolveLabel(context.labels.fullscreen)"
-          @click="toggleFullscreen()"
-        >
-          <Icon :name="fullscreen ? 'exit-fullscreen' : 'fullscreen'" />
-          <span class="vmd-visually-hidden">
-            {{ fullscreen ? resolveLabel(context.labels.exitFullscreen) : resolveLabel(context.labels.fullscreen) }}
-          </span>
-        </button>
-        <button
-          type="button"
-          data-action="retry"
-          data-icon="true"
-          :aria-label="resolveLabel(context.labels.retry)"
-          :title="resolveLabel(context.labels.retry)"
-          @click="render"
-        >
-          <Icon name="retry" />
-          <span class="vmd-visually-hidden">
-            {{ resolveLabel(context.labels.retry) }}
-          </span>
-        </button>
-      </div>
+      <HeaderContent />
     </div>
 
     <div
