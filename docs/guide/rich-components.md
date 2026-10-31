@@ -113,9 +113,9 @@ const actions: CodeBlockAction[] = [
 </template>
 ```
 
-<DemoFrame title="CodeBlock" note="Header, copy/download, and a custom action">
+<DemoFrame title="CodeBlock" note="Default Mermaid-led header with copy/download icons">
   <MarkdownConfigProvider :theme="richTheme">
-    <CodeBlock :node="codeNode" :actions="actions" />
+    <CodeBlock :node="codeNode" />
   </MarkdownConfigProvider>
 </DemoFrame>
 
