@@ -11,7 +11,7 @@ import type {
   TocItem,
 } from './types'
 import { createDiagnostic, errorMessage } from './diagnostics'
-import { DANGEROUS_TAGS, propertiesToAttrs } from './security'
+import { DANGEROUS_TAGS, URL_ATTRIBUTES, propertiesToAttrs, sanitizeUrlValue } from './security'
 import { defaultUrlTransform, resolveUrl } from './url'
 
 export interface NormalizeOptions {
@@ -145,7 +145,8 @@ function filterDecision(
 
   if (!rejected && allowElement) {
     try {
-      rejected = allowElement(node, index, parent) === false
+      // react-markdown treats any falsy return as a rejection.
+      rejected = !allowElement(node, index, parent)
     } catch (error) {
       diagnostics?.push(
         createDiagnostic('filter-predicate', errorMessage(error), {
@@ -178,9 +179,10 @@ function normalizeUrlAttribute(
     const result = transform(resolved, key, { tag, attrs })
     if (result === null) return undefined
     if (typeof result !== 'string') {
-      return defaultUrlTransform(resolved, key) || undefined
+      return sanitizeUrlValue(defaultUrlTransform(resolved, key), key)
     }
-    return result || undefined
+    // A custom transform must not be able to introduce an unsafe URL.
+    return sanitizeUrlValue(result, key)
   } catch (error) {
     if (!state.urlErrorReported) {
       state.urlErrorReported = true
@@ -190,7 +192,7 @@ function normalizeUrlAttribute(
         }),
       )
     }
-    return defaultUrlTransform(resolved, key) || undefined
+    return sanitizeUrlValue(defaultUrlTransform(resolved, key), key)
   }
 }
 
@@ -227,7 +229,7 @@ function convertElement(
   }
 
   for (const [key, value] of Object.entries(attrs)) {
-    if (key !== 'href' && key !== 'src') continue
+    if (!URL_ATTRIBUTES.has(key)) continue
     const transformed = normalizeUrlAttribute(value, key, element.tagName, attrs, state)
     if (transformed === undefined) delete attrs[key]
     else attrs[key] = transformed

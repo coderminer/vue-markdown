@@ -5,7 +5,7 @@ import { createOfficialPipeline } from '../../src/pipeline'
 import { normalizeHast } from '../../src/core/normalize'
 import { defaultUrlTransform } from '../../src/core/url'
 import { defaultPlugins } from '../../src/plugins/builtin'
-import type { PipelineContext } from '../../src/core/types'
+import type { MarkdownUrlTransform, PipelineContext } from '../../src/core/types'
 
 function parse(
   source: string,
@@ -13,6 +13,7 @@ function parse(
     rehypePlugins?: PipelineContext['rehypePlugins']
     allowHtml?: boolean
     skipHtml?: boolean
+    urlTransform?: MarkdownUrlTransform
   } = {},
 ) {
   const ctx: PipelineContext = {
@@ -31,6 +32,7 @@ function parse(
     slugger: new GithubSlugger(),
     allowHtml: options.allowHtml,
     skipHtml: options.skipHtml,
+    urlTransform: options.urlTransform,
   })
 }
 
@@ -139,6 +141,57 @@ describe('sanitization and raw HTML', () => {
     expect(json).not.toContain('onclick')
     expect(json).not.toContain('style')
     expect(json).toContain('injected')
+  })
+
+  it('applies urlTransform to every URL-bearing attribute and revalidates its output', () => {
+    const seen: Array<[string, string]> = []
+    const inject = () => (tree: { children: Array<Record<string, unknown>> }) => {
+      tree.children.push({
+        type: 'element',
+        tagName: 'blockquote',
+        properties: { cite: 'https://example.com/source' },
+        children: [{ type: 'text', value: 'quote' }],
+      })
+      tree.children.push({
+        type: 'element',
+        tagName: 'img',
+        properties: {
+          src: 'https://example.com/a.png',
+          srcSet: 'https://example.com/a.png 1x, https://example.com/b.png 2x',
+        },
+        children: [],
+      })
+    }
+
+    const result = parse('', {
+      rehypePlugins: [inject as never],
+      urlTransform: (url, key) => {
+        seen.push([key, url])
+        if (key === 'cite') return 'javascript:alert(1)'
+        return url.replaceAll('example.com', 'example.org')
+      },
+    })
+
+    expect(seen).toContainEqual(['cite', 'https://example.com/source'])
+    expect(seen).toContainEqual([
+      'srcset',
+      'https://example.com/a.png 1x, https://example.com/b.png 2x',
+    ])
+
+    const quote = result.nodes.find(
+      (node) => node.kind === 'element' && node.tag === 'blockquote',
+    )
+    expect(quote && quote.kind === 'element' ? quote.attrs : {}).not.toHaveProperty(
+      'cite',
+    )
+
+    const image = result.nodes.find(
+      (node) => node.kind === 'element' && node.tag === 'img',
+    )
+    expect(image && image.kind === 'element' ? image.attrs : {}).toMatchObject({
+      src: 'https://example.org/a.png',
+      srcset: 'https://example.org/a.png 1x, https://example.org/b.png 2x',
+    })
   })
 
   it('keeps safe custom-tag props but strips handlers and unsafe URLs', () => {

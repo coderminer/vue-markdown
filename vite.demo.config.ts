@@ -41,6 +41,9 @@ export default defineConfig({
     ],
   },
   build: {
+    // Match the library baseline: Chrome/Edge 87+, Firefox 78+, Safari 14.1+.
+    target: ['chrome87', 'edge88', 'firefox78', 'safari14.1', 'ios14.5'],
+    cssTarget: ['chrome87', 'edge88', 'firefox78', 'safari14.1', 'ios14.5'],
     outDir: '../dist-demo',
     emptyOutDir: true,
   },

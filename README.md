@@ -48,6 +48,15 @@ const source = '# Hello\n\nA **bold** paragraph with a [link](https://example.co
 
 The stylesheet is optional. Every component is semantic and works unstyled.
 
+## Browser support
+
+The library targets evergreen browsers: Chrome/Edge 87+, Firefox 78+, Safari
+14.1+, and iOS 14.5+. Runtime code stays within ES2020, and CSS avoids newer
+features such as `:has()`, container queries, CSS nesting, `color-mix()`,
+`oklch()`, `dvh`, and `text-wrap: balance`. The Vite configs pin the build and
+CSS targets to this baseline; browser-only APIs are guarded and degrade
+gracefully during SSR.
+
 ## Entry points
 
 | Entry | Contents |
@@ -80,8 +89,8 @@ The stylesheet is optional. Every component is semantic and works unstyled.
 | `allowedElements` | `string[]` | — | Mutually exclusive with `disallowedElements`; wins on conflict. |
 | `disallowedElements` | `string[]` | — | Deny list. |
 | `unwrapDisallowed` | `boolean` | `false` | Keep the children of a removed element. |
-| `allowElement` | `(node, index, parent) => boolean` | — | Runs after the allow/deny lists. |
-| `urlTransform` | `(url, key, node) => string \| null \| undefined` | `defaultUrlTransform` | `null` removes the attribute. |
+| `allowElement` | `(node, index, parent) => boolean \| null \| undefined` | — | Runs after the allow/deny lists; any falsy result rejects the element. |
+| `urlTransform` | `(url, key, node) => string \| null \| undefined` | `defaultUrlTransform` | Applies to every URL-bearing attribute; `null` removes it and the result is revalidated. |
 | `linkTarget` | `string` | `'_self'` | Applied to links. |
 | `externalLinkTarget` | `'_self' \| '_blank'` | `'_self'` | `_blank` adds `rel="noopener noreferrer"`. |
 | `baseUrl` | `string` | — | Resolves relative URLs before `urlTransform`. |
@@ -149,7 +158,9 @@ const components = {
 </template>
 ```
 
-Fenced code resolves `code` first, then `pre`, then the built-in `MarkdownCode`.
+Fenced code renders as `pre` wrapping `code`. `components.pre` replaces the
+wrapper and receives the code element as its child; `components.code` applies to
+both inline and fenced code and receives a `language-*` class for fenced blocks.
 
 ## Plugins
 

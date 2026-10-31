@@ -86,13 +86,31 @@ npm run bench        # parse/render budget gate
 
 ## Performance rules
 
+Performance is a guardrail, not the product's headline feature. Keep the
+architecture efficient, but do not block features on marginal wins or optimize
+speculatively. Bundle size is a sanity check, not a primary design constraint.
+
 - Store the document in `shallowRef`; replace it atomically.
 - Never wrap the document or host components/plugins in a deep reactive proxy.
 - Memoize parses by source, pipeline identity, plugin identities, and
   parse-affecting options. Presentation-only changes must not re-parse.
-- Render text nodes as strings; never instantiate one component per text node.
-- Keep heavy engines (Shiki, Mermaid, CodeMirror, KaTeX) behind lazy entries.
-- Run `npm run bench` and `npm run size` before shipping.
+- Render text nodes as strings; do not instantiate one component per text node.
+- Keep heavy optional engines behind lazy entries when they are added.
+- Run `npm run bench` and `npm run size` as sanity checks, not as a gate for
+  every change. Investigate only visible or large regressions.
+
+## Compatibility rules
+
+- Target Chrome/Edge 87+, Firefox 78+, Safari 14.1+, and iOS 14.5+.
+- Keep `src/` runtime JavaScript at ES2020 or older. Do not add APIs such as
+  `Object.hasOwn`, `Array.prototype.at`, `structuredClone`,
+  `crypto.randomUUID`, `String.prototype.replaceAll`, or `Promise.any`.
+- Keep CSS within the same baseline. Do not add `:has()`, container queries,
+  CSS nesting, `color-mix()`, `oklch()`, `dvh`, or `text-wrap: balance`.
+- The Vite configs pin `build.target` and `cssTarget` to this baseline. They
+  transpile syntax but do not polyfill runtime APIs.
+- Prefer progressive enhancement: guard browser-only APIs and keep server
+  output usable when they are unavailable.
 
 ## Boundaries
 

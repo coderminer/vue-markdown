@@ -250,6 +250,17 @@ describe('filtering props', () => {
     expect(wrapper.find('strong').exists()).toBe(false)
     expect(wrapper.text()).toContain('bold')
   })
+
+  it('treats a falsy allowElement result as a rejection', () => {
+    const wrapper = renderer({
+      source,
+      allowElement: (node: { tag: string }) =>
+        node.tag === 'strong' ? undefined : true,
+      unwrapDisallowed: true,
+    })
+    expect(wrapper.find('strong').exists()).toBe(false)
+    expect(wrapper.text()).toContain('bold')
+  })
 })
 
 describe('TOC and heading navigation', () => {

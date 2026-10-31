@@ -155,23 +155,48 @@ function renderComponent(
   )
 }
 
-function renderCode(node: MarkdownCodeNode, ctx: RenderContext): VNodeChild {
+function renderCodeElement(node: MarkdownCodeNode, ctx: RenderContext): VNodeChild {
+  // react-markdown parity: `components.code` handles both inline and fenced
+  // code. Fenced code receives a `className` instead of a separate `inline`
+  // flag, so the same override works for both shapes. The semantic
+  // `nodeComponents.code` override additionally receives the source and
+  // language for richer host renderers.
+  const semantic = resolveKindComponent('code', ctx)
   const component =
-    resolveKindComponent('code', ctx) ??
-    (isComponentValue(ctx.components.pre) ? ctx.components.pre : undefined) ??
-    (isComponentValue(ctx.components.code) ? ctx.components.code : undefined) ??
-    MarkdownCode
+    semantic ??
+    (isComponentValue(ctx.components.code) ? ctx.components.code : 'code')
+  const className = node.language ? `language-${node.language}` : undefined
+  const key = `${node.key}-code`
+
+  if (typeof component === 'string') {
+    return h(component, { class: className, key }, node.code)
+  }
+
+  return h(
+    component,
+    {
+      node,
+      className,
+      key,
+      ...(semantic ? { code: node.code, language: node.language } : {}),
+    },
+    { default: () => [node.code] },
+  )
+}
+
+function renderCode(node: MarkdownCodeNode, ctx: RenderContext): VNodeChild {
+  // `components.pre` wraps the code element; it does not replace it.
+  const component = isComponentValue(ctx.components.pre)
+    ? ctx.components.pre
+    : MarkdownCode
 
   return renderComponent(
     component,
     node,
     ctx,
     {},
-    {
-      code: node.code,
-      language: node.language,
-    },
-    () => [node.code],
+    {},
+    () => [renderCodeElement(node, ctx)],
   )
 }
 

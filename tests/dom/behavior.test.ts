@@ -73,8 +73,8 @@ describe('node resolution precedence', () => {
         components: { pre: 'section' },
       },
     })
-    expect(wrapper.find('figure[data-code="js"]').text()).toBe('const value = 1')
-    expect(wrapper.find('section').exists()).toBe(false)
+    expect(wrapper.find('section figure[data-code="js"]').text()).toBe('const value = 1')
+    expect(wrapper.find('pre').exists()).toBe(false)
   })
 
   it('renders text nodes as strings, not components', () => {

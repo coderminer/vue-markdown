@@ -216,12 +216,40 @@ describe('react-markdown migration behavior notes', () => {
     expect(enabled.find('b').text()).toBe('raw')
   })
 
-  it('keeps fenced code on the code component when pre is replaced', () => {
+  it('wraps fenced code with the pre component and keeps the code element', () => {
     const wrapper = renderer({
       source: '```js\nconst value = 1\n```',
       components: { pre: 'section' },
     })
     expect(wrapper.find('section').text()).toContain('const value = 1')
+    expect(wrapper.find('section code').classes()).toContain('language-js')
     expect(wrapper.find('pre').exists()).toBe(false)
+  })
+
+  it('uses the code component for fenced and inline code with react-markdown props', () => {
+    const classNames: Array<string | undefined> = []
+    const wrapper = renderer({
+      source: '```js\nconst value = 1\n```\n\n`inline`',
+      components: {
+        code: defineComponent({
+          props: { className: { type: String, default: undefined } },
+          setup(props, { slots }) {
+            classNames.push(props.className)
+            return () =>
+              h(
+                'code',
+                { class: props.className, 'data-custom-code': '' },
+                slots.default?.(),
+              )
+          },
+        }),
+      },
+    })
+
+    const blocks = wrapper.findAll('[data-custom-code]')
+    expect(blocks).toHaveLength(2)
+    expect(classNames).toEqual(['language-js', undefined])
+    expect(blocks[0]?.text()).toBe('const value = 1')
+    expect(blocks[1]?.text()).toBe('inline')
   })
 })

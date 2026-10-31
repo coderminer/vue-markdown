@@ -18,7 +18,7 @@ This design starts from four principles — componentization, generalization, cu
 - Provide small preset components composed from exported subcomponents and a complete node component catalog.
 - Make syntax highlighting replaceable: highlight.js by default, Shiki as an official optional adapter, custom adapters supported.
 - Ship safe defaults without making customization require unsafe opt-outs.
-- Make performance a first-class contract: Vue-native reactivity, memoized parsing, a text fast path, and benchmark budgets.
+- Make performance a guardrail rather than the headline: Vue-native reactivity, memoized parsing, and a text fast path, with benchmarks used as sanity checks.
 - Keep heavy runtimes (Mermaid, CodeMirror, Shiki, KaTeX) and optional plugins out of unrelated bundles.
 
 **Non-Goals:**
@@ -68,7 +68,7 @@ This design starts from four principles — componentization, generalization, cu
 | Incremental streaming | not built in | post-v1 enhancement |
 | Headless use | not the primary mode | public composables and a serializable document model |
 | SSR | supported | supported with a DOM-free core and deterministic IDs |
-| Performance | React element tree per render | Vue shallow-reactive model, parse memoization, text fast path, benchmark budgets |
+| Performance | React element tree per render | Vue shallow-reactive model, parse memoization, text fast path, benchmark sanity checks |
 
 ### Parity checklist
 
@@ -97,7 +97,7 @@ This design starts from four principles — componentization, generalization, cu
 - Highlighter and math engines as replaceable adapters.
 - First-class code, math, Mermaid, TOC, and search experiences instead of leaving them to third-party plugins.
 - Design tokens, stable parts, presets, manifests, and a live customization inspector.
-- A Vue-native performance contract: shallow-reactive model, memoized parsing, text fast path, and measured budgets.
+- A Vue-native performance approach: shallow-reactive model, memoized parsing, text fast path, and benchmark sanity checks.
 
 ### What we do differently
 
@@ -517,7 +517,7 @@ interface MarkdownTagComponents {
 />
 ```
 
-Supported keys include `p`, `h1`–`h6`, `em`, `strong`, `del`, `a`, `img`, `ul`, `ol`, `li`, `blockquote`, `hr`, `table`, `thead`, `tbody`, `tr`, `th`, `td`, `pre`, `code`, `br`, and `input`, plus tags introduced by plugins. `components.code` covers inline code and is also the fallback for fenced code when no `pre` or semantic override is present.
+Supported keys include `p`, `h1`–`h6`, `em`, `strong`, `del`, `a`, `img`, `ul`, `ol`, `li`, `blockquote`, `hr`, `table`, `thead`, `tbody`, `tr`, `th`, `td`, `pre`, `code`, `br`, and `input`, plus tags introduced by plugins. `components.pre` replaces the fenced-code wrapper and receives the rendered `code` element as its child. `components.code` applies to both inline and fenced code; fenced code receives a `language-*` `className` and the source text as children, matching react-markdown.
 
 **Region components** replace structural regions:
 
@@ -581,7 +581,7 @@ Resolution:
 - Regions: slot > `regions` override > plugin region contribution > preset > built-in.
 - Nodes: function value in `nodeComponents` > `nodeComponents[tag]` > `components[tag]` > `nodeComponents[kind]` > plugin node component > preset > built-in.
 - When the same key exists in both `nodeComponents` and `components`, `nodeComponents` wins because it is the explicit typed catalog.
-- For fenced code, `nodeComponents.code` is the semantic override and takes precedence over the tag aliases `components.pre` and `components.code`.
+- For fenced code, `nodeComponents.code` is the semantic override for the inner code element and takes precedence over `components.code`; `components.pre` still wraps it.
 - A tag override always beats a kind override at the same layer, so `components.a` beats `nodeComponents.link`, while `nodeComponents.a` beats `components.a`.
 
 The resolved maps and the winning override are inspectable for debugging and tests. In v1.0 only the `components` map is public; `regions` and `nodeComponents` land in v1.x with the same precedence rules.
@@ -665,7 +665,7 @@ Deterministic precedence:
 - Configuration values: local prop > nearest provider > preset > plugin default > built-in default.
 - Region rendering: slot > `regions` override > plugin contribution > preset > built-in.
 - Node rendering: function value in `nodeComponents` > `nodeComponents[tag]` > `components[tag]` > `nodeComponents[kind]` > plugin component > preset > built-in.
-- At the same key, `nodeComponents` wins over `components`; for fenced code, `nodeComponents.code` wins over `components.pre` and `components.code`.
+- At the same key, `nodeComponents` wins over `components`; for fenced code, `nodeComponents.code` wins over `components.code`, while `components.pre` remains the wrapper.
 - If two plugins contribute the same component, phase order then registration order decides; the resolved registry is inspectable.
 
 ### Presets
@@ -817,7 +817,7 @@ Filtering runs after sanitization and before rendering, so a disallowed element 
 
 ### `CodeBlock`
 
-Props: `code`, `language`, `highlightedNodes`, `highlighter`, `theme`, `showActions`, `showDownload`, `fileName`, `actions`, `labels`. Slots: `header`, `toolbar`, `actions`. Emits: `copy`, `download`, `error`. The default actions are descriptors used by both the built-in toolbar and custom action slots. `CodeBlock` ships in v1.x; in v1.0 a fenced block renders through `components.code`/`components.pre`.
+Props: `code`, `language`, `highlightedNodes`, `highlighter`, `theme`, `showActions`, `showDownload`, `fileName`, `actions`, `labels`. Slots: `header`, `toolbar`, `actions`. Emits: `copy`, `download`, `error`. The default actions are descriptors used by both the built-in toolbar and custom action slots. `CodeBlock` ships in v1.x; in v1.0 a fenced block renders as `pre` wrapping `code`, with `components.pre` and `components.code` overridable independently.
 
 ### `VueSyntaxHighlighter`
 
@@ -843,9 +843,9 @@ The renderer is designed around Vue 3 primitives rather than a deep reactive tre
 - Keys are stable and derived from node position plus content identity, so list and table updates do not remount unrelated subtrees.
 - Plugin setup and teardown run inside an `effectScope`; watchers and resources are disposed on unmount or reconfiguration.
 - Heavy engines (Mermaid, Shiki, KaTeX, CodeMirror) load lazily and never enter the initial render path.
-- Benchmark budgets cover initial render, re-render with unchanged source, re-render with changed source, and a large document. CI fails on a documented regression threshold.
+- Benchmarks cover initial render, re-render with unchanged source, re-render with changed source, and a large document. They are sanity checks that surface large regressions, not a gate for every change.
 
-The goal is predictable performance without a virtual DOM replacement or a custom scheduler: parse once, render once, and let Vue do what it is good at.
+The goal is predictable performance without a virtual DOM replacement or a custom scheduler: parse once, render once, and let Vue do what it is good at. Performance is a guardrail, not the headline feature: keep the architecture efficient, but do not block features on marginal wins or optimize speculatively. Bundle size is likewise a sanity check rather than a primary design constraint.
 
 ## Server Rendering
 
@@ -878,7 +878,7 @@ The goal is predictable performance without a virtual DOM replacement or a custo
 - Entries: `.` (styled presets), `./headless`, `./pipeline`, `./plugins`, `./presets`, `./node-components`, `./highlighters/highlight-js`, `./highlighters/shiki`, `./math/katex`, `./components/*`, `./styles/tokens.css`, `./styles/components.css`, `./styles/math.css`, `./style.css`.
 - `vue` is external. `unified`, `remark-parse`, `remark-rehype`, `hast-util-*`, `unist-util-visit`, `github-slugger`, and `rehype-sanitize`/`hast-util-sanitize` are default dependencies. `remark-gfm`, `remark-math` + `rehype-katex`, `remark-frontmatter`, `rehype-raw`, `rehype-highlight`, and `@shikijs/rehype` are official optional entries or plugins. Shiki, KaTeX, Mermaid, and CodeMirror are isolated entries or lazy imports. No `markdown-it` and no `htmlparser2` in the default path.
 - `sideEffects` marks CSS files so bundlers keep required styles.
-- `package.json` declares supported Vue 3.5+, Vite 7+, Node 20+, and an exports map per entry.
+- `package.json` declares supported Vue 3.5+, Vite 7+, Node 20+, evergreen browsers (Chrome/Edge 87+, Firefox 78+, Safari 14.1+, iOS 14.5+), and an exports map per entry. Runtime code stays within ES2020, and CSS avoids newer features such as `:has()`, container queries, nesting, `color-mix()`, `oklch()`, `dvh`, and `text-wrap: balance`.
 - A size-guard script fails if Mermaid, CodeMirror, Shiki, or KaTeX enter entries that do not use them.
 
 ## Testing Strategy

@@ -94,7 +94,7 @@ The root and headless entries SHALL be importable in a Node.js server environmen
 
 ### Requirement: Compatibility
 
-The library SHALL support Vue 3.5 and later, Vite 7 and later for development, Node 20 and later for building and SSR, and current evergreen browsers. Runtime code SHALL NOT depend on Node.js built-in modules or server-only APIs. The package SHALL declare its supported Vue, Vite, and Node ranges.
+The library SHALL support Vue 3.5 and later, Vite 7 and later for development, Node 20 and later for building and SSR, and evergreen browsers: Chrome/Edge 87+, Firefox 78+, Safari 14.1+, and iOS 14.5+. Runtime code SHALL stay within ES2020 and SHALL NOT depend on Node.js built-in modules or server-only APIs. CSS SHALL avoid features outside that baseline, including `:has()`, container queries, CSS nesting, `color-mix()`, `oklch()`, `dvh`, and `text-wrap: balance`. The package SHALL declare its supported Vue, Vite, Node, and browser ranges, and the build SHALL pin syntax and CSS targets to the baseline.
 
 #### Scenario: Browser runtime
 - **WHEN** the built library is loaded in a current evergreen browser
@@ -118,7 +118,7 @@ The repository SHALL include a demo application that imports the library through
 
 ### Requirement: Automated quality gates
 
-The repository SHALL provide a single automated test command that runs unit, component, node-catalog, plugin-contract, pipeline-contract, CommonMark/GFM conformance, highlighter-adapter, math, react-markdown-parity, security, and server-rendering tests without requiring a browser. The tests SHALL cover public props, emitted events, slot behavior, plugin ordering and cleanup, customization precedence, pipeline equivalence, highlighter equivalence, math fallback, catalog coverage, tag component mapping, element filtering, URL transformation, and unsafe-content filtering. Type checking and the library build SHALL be runnable as separate commands, a large-document benchmark SHALL enforce the rendering budget, and a size guard SHALL fail the build if Mermaid, CodeMirror, Shiki, or KaTeX enter entries that do not use them.
+The repository SHALL provide a single automated test command that runs unit, component, node-catalog, plugin-contract, pipeline-contract, CommonMark/GFM conformance, highlighter-adapter, math, react-markdown-parity, security, and server-rendering tests without requiring a browser. The tests SHALL cover public props, emitted events, slot behavior, plugin ordering and cleanup, customization precedence, pipeline equivalence, highlighter equivalence, math fallback, catalog coverage, tag component mapping, element filtering, URL transformation, and unsafe-content filtering. Type checking and the library build SHALL be runnable as separate commands, a large-document benchmark SHALL report render time and component counts as a sanity check, and a size guard SHALL fail the build if Mermaid, CodeMirror, Shiki, or KaTeX enter entries that do not use them.
 
 #### Scenario: Test command
 - **WHEN** the automated test command runs on a clean checkout after dependency installation

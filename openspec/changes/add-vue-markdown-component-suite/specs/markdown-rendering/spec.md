@@ -38,7 +38,7 @@ The renderer SHALL accept Markdown through a `source` prop or the default slot. 
 
 ### Requirement: Tag component mapping
 
-The renderer SHALL accept a `components` map keyed by HTML tag name, aligned with react-markdown's component override model. Values SHALL be components or tag-name strings. Supported keys SHALL include `p`, `h1`–`h6`, `em`, `strong`, `del`, `a`, `img`, `ul`, `ol`, `li`, `blockquote`, `hr`, `table`, `thead`, `tbody`, `tr`, `th`, `td`, `pre`, `code`, `br`, `input`, and tags introduced by plugins. A tag override SHALL apply to every node with that tag. In v1.0, `components` is the only public override map. In v1.x, `nodeComponents` at the same key SHALL take precedence over `components`; otherwise a tag override SHALL take precedence over a semantic node-kind override, except for fenced code where the semantic `nodeComponents.code` override wins over the tag aliases `components.pre` and `components.code`.
+The renderer SHALL accept a `components` map keyed by HTML tag name, aligned with react-markdown's component override model. Values SHALL be components or tag-name strings. Supported keys SHALL include `p`, `h1`–`h6`, `em`, `strong`, `del`, `a`, `img`, `ul`, `ol`, `li`, `blockquote`, `hr`, `table`, `thead`, `tbody`, `tr`, `th`, `td`, `pre`, `code`, `br`, `input`, and tags introduced by plugins. A tag override SHALL apply to every node with that tag. `components.pre` SHALL replace the fenced-code wrapper and receive the rendered `code` element as its child. `components.code` SHALL apply to both inline and fenced code; fenced code SHALL receive a `language-*` `className` and the source text as children. In v1.0, `components` is the only public override map. In v1.x, `nodeComponents` at the same key SHALL take precedence over `components`; otherwise a tag override SHALL take precedence over a semantic node-kind override, except for fenced code where the semantic `nodeComponents.code` override wins over `components.code` while `components.pre` remains the wrapper.
 
 #### Scenario: Replace a heading tag
 - **WHEN** a host maps `h1` to `h2` through `components`
@@ -47,6 +47,10 @@ The renderer SHALL accept a `components` map keyed by HTML tag name, aligned wit
 #### Scenario: Replace a link component
 - **WHEN** a host maps `a` to a custom component
 - **THEN** every link uses that component and receives the normalized link props and node
+
+#### Scenario: Replace fenced code wrapper and element
+- **WHEN** a host maps `pre` to a custom wrapper and `code` to a custom code component
+- **THEN** the wrapper receives the custom code element as its child and the code component receives the `language-*` class and source text
 
 #### Scenario: Tag beats kind
 - **WHEN** a host supplies `components.a` and `nodeComponents.link`
@@ -58,7 +62,7 @@ The renderer SHALL accept a `components` map keyed by HTML tag name, aligned wit
 
 ### Requirement: Element filtering
 
-The renderer SHALL support `allowedElements`, `disallowedElements`, `unwrapDisallowed`, and an `allowElement` predicate. `allowedElements` and `disallowedElements` SHALL be mutually exclusive; supplying both SHALL produce a reported configuration diagnostic and `allowedElements` SHALL win. Filtering SHALL run after sanitization and before rendering. A disallowed element SHALL be removed with its children by default and replaced by its children when `unwrapDisallowed` is true. `allowElement` SHALL receive a normalized element view, its index, and its parent, and SHALL be able to reject an otherwise allowed element. Filtering SHALL NOT weaken URL or attribute safety.
+The renderer SHALL support `allowedElements`, `disallowedElements`, `unwrapDisallowed`, and an `allowElement` predicate. `allowedElements` and `disallowedElements` SHALL be mutually exclusive; supplying both SHALL produce a reported configuration diagnostic and `allowedElements` SHALL win. Filtering SHALL run after sanitization and before rendering. A disallowed element SHALL be removed with its children by default and replaced by its children when `unwrapDisallowed` is true. `allowElement` SHALL receive a normalized element view, its index, and its parent, and SHALL be able to reject an otherwise allowed element. A falsy return value SHALL reject the element, matching react-markdown. Filtering SHALL NOT weaken URL or attribute safety.
 
 #### Scenario: Allow list
 - **WHEN** `allowedElements` contains only `p`, `a`, and `strong`

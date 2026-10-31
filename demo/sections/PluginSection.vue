@@ -20,7 +20,7 @@ const cleanups = ref(0)
 function remarkUppercaseKeyword() {
   return (tree: { children: unknown[] }) => {
     visit(tree as never, 'text', (node: { value: string }) => {
-      node.value = node.value.replaceAll('plugin', 'PLUGIN')
+      node.value = node.value.split('plugin').join('PLUGIN')
     })
   }
 }

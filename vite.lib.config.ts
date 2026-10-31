@@ -35,6 +35,10 @@ export default defineConfig({
     conditions: ['node', 'import', 'module', 'default'],
   },
   build: {
+    // Keep the published syntax within the documented browser baseline. This
+    // does not polyfill runtime APIs; source code must stay ES2020-compatible.
+    target: ['chrome87', 'edge88', 'firefox78', 'safari14.1', 'ios14.5'],
+    cssTarget: ['chrome87', 'edge88', 'firefox78', 'safari14.1', 'ios14.5'],
     lib: {
       entry: {
         index: resolveSrc('./src/index.ts'),

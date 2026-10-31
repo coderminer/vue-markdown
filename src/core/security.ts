@@ -84,6 +84,8 @@ const URL_ATTRIBUTES = new Set([
   'xlink:href',
 ])
 
+export { URL_ATTRIBUTES }
+
 const GLOBAL_ATTRIBUTES = new Set([
   'id',
   'class',
@@ -181,6 +183,27 @@ function isSafeUrl(value: string, key: string): boolean {
   return defaultUrlTransform(value, key) !== ''
 }
 
+/**
+ * Validate one URL-bearing attribute value. `srcset` holds a comma-separated
+ * candidate list, so each candidate is checked individually.
+ */
+export function sanitizeUrlValue(
+  value: string,
+  key: string,
+): string | undefined {
+  if (key === 'srcset') {
+    const safe = value
+      .split(',')
+      .map((part) => part.trim())
+      .filter((candidate) => {
+        const url = candidate.split(/\s+/)[0] ?? ''
+        return isSafeUrl(url, 'src')
+      })
+    return safe.length > 0 ? safe.join(', ') : undefined
+  }
+  return isSafeUrl(value, key) ? value : undefined
+}
+
 /** Convert hast properties into safe, normalized attributes. */
 export function propertiesToAttrs(
   tag: string,
@@ -203,18 +226,13 @@ export function propertiesToAttrs(
       value = String(raw)
     }
 
-    if (name === 'srcset') {
-      const candidates = value.split(',').map((part) => part.trim())
-      const safe = candidates.filter((candidate) => {
-        const url = candidate.split(/\s+/)[0] ?? ''
-        return isSafeUrl(url, 'src')
-      })
-      if (safe.length === 0) continue
-      attrs[name] = safe.join(', ')
+    if (URL_ATTRIBUTES.has(name)) {
+      const safe = sanitizeUrlValue(value, name)
+      if (safe === undefined) continue
+      attrs[name] = safe
       continue
     }
 
-    if (URL_ATTRIBUTES.has(name) && !isSafeUrl(value, name)) continue
     attrs[name] = value
   }
 

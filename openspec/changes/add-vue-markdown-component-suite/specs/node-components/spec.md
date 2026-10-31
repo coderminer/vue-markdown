@@ -141,11 +141,11 @@ The library SHALL export a node catalog manifest describing every node kind, sup
 
 ### Requirement: Rendering performance
 
-The component-based catalog SHALL NOT introduce per-text-node component instances. Default node components SHALL be functional, component resolution SHALL be cached per node type, and the library SHALL include a benchmark for a large document with a documented budget. Hosts SHALL be able to bypass component instantiation through function values in `nodeComponents` for performance-critical cases.
+The component-based catalog SHALL NOT introduce per-text-node component instances. Default node components SHALL be functional, component resolution SHALL be cached per node type, and the library SHALL include a benchmark for a large document that reports render time and component counts. Hosts SHALL be able to bypass component instantiation through function values in `nodeComponents` for performance-critical cases.
 
 #### Scenario: Large document
 - **WHEN** a document with ten thousand nodes is rendered
-- **THEN** render time stays within the documented budget and text-heavy content does not create one component instance per text node
+- **THEN** render time stays reasonable and text-heavy content does not create one component instance per text node
 
 #### Scenario: Function renderer fast path
 - **WHEN** a host supplies function renderers for hot node kinds

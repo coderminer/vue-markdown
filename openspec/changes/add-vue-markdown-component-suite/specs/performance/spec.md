@@ -1,6 +1,6 @@
 ## Purpose
 
-Defines the Vue-native performance contract. The renderer parses once, stores an immutable document in shallow-reactive state, avoids deep proxies and per-text-node components, memoizes by pipeline identity, coalesces async work, and loads heavy engines lazily. Performance is measured and guarded in CI rather than asserted informally.
+Defines the Vue-native performance guardrail. The renderer parses once, stores an immutable document in shallow-reactive state, avoids deep proxies and per-text-node components, memoizes by pipeline identity, coalesces async work, and loads heavy engines lazily. Performance is a guardrail, not the product's headline feature: the architecture stays efficient, but features are not blocked on marginal wins and benchmarks are sanity checks rather than a gate for every change.
 
 ## ADDED Requirements
 
@@ -96,13 +96,13 @@ The core SHALL be DOM-free. Server rendering SHALL use the synchronous pipeline 
 - **WHEN** the same document is rendered twice on the server
 - **THEN** both outputs are identical and no browser global is accessed
 
-### Requirement: Benchmarks and CI budgets
+### Requirement: Benchmarks and size reports
 
-The repository SHALL include benchmarks for initial parse and render, re-render with unchanged source, re-render with changed source, and a large document. Documented budgets SHALL be enforced in CI, and a regression beyond the budget SHALL fail the build.
+The repository SHALL include benchmarks for initial parse and render, re-render with unchanged source, re-render with changed source, and a large document, plus a bundle-size report per entry. They SHALL run as sanity checks that surface visible or large regressions; they SHALL NOT block unrelated feature work or be treated as a primary design constraint.
 
-#### Scenario: Budget regression
-- **WHEN** a change increases render time or bundle size beyond the documented budget
-- **THEN** the performance check fails with a report identifying the metric
+#### Scenario: Large regression
+- **WHEN** a change causes a visible or large increase in render time or bundle size
+- **THEN** the report identifies the metric so the regression can be investigated
 
 #### Scenario: Benchmark report
 - **WHEN** the benchmark suite runs

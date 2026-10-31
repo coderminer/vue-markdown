@@ -191,7 +191,7 @@ export type AllowElement = (
   node: MarkdownElementNode,
   index: number | undefined,
   parent: MarkdownElementNode | undefined,
-) => boolean
+) => boolean | null | undefined
 
 /** Result of a pipeline run: hast plus optional document metadata. */
 export interface PipelineResult {
