@@ -10,7 +10,6 @@ const BOOLEAN_ATTRIBUTES = new Set([
   'multiple',
   'required',
   'selected',
-  'download',
 ])
 
 const PROPERTY_ALIASES: Record<string, string> = {

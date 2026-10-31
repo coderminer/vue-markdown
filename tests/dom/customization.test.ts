@@ -1,12 +1,12 @@
-import { describe, expect, it } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { describe, expect, it, vi } from 'vitest'
+import { flushPromises, mount } from '@vue/test-utils'
 import { defineComponent, h, nextTick } from 'vue'
 import MarkdownRenderer from '../../src/components/MarkdownRenderer.vue'
 import MarkdownConfigProvider from '../../src/components/MarkdownConfigProvider.vue'
 import { useRenderContext } from '../../src/components/context'
 import { composePresets, defineMarkdownPreset } from '../../src/core/preset'
 import { withUniqueSlugs } from '../../src/core/slugger'
-import type { MarkdownPipeline } from '../../src/core/types'
+import type { MarkdownHighlighter, MarkdownPipeline } from '../../src/core/types'
 
 function renderer(props: Record<string, unknown>, slots: Record<string, unknown> = {}) {
   return mount(MarkdownRenderer, { props, slots: slots as never })
@@ -182,6 +182,50 @@ describe('regions and node components', () => {
     )
   })
 
+  it('resolves regions.codeBlock for default code blocks', () => {
+    const CodeRegion = defineComponent({
+      props: { code: String, language: String, node: Object },
+      setup(props) {
+        return () =>
+          h(
+            'section',
+            { 'data-custom-code': '' },
+            `${props.language}:${props.code}`,
+          )
+      },
+    })
+    const wrapper = renderer({
+      source: '```ts\nconst x = 1\n```',
+      regions: { codeBlock: CodeRegion },
+    })
+    expect(wrapper.find('[data-custom-code]').text()).toBe('ts:const x = 1')
+    expect(wrapper.find('.vmd-code-block').exists()).toBe(false)
+  })
+
+  it('does not run a highlighter when a code region replaces the block', async () => {
+    const highlight = vi.fn(() => ({ language: 'ts', nodes: [] }))
+    const highlighter: MarkdownHighlighter = { id: 'spy', highlight }
+    const CodeRegion = defineComponent({
+      props: { code: String, language: String, node: Object },
+      setup(props) {
+        return () =>
+          h(
+            'section',
+            { 'data-custom-code': '' },
+            `${props.language}:${props.code}`,
+          )
+      },
+    })
+    const wrapper = renderer({
+      source: '```ts\nconst x = 1\n```',
+      regions: { codeBlock: CodeRegion },
+      highlighter,
+    })
+    await flushPromises()
+    expect(wrapper.find('[data-custom-code]').text()).toBe('ts:const x = 1')
+    expect(highlight).not.toHaveBeenCalled()
+  })
+
   it('resolves node components by tag and kind with documented precedence', () => {
     const CustomLink = defineComponent({
       props: { href: String, node: Object },
@@ -257,6 +301,28 @@ describe('regions and node components', () => {
     expect(wrapper.find('kbd').text()).toBe('inline')
     expect(wrapper.find('pre.vmd-code').exists()).toBe(true)
     expect(wrapper.find('[data-custom-code="js"]').text()).toBe('fenced')
+  })
+
+  it('invokes a function nodeComponents.code renderer for fenced code', () => {
+    const calls: string[] = []
+    const wrapper = renderer({
+      source: '```js\nfenced\n```',
+      nodeComponents: {
+        code: (ctx: {
+          node: { code: string; language: string }
+          defaultRender: () => unknown
+        }) => {
+          calls.push(ctx.node.code)
+          return h(
+            'code',
+            { 'data-function-code': ctx.node.language },
+            ctx.defaultRender() as never,
+          )
+        },
+      },
+    })
+    expect(calls.map((value) => value.trim())).toEqual(['fenced'])
+    expect(wrapper.find('[data-function-code="js"]').text()).toBe('fenced')
   })
 })
 

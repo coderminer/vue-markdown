@@ -3,6 +3,10 @@ import GithubSlugger from 'github-slugger'
 import rehypeRaw from 'rehype-raw'
 import { createOfficialPipeline } from '../../src/pipeline'
 import { normalizeHast } from '../../src/core/normalize'
+import {
+  propertiesToAttrs,
+  sanitizeStyleValue,
+} from '../../src/core/security'
 import { defaultUrlTransform } from '../../src/core/url'
 import { defaultPlugins } from '../../src/plugins/builtin'
 import type { MarkdownUrlTransform, PipelineContext } from '../../src/core/types'
@@ -285,5 +289,28 @@ describe('malformed input corpus', () => {
         }).nodes,
       )
     }
+  })
+})
+
+describe('trusted engine styles', () => {
+  it('keeps constrained token styles and strips unsafe declarations', () => {
+    expect(sanitizeStyleValue('color:#D73A49;--shiki-dark:#F97583')).toBe(
+      'color: #D73A49; --shiki-dark: #F97583',
+    )
+    expect(
+      sanitizeStyleValue('background-image:url(https://evil.example/x.png)'),
+    ).toBeUndefined()
+    expect(sanitizeStyleValue('color:red;position:fixed')).toBe('color: red')
+  })
+
+  it('only allows inline styles when explicitly enabled', () => {
+    expect(propertiesToAttrs('span', { style: 'color:red' })).toEqual({})
+    expect(
+      propertiesToAttrs(
+        'span',
+        { style: 'color:red' },
+        { allowStyle: true },
+      ),
+    ).toEqual({ style: 'color: red' })
   })
 })

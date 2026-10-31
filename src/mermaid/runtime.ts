@@ -11,7 +11,7 @@ interface MermaidApi {
 }
 
 let mermaidPromise: Promise<MermaidApi> | undefined
-let initializedTheme: MarkdownTheme | undefined
+let initializedTheme: MarkdownTheme | null | undefined = null
 let queue: Promise<unknown> = Promise.resolve()
 let counter = 0
 
@@ -32,10 +32,11 @@ async function loadMermaid(): Promise<MermaidApi> {
 }
 
 async function initialize(api: MermaidApi, theme: MarkdownTheme | undefined): Promise<void> {
-  if (initializedTheme === theme) return
+  if (initializedTheme !== null && initializedTheme === theme) return
   await api.initialize({
     startOnLoad: false,
     securityLevel: 'strict',
+    htmlLabels: false,
     theme: themeName(theme),
     fontFamily: 'var(--vmd-font-sans)',
   })
@@ -46,6 +47,11 @@ function classify(error: unknown): string {
   if (error instanceof Error) return error.message
   if (typeof error === 'string') return error
   return 'Mermaid rendering failed.'
+}
+
+/** Create a unique DOM-safe identifier for one Mermaid render. */
+export function createMermaidRenderId(): string {
+  return `vmd-mermaid-${++counter}`
 }
 
 /**
@@ -67,7 +73,7 @@ export async function renderMermaid(
     try {
       const api = await loadMermaid()
       await initialize(api, options.theme)
-      const id = options.id ?? `vmd-mermaid-${++counter}`
+      const id = options.id ?? createMermaidRenderId()
       const { svg } = await api.render(id, source)
       return { svg, nodes: sanitizeSvg(svg) }
     } catch (error) {
@@ -82,7 +88,7 @@ export async function renderMermaid(
 
 export function resetMermaidRuntime(): void {
   mermaidPromise = undefined
-  initializedTheme = undefined
+  initializedTheme = null
   queue = Promise.resolve()
   counter = 0
 }

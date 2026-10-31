@@ -12,19 +12,37 @@ placeholder during SSR, then loads the runtime after mount.
 
 ## Security and CSP
 
-The runtime uses Mermaid's `securityLevel: 'strict'`. Rendered SVG is parsed and
-sanitized before it becomes nodes: scripts, `foreignObject`, event handlers,
-external links, and unsafe elements are removed. A host CSP should allow the
-Mermaid runtime's script chunk but does not need `unsafe-eval`; Mermaid is not
-used during SSR. The sanitized SVG never goes through `v-html`.
+The runtime uses Mermaid's `securityLevel: 'strict'` and `htmlLabels: false`, so
+diagram labels are emitted as SVG `<text>`/`<tspan>` instead of HTML inside
+`foreignObject`. Rendered SVG is parsed and sanitized before it becomes nodes:
+scripts, event handlers, external links, and unsafe elements are removed. When
+SVG markup is sanitized, any remaining `foreignObject` label text is converted
+to SVG text; node output from an injected renderer drops `foreignObject`
+elements instead.
+
+Mermaid's generated theme stylesheet is preserved as a scoped `<style>` element
+so node fills, strokes, fonts, and marker styling keep working. The stylesheet
+is kept only when the root SVG has an id and every rule selector is prefixed by
+that id (descendant and child combinators are allowed; sibling combinators and
+unscoped selectors reject the element). External CSS imports and URLs plus
+active CSS constructs are stripped. SVG element and attribute casing is
+normalized before rendering, so `linearGradient`, `viewBox`, `stroke-width`,
+`marker-end`, and `aria-*` attributes survive.
+
+A host CSP should allow the Mermaid runtime's script chunk and permit the
+sanitized `<style>` element, for example with `style-src 'unsafe-inline'` (a
+nonce- or hash-only `style-src` blocks it, and the diagram renders without its
+theme stylesheet). The runtime does not need `unsafe-eval`; Mermaid is not used
+during SSR. The sanitized SVG never goes through `v-html`.
 
 ## Block behavior
 
 `MermaidBlock` provides preview/source tabs, pending state, last-good retention,
 opt-in error display, zoom, fullscreen, copy, SVG download, PNG export, and
 retry. It exposes `mermaid` and `mermaid-error` slots and the
-`mermaidRenderer` injection point. A custom renderer still has its SVG
-sanitized, and an invalid renderer falls back to the default runtime.
+`mermaidRenderer` injection point. A custom renderer still has its SVG and
+node output sanitized, and invalid renderer output is reported while the last
+good preview is retained.
 
 ```vue
 <MermaidBlock :source="diagram" @error="onDiagramError" />

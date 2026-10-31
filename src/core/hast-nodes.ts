@@ -19,7 +19,12 @@ function fromHast(nodes: readonly RootContent[], path = ''): MarkdownNode[] {
       kind: 'element',
       key,
       tag: element.tagName,
-      attrs: propertiesToAttrs(element.tagName, element.properties),
+      // Engine output is trusted host code. Attributes are normalized and
+      // inline styles are limited to the constrained subset; tags are not
+      // filtered here.
+      attrs: propertiesToAttrs(element.tagName, element.properties, {
+        allowStyle: true,
+      }),
       children: fromHast(element.children, key),
     })
   })

@@ -48,6 +48,7 @@ const emit = defineEmits<{
 
 const context = useRenderContext()
 const ownSlots = useSlots()
+const region = computed(() => context.regions?.codeBlock)
 const source = computed(() => {
   if (props.code !== undefined) return props.code
   return props.node?.kind === 'code' ? props.node.code : ''
@@ -86,6 +87,9 @@ function colorScheme(): 'light' | 'dark' {
 }
 
 async function refresh(): Promise<void> {
+  // A region replacement owns the rendered output, so do not load or run the
+  // default highlighter for it.
+  if (region.value) return
   let instance = props.highlighter ?? context.highlighter
   if (!instance) {
     try {
@@ -111,7 +115,9 @@ async function refresh(): Promise<void> {
   })
 }
 
-onMounted(() => void refresh())
+onMounted(() => {
+  if (!region.value) void refresh()
+})
 onUnmounted(() => {
   if (copiedTimer) clearTimeout(copiedTimer)
 })
@@ -277,12 +283,25 @@ watch(
   () => props.highlighter ?? context.highlighter,
   () => void refresh(),
 )
+watch(region, (value) => {
+  if (!value) void refresh()
+})
 
 defineExpose({ copy, download, highlighted: result })
 </script>
 
 <template>
+  <component
+    :is="region"
+    v-if="region"
+    :node="node"
+    :code="source"
+    :language="language"
+  >
+    <slot />
+  </component>
   <div
+    v-else
     data-vmd-part="code"
     class="vmd-code vmd-code-block"
     :data-language="label"

@@ -46,7 +46,34 @@ const engineResult = computed(() => {
   }
 })
 const nodes = computed(() => engineResult.value?.nodes ?? rendered.value ?? [])
-const error = computed(() => props.error ?? engineResult.value?.error)
+
+function katexError(
+  nodes: readonly MarkdownNode[] | undefined,
+): string | undefined {
+  if (!nodes) return undefined
+  for (const node of nodes) {
+    if (node.kind !== 'element') continue
+    const classes = (node.attrs.class ?? '').split(/\s+/)
+    if (classes.includes('katex-error')) {
+      return node.attrs.title || 'Invalid TeX expression.'
+    }
+    const nested = katexError(node.children)
+    if (nested) return nested
+  }
+  return undefined
+}
+
+// The default pipeline path renders KaTeX markup inside `rendered` rather than
+// reporting an engine error, so surface its `katex-error` marker through the
+// same diagnostic path as an injected engine failure. When an engine result
+// exists its nodes replace `rendered`, so the pipeline markup no longer
+// describes what is displayed.
+const renderedError = computed(() =>
+  engineResult.value ? undefined : katexError(rendered.value),
+)
+const error = computed(
+  () => props.error ?? engineResult.value?.error ?? renderedError.value,
+)
 const label = computed(() => resolveLabel(context.labels.math, { tex: source.value }))
 
 function reportError(): void {

@@ -204,10 +204,48 @@ export function sanitizeUrlValue(
   return isSafeUrl(value, key) ? value : undefined
 }
 
+// Inline styles are rejected for document content. Trusted engine output
+// (highlighters, math) may opt in to a small, non-executable subset so token
+// colors survive normalization.
+const ALLOWED_STYLE_PROPERTIES = new Set([
+  'color',
+  'background-color',
+  'font-style',
+  'font-weight',
+  'text-decoration',
+  'opacity',
+])
+
+const UNSAFE_STYLE =
+  /url\s*\(|expression\s*\(|javascript\s*:|@import|behavior\s*:|-moz-binding|[<>{}]/i
+
+export function sanitizeStyleValue(value: string): string | undefined {
+  const declarations: string[] = []
+  for (const part of value.split(';')) {
+    const separator = part.indexOf(':')
+    if (separator <= 0) continue
+    const name = part.slice(0, separator).trim().toLowerCase()
+    const rawValue = part.slice(separator + 1).trim()
+    if (!name || !rawValue) continue
+    if (UNSAFE_STYLE.test(rawValue)) continue
+    const allowed =
+      ALLOWED_STYLE_PROPERTIES.has(name) || /^--shiki-[a-z0-9-]+$/.test(name)
+    if (!allowed) continue
+    declarations.push(`${name}: ${rawValue}`)
+  }
+  return declarations.length > 0 ? declarations.join('; ') : undefined
+}
+
+export interface PropertiesToAttrsOptions {
+  /** Allow a constrained inline-style subset for trusted engine output. */
+  allowStyle?: boolean
+}
+
 /** Convert hast properties into safe, normalized attributes. */
 export function propertiesToAttrs(
   tag: string,
   properties: Properties | undefined,
+  options: PropertiesToAttrsOptions = {},
 ): Record<string, string> {
   const attrs: Record<string, string> = {}
   if (!properties) return attrs
@@ -216,16 +254,25 @@ export function propertiesToAttrs(
     const raw = properties[key]
     if (raw === null || raw === undefined || raw === false) continue
     const name = toAttributeName(key)
-    if (!isAllowedAttribute(tag, name)) continue
 
     let value: string
     if (raw === true) {
       value = ''
     } else if (Array.isArray(raw)) {
-      value = name === 'class' ? raw.join(' ') : raw.join(' ')
+      value = raw.join(' ')
     } else {
       value = String(raw)
     }
+
+    if (name === 'style') {
+      if (!options.allowStyle) continue
+      const safeStyle = sanitizeStyleValue(value)
+      if (safeStyle === undefined) continue
+      attrs.style = safeStyle
+      continue
+    }
+
+    if (!isAllowedAttribute(tag, name)) continue
 
     if (URL_ATTRIBUTES.has(name)) {
       const safe = sanitizeUrlValue(value, name)

@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { h } from 'vue'
 import MermaidBlock from '../../src/components/MermaidBlock.vue'
-import type { MermaidRenderer } from '../../src/core/types'
+import type { MermaidRenderer, MermaidRenderOptions, MermaidRenderResult } from '../../src/core/types'
 
 const safeSvg = '<svg viewBox="0 0 10 10"><text>Hello diagram</text></svg>'
 
@@ -29,6 +29,50 @@ describe('MermaidBlock', () => {
     vi.restoreAllMocks()
   })
 
+  it('hides a first-render error unless error display is enabled', async () => {
+    const hidden = mountBlock({
+      source: 'graph TD; broken',
+      renderer: renderer({ render: () => ({ nodes: [], error: 'bad syntax' }) }),
+    })
+    await flushPromises()
+    await vi.waitFor(() => {
+      expect(hidden.attributes('data-status')).toBe('error')
+    })
+    expect(hidden.find('[data-vmd-part="mermaid-error"]').exists()).toBe(false)
+    expect(hidden.text()).not.toContain('bad syntax')
+
+    const shown = mountBlock({
+      source: 'graph TD; broken',
+      showErrors: true,
+      renderer: renderer({ render: () => ({ nodes: [], error: 'bad syntax' }) }),
+    })
+    await flushPromises()
+    await vi.waitFor(() => {
+      expect(shown.attributes('data-status')).toBe('error')
+    })
+    expect(shown.find('[data-vmd-part="mermaid-error"]').text()).toContain(
+      'bad syntax',
+    )
+  })
+
+  it('forwards a render identifier to injected renderers', async () => {
+    const ids: Array<string | undefined> = []
+    const wrapper = mountBlock({
+      renderer: renderer({
+        render: (_source: string, options: MermaidRenderOptions) => {
+          ids.push(options.id)
+          return { svg: safeSvg, nodes: [] }
+        },
+      }),
+    })
+    await flushPromises()
+    await vi.waitFor(() => {
+      expect(wrapper.attributes('data-status')).toBe('ready')
+    })
+    expect(ids).toHaveLength(1)
+    expect(ids[0]).toMatch(/^vmd-mermaid-\d+$/)
+  })
+
   it('renders sanitized SVG nodes and exposes the renderer identity', async () => {
     const wrapper = mountBlock({
       renderer: renderer({
@@ -45,6 +89,26 @@ describe('MermaidBlock', () => {
     expect(wrapper.attributes('data-renderer')).toBe('test-mermaid')
     expect(wrapper.text()).toContain('Safe')
     expect(wrapper.html()).not.toContain('script')
+  })
+
+  it('renders Mermaid theme styles and case-sensitive SVG elements', async () => {
+    const wrapper = mountBlock({
+      renderer: renderer({
+        render: () => ({
+          svg: '<svg id="d" viewBox="0 0 10 10"><style>#d .node rect{fill:#f9f}</style><defs><linearGradient id="g"><stop stop-color="#fff"/></linearGradient></defs><g class="node"><rect stroke-width="2" fill-opacity=".5"/></g></svg>',
+          nodes: [],
+        }),
+      }),
+    })
+    await vi.waitFor(() => {
+      expect(wrapper.attributes('data-status')).toBe('ready')
+    })
+    const html = wrapper.html()
+    expect(html).toContain('<style>')
+    expect(html).toContain('#d .node rect')
+    expect(html).toContain('linearGradient')
+    expect(html).toContain('stroke-width="2"')
+    expect(html).toContain('fill-opacity="0.5"')
   })
 
   it('keeps the last good diagram after a failure', async () => {
@@ -64,6 +128,114 @@ describe('MermaidBlock', () => {
     expect(wrapper.text()).toContain('Hello diagram')
     expect(wrapper.text()).toContain('bad syntax')
   })
+
+  it('sanitizes nodes returned by an injected renderer', async () => {
+    const wrapper = mountBlock({
+      renderer: renderer({
+        render: (): MermaidRenderResult => ({
+          nodes: [
+            {
+              kind: 'element',
+              key: 'script',
+              tag: 'script',
+              attrs: {},
+              children: [{ kind: 'text', key: 't', value: 'alert(1)' }],
+            },
+            {
+              kind: 'element',
+              key: 'svg',
+              tag: 'svg',
+              attrs: { viewBox: '0 0 10 10' },
+              children: [
+                {
+                  kind: 'element',
+                  key: 'label',
+                  tag: 'text',
+                  attrs: { onclick: 'alert(2)', fill: '#000' },
+                  children: [{ kind: 'text', key: 'x', value: 'Safe label' }],
+                },
+              ],
+            },
+          ],
+        }),
+      }),
+    })
+    await vi.waitFor(() => {
+      expect(wrapper.attributes('data-status')).toBe('ready')
+    })
+    expect(wrapper.text()).toContain('Safe label')
+    expect(wrapper.html()).not.toContain('script')
+    expect(wrapper.html()).not.toContain('onclick')
+  })
+
+  it('reports invalid renderer output and keeps the last good preview', async () => {
+    const wrapper = mountBlock()
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain('Hello diagram')
+    })
+    await wrapper.setProps({
+      source: 'graph TD; blank',
+      renderer: renderer({ render: () => ({ nodes: [] }) }),
+      showErrors: true,
+    })
+    await vi.waitFor(() => {
+      expect(wrapper.attributes('data-status')).toBe('error')
+    })
+    expect(wrapper.text()).toContain('Hello diagram')
+    expect(wrapper.text()).toContain('Renderer returned no usable diagram output.')
+    expect(wrapper.emitted('error')).toBeTruthy()
+  })
+
+  it('discards stale renderer results', async () => {
+    let resolveFirst: (value: MermaidRenderResult) => void = () => undefined
+    let resolveSecond: (value: MermaidRenderResult) => void = () => undefined
+    const first = new Promise<MermaidRenderResult>((resolve) => {
+      resolveFirst = resolve
+    })
+    const second = new Promise<MermaidRenderResult>((resolve) => {
+      resolveSecond = resolve
+    })
+    const wrapper = mountBlock({
+      source: 'first',
+      renderer: renderer({ render: () => first }),
+    })
+    await flushPromises()
+    await wrapper.setProps({
+      source: 'second',
+      renderer: renderer({ render: () => second }),
+    })
+    await flushPromises()
+
+    resolveSecond({
+      nodes: [
+        {
+          kind: 'element',
+          key: 'svg',
+          tag: 'svg',
+          attrs: {},
+          children: [{ kind: 'text', key: 't', value: 'Fresh' }],
+        },
+      ],
+    })
+    await flushPromises()
+    expect(wrapper.text()).toContain('Fresh')
+
+    resolveFirst({
+      nodes: [
+        {
+          kind: 'element',
+          key: 'svg',
+          tag: 'svg',
+          attrs: {},
+          children: [{ kind: 'text', key: 't', value: 'Stale' }],
+        },
+      ],
+    })
+    await flushPromises()
+    expect(wrapper.text()).toContain('Fresh')
+    expect(wrapper.text()).not.toContain('Stale')
+  })
+
 
   it('switches to source, copies, zooms, and toggles fullscreen', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined)

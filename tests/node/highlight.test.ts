@@ -62,5 +62,6 @@ describe('highlight adapters', () => {
     })
     expect(after.language).toBe('typescript')
     expect(after.nodes.length).toBeGreaterThan(0)
+    expect(JSON.stringify(after.nodes)).toContain('color')
   }, 30000)
 })

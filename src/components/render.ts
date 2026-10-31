@@ -94,11 +94,12 @@ export const TAG_TO_KIND: Record<string, string> = {
   input: 'taskItem',
 }
 
-const SEMANTIC_BUILTINS: Record<string, Component> = {
-  code: MarkdownCode,
-  custom: MarkdownCustomTag,
-  math: MarkdownMath,
-  mermaid: MarkdownMermaid,
+function semanticBuiltin(kind: string): Component | undefined {
+  if (kind === 'code') return MarkdownCode
+  if (kind === 'custom') return MarkdownCustomTag
+  if (kind === 'math') return MarkdownMath
+  if (kind === 'mermaid') return MarkdownMermaid
+  return undefined
 }
 
 function isComponentValue(
@@ -414,7 +415,8 @@ function renderCode(node: MarkdownCodeNode, ctx: RenderContext): VNodeChild {
   // resolution path. The default v1.x path uses the richer CodeBlock.
   if (
     isComponentValue(ctx.components.code) ||
-    isComponentValue(ctx.nodeComponents?.code)
+    isComponentValue(ctx.nodeComponents?.code) ||
+    isNodeRenderer(ctx.nodeComponents?.code)
   ) {
     return renderComponent(
       MarkdownCode,
@@ -542,7 +544,7 @@ function renderNodeDefault(node: MarkdownNode, ctx: RenderContext): VNodeChild {
       return renderCustom(node, ctx)
     case 'math':
       return renderComponent(
-        resolveNodeComponent(node, ctx) ?? SEMANTIC_BUILTINS.math ?? 'span',
+        resolveNodeComponent(node, ctx) ?? semanticBuiltin('math') ?? 'span',
         node,
         ctx,
         {},
@@ -554,7 +556,7 @@ function renderNodeDefault(node: MarkdownNode, ctx: RenderContext): VNodeChild {
       )
     case 'mermaid':
       return renderComponent(
-        resolveNodeComponent(node, ctx) ?? SEMANTIC_BUILTINS.mermaid ?? 'pre',
+        resolveNodeComponent(node, ctx) ?? semanticBuiltin('mermaid') ?? 'pre',
         node,
         ctx,
         {},
@@ -563,7 +565,7 @@ function renderNodeDefault(node: MarkdownNode, ctx: RenderContext): VNodeChild {
     case 'plugin':
       return renderComponent(
         resolveNodeComponent(node, ctx) ??
-          SEMANTIC_BUILTINS[node.type] ??
+          semanticBuiltin(node.type) ??
           'div',
         node,
         ctx,

@@ -113,6 +113,17 @@ const visibleLines = computed(() => {
   return output
 })
 
+function colorScheme(): 'light' | 'dark' {
+  const theme = props.theme ?? context.theme
+  if (theme === 'dark') return 'dark'
+  if (theme === 'auto' && typeof window !== 'undefined') {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light'
+  }
+  return 'light'
+}
+
 function refresh(): void {
   if (timer) clearTimeout(timer)
   const run = async (): Promise<void> => {
@@ -136,6 +147,7 @@ function refresh(): void {
     }
     result.value = runHighlighter(instance, props.source, props.language, {
       theme: props.theme ?? context.theme,
+      colorScheme: colorScheme(),
     })
   }
   if (props.delay > 0) timer = setTimeout(() => void run(), props.delay)

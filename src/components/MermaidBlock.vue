@@ -20,8 +20,8 @@ import { resolveLabel } from '../core/labels'
 import { isValidMermaidRenderer } from '../core/adapters'
 import { isEmptySlotContent, useRenderContext } from './context'
 import { renderNodes } from './render'
-import { renderMermaid } from '../mermaid/runtime'
-import { sanitizeSvg } from '../mermaid/sanitize'
+import { createMermaidRenderId, renderMermaid } from '../mermaid/runtime'
+import { sanitizeMermaidNodes, sanitizeSvg } from '../mermaid/sanitize'
 
 const props = withDefaults(
   defineProps<{
@@ -79,17 +79,44 @@ const rendererId = computed(() =>
 )
 const label = computed(() => resolveLabel(context.labels.mermaid, { source: source.value }))
 
+const INVALID_RENDERER_OUTPUT = 'Renderer returned no usable diagram output.'
+let renderToken = 0
+
+function prepareResult(
+  raw: MermaidRenderResult | null | undefined,
+): MermaidRenderResult {
+  if (!raw || typeof raw !== 'object') {
+    return { nodes: [], error: INVALID_RENDERER_OUTPUT }
+  }
+  const svg = typeof raw.svg === 'string' && raw.svg ? raw.svg : undefined
+  const nodes = Array.isArray(raw.nodes) ? sanitizeMermaidNodes(raw.nodes) : []
+  if (nodes.length > 0) return { ...raw, svg, nodes }
+  if (svg) {
+    // A renderer may return SVG markup plus no nodes. Parse and sanitize it
+    // before it can reach the renderer.
+    const sanitized = sanitizeSvg(svg)
+    if (sanitized.length > 0) return { ...raw, svg, nodes: sanitized }
+  }
+  return {
+    ...raw,
+    svg,
+    nodes: [],
+    error: raw.error ?? INVALID_RENDERER_OUTPUT,
+  }
+}
+
 async function render(): Promise<void> {
+  const token = ++renderToken
   status.value = 'pending'
   error.value = ''
   const active = renderer.value
+  const id = createMermaidRenderId()
   let next: MermaidRenderResult
   if (active && isValidMermaidRenderer(active)) {
     try {
-      next = await active.render(source.value, { theme: context.theme })
-      if (next.svg && (!next.nodes || next.nodes.length === 0)) {
-        next = { ...next, nodes: sanitizeSvg(next.svg) }
-      }
+      next = prepareResult(
+        await active.render(source.value, { theme: context.theme, id }),
+      )
     } catch (exception) {
       next = {
         nodes: [],
@@ -97,8 +124,18 @@ async function render(): Promise<void> {
       }
     }
   } else {
-    next = await renderMermaid(source.value, { theme: context.theme })
+    // The default runtime already returns sanitized nodes.
+    const rendered = await renderMermaid(source.value, {
+      theme: context.theme,
+      id,
+    })
+    next =
+      rendered.error || rendered.nodes.length > 0
+        ? rendered
+        : { ...rendered, error: INVALID_RENDERER_OUTPUT }
   }
+
+  if (token !== renderToken) return
 
   result.value = next
   if (next.error) {
@@ -269,25 +306,28 @@ const PreviewContent = defineComponent({
             if (!isEmptySlotContent(output)) return output
           }
           if (!lastGood.value) {
-            return status.value === 'error'
-              ? h(
-                  'div',
-                  {
-                    'data-vmd-part': 'mermaid-error',
-                    class: 'vmd-mermaid-error',
-                    role: 'status',
-                  },
-                  error.value,
-                )
-              : h(
-                  'div',
-                  {
-                    'data-vmd-part': 'mermaid-pending',
-                    class: 'vmd-mermaid-pending',
-                    role: 'status',
-                  },
-                  'Rendering diagram…',
-                )
+            if (status.value === 'error') {
+              return props.showErrors
+                ? h(
+                    'div',
+                    {
+                      'data-vmd-part': 'mermaid-error',
+                      class: 'vmd-mermaid-error',
+                      role: 'status',
+                    },
+                    error.value,
+                  )
+                : null
+            }
+            return h(
+              'div',
+              {
+                'data-vmd-part': 'mermaid-pending',
+                class: 'vmd-mermaid-pending',
+                role: 'status',
+              },
+              'Rendering diagram…',
+            )
           }
           return h(
             'div',

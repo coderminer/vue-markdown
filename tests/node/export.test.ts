@@ -67,6 +67,25 @@ describe('static export parity', () => {
     )
   })
 
+  it('preserves the string value of the download attribute', () => {
+    const anchor: MarkdownNode = {
+      kind: 'element',
+      key: 'download-link',
+      tag: 'a',
+      attrs: { href: '/report.pdf', download: 'report.pdf' },
+      children: [{ kind: 'text', key: 'download-text', value: 'Report' }],
+    }
+    const plugin = defineMarkdownPlugin({
+      name: 'export-download',
+      transformDocument(document: MarkdownDocument) {
+        return { ...document, nodes: [...document.nodes, anchor] }
+      },
+    })
+    expect(exportMarkdownHtmlSync('Hello', { plugins: [plugin] })).toContain(
+      'download="report.pdf"',
+    )
+  })
+
   it('supports the asynchronous export form', async () => {
     await expect(exportMarkdownHtml('# Async\n\n**bold**')).resolves.toContain(
       '<strong>bold</strong>',

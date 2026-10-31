@@ -74,10 +74,16 @@ export const shiki: MarkdownHighlighter = {
     if (!highlighter) return plaintextHighlight(code, language)
     const loaded = highlighter.getLoadedLanguages()
     const lang = loaded.includes(language as never) ? language : 'text'
+    // Keep both theme variants in the token style while making the active
+    // scheme the concrete color. Normalization preserves that constrained
+    // style subset, so tokens keep their colors instead of rendering
+    // monochrome.
+    const colorScheme =
+      options.colorScheme ?? (options.theme === 'dark' ? 'dark' : 'light')
     const root = highlighter.codeToHast(code, {
       lang: lang as never,
       themes: THEMES,
-      defaultColor: false,
+      defaultColor: colorScheme,
       ...(options.theme ? { theme: options.theme as never } : {}),
     })
     return {
