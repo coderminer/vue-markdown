@@ -81,6 +81,7 @@ export const COMPONENT_MANIFESTS: Record<string, MarkdownComponentManifest> = {
       'toolbar',
       'tabs',
       'actions',
+      'footer',
       'highlighter',
       'math',
       'math-error',
@@ -277,6 +278,9 @@ export const COMPONENT_MANIFESTS: Record<string, MarkdownComponentManifest> = {
   VueSyntaxHighlighter: manifest('VueSyntaxHighlighter', {
     parts: [
       'highlighter',
+      'highlighter-header',
+      'highlighter-actions',
+      'highlighter-footer',
       'highlighter-body',
       'highlighter-line',
       'highlighter-gutter',
@@ -284,7 +288,7 @@ export const COMPONENT_MANIFESTS: Record<string, MarkdownComponentManifest> = {
       'highlighter-toggle',
     ],
     tokens: ['--vmd-code-bg', '--vmd-code-text', '--vmd-font-mono'],
-    slots: ['highlighter'],
+    slots: ['header', 'footer', 'empty', 'actions', 'highlighter'],
     labels: ['empty', 'showAll', 'showLess', 'copyFailed'],
     overrideKeys: ['highlighter'],
     behaviors: ['highlighter'],

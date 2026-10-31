@@ -31,6 +31,7 @@ function mountBlock(props: Record<string, unknown> = {}, slots = {}) {
       code: 'const x = 1',
       language: 'ts',
       highlighter: customHighlighter,
+      showDownload: true,
       ...props,
     },
     slots,
@@ -123,6 +124,63 @@ describe('CodeBlock', () => {
     },
     15000,
   )
+
+  it('renders full-block highlighter output without an extra code wrapper', async () => {
+    const blockHighlighter: MarkdownHighlighter = {
+      id: 'block-highlighter',
+      highlight() {
+        return {
+          language: 'ts',
+          mode: 'block',
+          nodes: [
+            {
+              kind: 'element',
+              key: 'block-pre',
+              tag: 'pre',
+              attrs: { class: 'full-block' },
+              children: [{ kind: 'text', key: 'block-text', value: 'block' }],
+            },
+          ],
+        }
+      },
+    }
+    const wrapper = mountBlock({ highlighter: blockHighlighter })
+    await flushPromises()
+    expect(wrapper.find('[data-vmd-part="code-body"] pre.full-block').exists()).toBe(
+      true,
+    )
+    expect(wrapper.find('[data-vmd-part="code-body"] > code').exists()).toBe(false)
+  })
+
+  it('supports highlighted line ranges', async () => {
+    const wrapper = mountBlock({
+      code: 'a\nb\nc\nd\ne',
+      lineNumbers: true,
+      highlightLines: [2, '4-5'],
+    })
+    await flushPromises()
+    const highlighted = wrapper
+      .findAll('[data-vmd-part="highlighter-line"]')
+      .filter((line) => line.attributes('data-highlighted') === 'true')
+      .map((line) => line.attributes('data-line'))
+    expect(highlighted).toEqual(['2', '4', '5'])
+  })
+
+  it('hides download by default and enables it explicitly', async () => {
+    const hidden = mount(CodeBlock, {
+      props: {
+        code: 'const x = 1',
+        language: 'ts',
+        highlighter: customHighlighter,
+      },
+    })
+    await flushPromises()
+    expect(hidden.find('[data-action="download"]').exists()).toBe(false)
+
+    const shown = mountBlock({ showDownload: true })
+    await flushPromises()
+    expect(shown.find('[data-action="download"]').exists()).toBe(true)
+  })
 
   it('renders built-in icon actions with accessible labels', async () => {
     const wrapper = mountBlock()
@@ -410,6 +468,94 @@ describe('VueSyntaxHighlighter', () => {
     )
     await flushPromises()
     expect(wrapper.find('[data-custom-highlighter]').text()).toBe('7')
+  })
+
+  it('supports full-block results and highlighted ranges', async () => {
+    const blockHighlighter: MarkdownHighlighter = {
+      id: 'highlighter-block',
+      highlight() {
+        return {
+          language: 'ts',
+          mode: 'block',
+          nodes: [
+            {
+              kind: 'element',
+              key: 'pre',
+              tag: 'pre',
+              attrs: { class: 'full-highlighter' },
+              children: [{ kind: 'text', key: 'text', value: 'block' }],
+            },
+          ],
+        }
+      },
+    }
+    const block = mount(VueSyntaxHighlighter, {
+      props: { source: 'x', highlighter: blockHighlighter },
+    })
+    await flushPromises()
+    expect(
+      block.find('[data-vmd-part="highlighter-body"] pre.full-highlighter').exists(),
+    ).toBe(true)
+    expect(
+      block.find('[data-vmd-part="highlighter-body"] > code').exists(),
+    ).toBe(false)
+
+    const ranged = mount(VueSyntaxHighlighter, {
+      props: {
+        source: 'a\nb\nc\nd',
+        highlighter: customHighlighter,
+        highlightLines: ['2-3'],
+      },
+    })
+    await flushPromises()
+    expect(
+      ranged
+        .findAll('[data-vmd-part="highlighter-line"]')
+        .filter((line) => line.attributes('data-highlighted') === 'true')
+        .map((line) => line.attributes('data-line')),
+    ).toEqual(['2', '3'])
+  })
+
+  it('supports header, footer, empty, and actions slots', async () => {
+    const wrapper = mount(VueSyntaxHighlighter, {
+      props: { source: 'x', language: 'ts', highlighter: customHighlighter },
+      slots: {
+        header: (ctx: { language: string; actions: { copy: unknown } }) =>
+          h(
+            'div',
+            { 'data-custom-header': '' },
+            `${ctx.language}:${typeof ctx.actions.copy}`,
+          ),
+        footer: () => h('div', { 'data-custom-footer': '' }, 'footer'),
+        actions: () => h('button', { 'data-custom-actions': '' }, 'action'),
+      },
+    })
+    await flushPromises()
+    expect(wrapper.find('[data-custom-header]').text()).toBe('ts:function')
+    expect(wrapper.find('[data-custom-footer]').text()).toBe('footer')
+    expect(wrapper.find('[data-vmd-part="highlighter-actions"]').exists()).toBe(
+      false,
+    )
+
+    const actions = mount(VueSyntaxHighlighter, {
+      props: { source: 'x', language: 'ts', highlighter: customHighlighter },
+      slots: {
+        actions: () => h('button', { 'data-custom-actions': '' }, 'action'),
+      },
+    })
+    await flushPromises()
+    expect(actions.find('[data-vmd-part="highlighter-actions"]').exists()).toBe(
+      true,
+    )
+
+    const empty = mount(VueSyntaxHighlighter, {
+      props: { source: '', highlighter: customHighlighter },
+      slots: {
+        empty: () => h('div', { 'data-custom-empty': '' }, 'nothing'),
+      },
+    })
+    await flushPromises()
+    expect(empty.find('[data-custom-empty]').text()).toBe('nothing')
   })
 
   it('reports clipboard failures', async () => {

@@ -262,7 +262,7 @@ describe('regions and node components', () => {
       highlighter,
     })
     expect(wrapper.find('[data-custom-code]').text()).toBe(
-      'region-highlighter:true:true:0:true',
+      'region-highlighter:true:false:0:true',
     )
   })
 

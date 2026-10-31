@@ -215,6 +215,9 @@ export interface HighlightResult {
   className?: string
 }
 
+/** A 1-based line number or an inclusive `start-end` range string. */
+export type HighlightLine = number | string
+
 export interface CodeBlockAction {
   key: string
   label: MarkdownLabelValue

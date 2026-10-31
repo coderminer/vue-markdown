@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { defineComponent, h, useSlots, type VNodeChild } from 'vue'
+import { computed, defineComponent, h, useSlots, type VNodeChild } from 'vue'
 import type {
+  HighlightLine,
   MarkdownDiagnostic,
   MarkdownHighlighter,
   MarkdownTheme,
@@ -20,7 +21,7 @@ const props = withDefaults(
     theme?: MarkdownTheme
     highlighter?: MarkdownHighlighter
     lineNumbers?: boolean
-    highlightLines?: number[]
+    highlightLines?: HighlightLine[]
     maxLines?: number
     virtual?: boolean
     virtualThreshold?: number
@@ -77,6 +78,7 @@ const {
   scrollRef,
   onScroll,
   toggle,
+  isHighlightedLine,
 } = useLineWindow({
   nodes: () => result.value.nodes,
   source: () => props.source,
@@ -84,7 +86,10 @@ const {
   virtual: () => props.virtual,
   virtualThreshold: () => props.virtualThreshold,
   lineHeight: () => props.lineHeight,
+  highlightLines: () => props.highlightLines,
 })
+
+const blockMode = computed(() => result.value.mode === 'block')
 
 async function copy(): Promise<void> {
   try {
@@ -115,6 +120,145 @@ async function copy(): Promise<void> {
 
 defineExpose({ copy, getHighlighted, highlighted: result })
 
+const slotContext = computed(() => ({
+  source: props.source,
+  language: props.language,
+  highlighted: result.value,
+  nodes: result.value.nodes,
+  lines: visibleLines.value,
+  actions: { copy },
+}))
+
+const emptyContext = computed(() => ({
+  source: props.source,
+  language: props.language,
+  label: resolveLabel(context.labels.empty),
+  actions: { copy },
+}))
+
+const ActionsRegion = defineComponent({
+  setup() {
+    return () => {
+      const own = ownSlots.actions
+      if (own) {
+        const output = own(slotContext.value)
+        if (!isEmptySlotContent(output)) {
+          return h(
+            'span',
+            {
+              'data-vmd-part': 'highlighter-actions',
+              class: 'vmd-highlighter-actions',
+            },
+            output,
+          )
+        }
+      }
+      const host = context.slots?.actions
+      if (host) {
+        const output = host(slotContext.value)
+        if (!isEmptySlotContent(output)) {
+          return h(
+            'span',
+            {
+              'data-vmd-part': 'highlighter-actions',
+              class: 'vmd-highlighter-actions',
+            },
+            output,
+          )
+        }
+      }
+      return null
+    }
+  },
+})
+
+const HeaderRegion = defineComponent({
+  setup() {
+    return () => {
+      const own = ownSlots.header
+      if (own) {
+        const output = own(slotContext.value)
+        if (!isEmptySlotContent(output)) {
+          return h(
+            'div',
+            {
+              'data-vmd-part': 'highlighter-header',
+              class: 'vmd-highlighter-header',
+            },
+            output,
+          )
+        }
+      }
+      const host = context.slots?.header
+      if (host) {
+        const output = host(slotContext.value)
+        if (!isEmptySlotContent(output)) {
+          return h(
+            'div',
+            {
+              'data-vmd-part': 'highlighter-header',
+              class: 'vmd-highlighter-header',
+            },
+            output,
+          )
+        }
+      }
+      if (!ownSlots.actions && !context.slots?.actions) return null
+      return h(
+        'div',
+        {
+          'data-vmd-part': 'highlighter-header',
+          class: 'vmd-highlighter-header',
+        },
+        [
+          h(
+            'span',
+            { class: 'vmd-highlighter-label' },
+            props.language || 'text',
+          ),
+          h(ActionsRegion),
+        ],
+      )
+    }
+  },
+})
+
+const FooterRegion = defineComponent({
+  setup() {
+    return () => {
+      const own = ownSlots.footer
+      if (own) {
+        const output = own(slotContext.value)
+        if (!isEmptySlotContent(output)) {
+          return h(
+            'div',
+            {
+              'data-vmd-part': 'highlighter-footer',
+              class: 'vmd-highlighter-footer',
+            },
+            output,
+          )
+        }
+      }
+      const host = context.slots?.footer
+      if (host) {
+        const output = host(slotContext.value)
+        if (!isEmptySlotContent(output)) {
+          return h(
+            'div',
+            {
+              'data-vmd-part': 'highlighter-footer',
+              class: 'vmd-highlighter-footer',
+            },
+            output,
+          )
+        }
+      }
+      return null
+    }
+  },
+})
+
 const Body = defineComponent({
   setup() {
     return () =>
@@ -142,14 +286,24 @@ const Body = defineComponent({
             if (!isEmptySlotContent(output)) return output
           }
           if (props.source === '') {
-            return h(
-              'div',
-              {
-                'data-vmd-part': 'highlighter-empty',
-                class: 'vmd-highlighter-empty',
-              },
-              resolveLabel(context.labels.empty),
-            )
+            return context.renderHostSlot('empty', emptyContext.value, () => {
+              const empty = ownSlots.empty
+              if (empty) {
+                const output = empty(emptyContext.value)
+                if (!isEmptySlotContent(output)) return output
+              }
+              return h(
+                'div',
+                {
+                  'data-vmd-part': 'highlighter-empty',
+                  class: 'vmd-highlighter-empty',
+                },
+                resolveLabel(context.labels.empty),
+              )
+            })
+          }
+          if (blockMode.value) {
+            return renderNodes(result.value.nodes, context)
           }
           const children: VNodeChild[] = []
           if (virtualActive.value && startLine.value > 0) {
@@ -161,7 +315,7 @@ const Body = defineComponent({
             )
           }
           for (const line of visibleLines.value) {
-            const highlighted = props.highlightLines.includes(line.index + 1)
+            const highlighted = isHighlightedLine(line.index)
             children.push(
               h(
                 'div',
@@ -242,8 +396,10 @@ const Body = defineComponent({
     "
     @scroll="onScroll"
   >
+    <HeaderRegion />
     <div data-vmd-part="highlighter-body" class="vmd-highlighter-body">
       <Body />
     </div>
+    <FooterRegion />
   </div>
 </template>

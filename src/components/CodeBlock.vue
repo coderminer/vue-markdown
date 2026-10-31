@@ -11,6 +11,7 @@ import {
 } from 'vue'
 import type {
   CodeBlockAction,
+  HighlightLine,
   MarkdownCodeNode,
   MarkdownDiagnostic,
   MarkdownHighlighter,
@@ -39,7 +40,7 @@ const props = withDefaults(
     title?: string
     fileName?: string
     lineNumbers?: boolean
-    highlightLines?: number[]
+    highlightLines?: HighlightLine[]
     maxLines?: number
     virtual?: boolean
     virtualThreshold?: number
@@ -57,7 +58,7 @@ const props = withDefaults(
     theme: undefined,
     actions: () => [],
     showActions: true,
-    showDownload: true,
+    showDownload: false,
     title: undefined,
     fileName: undefined,
     lineNumbers: false,
@@ -125,6 +126,7 @@ const {
   scrollRef,
   onScroll,
   toggle,
+  isHighlightedLine,
 } = useLineWindow({
   nodes: () => result.value.nodes,
   source,
@@ -132,7 +134,10 @@ const {
   virtual: () => props.virtual,
   virtualThreshold: () => props.virtualThreshold,
   lineHeight: () => props.lineHeight,
+  highlightLines: () => props.highlightLines,
 })
+
+const blockMode = computed(() => result.value.mode === 'block')
 
 const lineMode = computed(
   () =>
@@ -265,7 +270,7 @@ function renderLines(): VNodeChild[] {
     )
   }
   for (const line of visibleLines.value) {
-    const highlighted = props.highlightLines.includes(line.index + 1)
+    const highlighted = isHighlightedLine(line.index)
     children.push(
       h(
         'div',
@@ -342,6 +347,7 @@ const Content = defineComponent({
           const output = slot(codeSlotContext.value)
           if (!isEmptySlotContent(output)) return output
         }
+        if (blockMode.value) return renderNodes(result.value.nodes, context)
         if (lineMode.value) return renderLines()
         return renderNodes(result.value.nodes, context) as VNodeChild
       })
@@ -581,7 +587,14 @@ defineExpose({ copy, download, getHighlighted, highlighted: result })
       <HeaderContent />
     </div>
     <div
-      v-if="lineMode"
+      v-if="blockMode"
+      data-vmd-part="code-body"
+      class="vmd-code-body vmd-code-block-body"
+    >
+      <Content />
+    </div>
+    <div
+      v-else-if="lineMode"
       ref="scrollRef"
       data-vmd-part="code-body"
       class="vmd-code-body vmd-code-lines"

@@ -8,8 +8,9 @@ import {
   type MaybeRefOrGetter,
   type Ref,
 } from 'vue'
-import type { MarkdownNode } from '../core/types'
+import type { HighlightLine, MarkdownNode } from '../core/types'
 import { splitHighlightLines } from '../highlight/shared'
+import { resolveHighlightedLines } from '../core/highlight-lines'
 
 export interface VisibleLine {
   index: number
@@ -23,6 +24,7 @@ export interface UseLineWindowOptions {
   virtual?: MaybeRefOrGetter<boolean>
   virtualThreshold?: MaybeRefOrGetter<number>
   lineHeight?: MaybeRefOrGetter<number>
+  highlightLines?: MaybeRefOrGetter<readonly HighlightLine[] | undefined>
 }
 
 export interface UseLineWindowReturn {
@@ -39,6 +41,7 @@ export interface UseLineWindowReturn {
   onScroll: (event: Event) => void
   measure: () => void
   toggle: () => void
+  isHighlightedLine: (index: number) => boolean
 }
 
 /**
@@ -58,6 +61,10 @@ export function useLineWindow(
   const scrollTop = ref(0)
   const viewportHeight = ref(0)
   const scrollRef = ref<HTMLElement>()
+  const clientReady = ref(false)
+  const highlightedLineSet = computed(() =>
+    resolveHighlightedLines(toValue(options.highlightLines)),
+  )
   const overscan = 4
 
   const maxLines = computed(() => Math.max(0, toValue(options.maxLines) ?? 0))
@@ -77,7 +84,10 @@ export function useLineWindow(
   )
   const lineHeight = computed(() => toValue(options.lineHeight) ?? 20)
   const virtualActive = computed(
-    () => virtual.value && totalLines.value >= virtualThreshold.value,
+    () =>
+      clientReady.value &&
+      virtual.value &&
+      totalLines.value >= virtualThreshold.value,
   )
   const startLine = computed(() =>
     virtualActive.value
@@ -123,7 +133,14 @@ export function useLineWindow(
     expanded.value = !expanded.value
   }
 
-  onMounted(measure)
+  function isHighlightedLine(index: number): boolean {
+    return highlightedLineSet.value.has(index + 1)
+  }
+
+  onMounted(() => {
+    measure()
+    clientReady.value = true
+  })
   watch(
     () => toValue(options.source),
     () => {
@@ -145,5 +162,6 @@ export function useLineWindow(
     onScroll,
     measure,
     toggle,
+    isHighlightedLine,
   }
 }

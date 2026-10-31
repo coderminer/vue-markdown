@@ -387,6 +387,20 @@ describe('MermaidBlock', () => {
     expect(wrapper.emitted('error')?.[0]?.[0]).toContain('nope')
   })
 
+  it('reports clipboard failures through the error event', async () => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: vi.fn().mockRejectedValue(new Error('denied')),
+      },
+    })
+    const wrapper = mountBlock()
+    await flushPromises()
+    await wrapper.find('[data-action="copy"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.emitted('error')?.[0]?.[0]).toContain('denied')
+  })
+
   it('forwards header slots and actions through MarkdownMermaid', async () => {
     const wrapper = mount(MarkdownMermaid, {
       props: {

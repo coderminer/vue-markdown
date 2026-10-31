@@ -143,10 +143,11 @@ renderer.value?.updateSource('# New source')
 | `loading` | `{ label }` |
 | `code` | `{ node, source, language, highlighted, nodes, lines, visibleLines, actions: { copy, download } }` |
 | `code-actions` | `{ source, language, fileName, title, highlighted, nodes, actions: { copy, download } }` |
-| `header` | CodeBlock: `{ source, language, label, fileName, title, highlighted, nodes, actions }`; MermaidBlock: `{ source, label, view, status, copied, fullscreen, compact, actions, showPreview, showSource }` |
+| `header` | CodeBlock: `{ source, language, label, fileName, title, highlighted, nodes, actions }`; MermaidBlock: `{ source, label, view, status, copied, fullscreen, compact, actions, showPreview, showSource }`; VueSyntaxHighlighter: `{ source, language, highlighted, nodes, lines, actions: { copy } }` |
 | `toolbar` | `{ source, language, fileName, title, highlighted, nodes, actions: { copy, download } }` |
 | `tabs` | `{ view, status, actions: { preview, source } }` |
 | `actions` | `{ source, status, copied, fullscreen, enableZoom, allowFullscreen, compact, actions }` |
+| `footer` | `{ source, language, highlighted, nodes, lines, actions: { copy } }` |
 | `highlighter` | `{ source, language, nodes, lines, highlighted, actions: { copy } }` |
 | `math` | `{ tex, displayMode, rendered, error }` |
 | `math-error` | `{ tex, error, retry }` |
@@ -389,7 +390,7 @@ SSR-safe.
 | Component | Props | Events | Slots | Exposed |
 | --- | --- | --- | --- | --- |
 | `CodeBlock` | `node`, `code`, `language`, `highlighter`, `theme`, `actions`, `showActions`, `showDownload`, `title`, `fileName`, `lineNumbers`, `highlightLines`, `maxLines`, `virtual`, `virtualThreshold`, `lineHeight`, `delay`, `standalone`, `ignoreRegion` | `copy`, `download`, `action`, `error` | `code`, `code-actions`, `header`, `toolbar` | `copy`, `download`, `getHighlighted`, `highlighted` |
-| `VueSyntaxHighlighter` | `source`, `language`, `theme`, `highlighter`, `lineNumbers`, `highlightLines`, `maxLines`, `virtual`, `virtualThreshold`, `lineHeight`, `delay` | `copy`, `error` | `highlighter` | `copy`, `getHighlighted`, `highlighted` |
+| `VueSyntaxHighlighter` | `source`, `language`, `theme`, `highlighter`, `lineNumbers`, `highlightLines`, `maxLines`, `virtual`, `virtualThreshold`, `lineHeight`, `delay` | `copy`, `error` | `header`, `footer`, `empty`, `actions`, `highlighter` | `copy`, `getHighlighted`, `highlighted` |
 | `MermaidBlock` | `node`, `source`, `renderer`, `theme`, `showErrors`, `enableZoom`, `allowFullscreen`, `compact`, `actions` | `rendered`, `error`, `copy`, `export`, `fullscreen`, `action` | `header`, `tabs`, `actions`, `mermaid`, `mermaid-error` | `render`, `copy`, `exportPng`, `downloadSvg`, `toggleFullscreen` |
 | `MermaidLiveEditor` | `modelValue`, `debounce`, `theme`, `renderer`, `diagnosticsFormatter`, `compact`, `initialRatio`, `minRatio` | `update:modelValue`, `preview`, `error` | `editor`, `editor-diagnostics` | `focus`, `refreshPreview`, `toggleFullscreen`, `getDiagnostics` |
 | `MarkdownMath` | `node`, `tex`, `displayMode`, `rendered`, `error`, `mathEngine` | — | `math`, `math-error` | — |
@@ -750,7 +751,7 @@ See [Styling and themes](../guide/styling.md) and
 | Headless | `UseMarkdownDocumentReturn`, `MarkdownStatus`, `UseActiveHeadingOptions`, `BuildDocumentOptions`, `NormalizeOptions`, `NormalizeResult`, `SearchOptions` |
 | Export | `StaticHtmlOptions` |
 | Styling | `MarkdownPart`, `MarkdownToken`, `PartAttributes` |
-| Components | `CodeBlockAction`, `MermaidAction` |
+| Components | `CodeBlockAction`, `MermaidAction`, `HighlightLine` |
 
 ## Next
 

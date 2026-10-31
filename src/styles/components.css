@@ -263,7 +263,8 @@
 }
 
 [data-vmd-part='code-header'],
-[data-vmd-part='mermaid-header'] {
+[data-vmd-part='mermaid-header'],
+[data-vmd-part='highlighter-header'] {
   display: flex;
   min-height: 3rem;
   flex-wrap: wrap;
@@ -279,7 +280,8 @@
 }
 
 [data-vmd-part='code-heading'],
-.vmd-mermaid-label {
+.vmd-mermaid-label,
+.vmd-highlighter-label {
   display: inline-flex;
   min-width: 0;
   align-items: center;
@@ -309,7 +311,8 @@
 }
 
 [data-vmd-part='code-toolbar'],
-[data-vmd-part='mermaid-actions'] {
+[data-vmd-part='mermaid-actions'],
+[data-vmd-part='highlighter-actions'] {
   display: flex;
   align-items: center;
   gap: var(--vmd-space-1);
@@ -337,7 +340,8 @@
 
 [data-vmd-part='code-action'],
 [data-vmd-part='mermaid-actions'] button,
-[data-vmd-part='mermaid-tabs'] button {
+[data-vmd-part='mermaid-tabs'] button,
+[data-vmd-part='highlighter-actions'] button {
   display: inline-flex;
   min-width: 1.75rem;
   min-height: 1.75rem;
@@ -355,20 +359,23 @@
 }
 
 [data-vmd-part='code-action'][data-icon='true'],
-[data-vmd-part='mermaid-actions'] button[data-icon='true'] {
+[data-vmd-part='mermaid-actions'] button[data-icon='true'],
+[data-vmd-part='highlighter-actions'] button[data-icon='true'] {
   padding: 0;
 }
 
 [data-vmd-part='code-action']:hover,
 [data-vmd-part='mermaid-actions'] button:hover,
-[data-vmd-part='mermaid-tabs'] button:hover {
+[data-vmd-part='mermaid-tabs'] button:hover,
+[data-vmd-part='highlighter-actions'] button:hover {
   background: var(--vmd-color-surface);
   color: var(--vmd-color-text);
 }
 
 [data-vmd-part='code-action']:focus,
 [data-vmd-part='mermaid-actions'] button:focus,
-[data-vmd-part='mermaid-tabs'] button:focus {
+[data-vmd-part='mermaid-tabs'] button:focus,
+[data-vmd-part='highlighter-actions'] button:focus {
   outline: 2px solid var(--vmd-color-accent);
   outline-offset: 2px;
 }
@@ -422,6 +429,12 @@
 
 [data-vmd-part='highlighter-empty'] {
   padding: var(--vmd-space-3);
+  color: var(--vmd-color-muted);
+}
+
+[data-vmd-part='highlighter-footer'] {
+  padding: var(--vmd-space-2) var(--vmd-space-3);
+  border-top: 1px solid var(--vmd-code-border);
   color: var(--vmd-color-muted);
 }
 

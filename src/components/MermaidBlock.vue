@@ -199,8 +199,17 @@ async function copy(): Promise<void> {
     copiedTimer = setTimeout(() => {
       copied.value = false
     }, 1500)
-  } catch {
+  } catch (exception) {
     copied.value = false
+    const message = `The source could not be copied to the clipboard: ${errorMessage(exception)}`
+    emit('error', message)
+    context.onRenderError?.(
+      createDiagnostic('copy-error', message, {
+        severity: 'warning',
+        phase: 'render',
+        plugin: 'mermaid',
+      }),
+    )
   }
 }
 

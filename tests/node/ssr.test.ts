@@ -7,6 +7,7 @@ import MarkdownError from '../../src/components/MarkdownError.vue'
 import MarkdownLoading from '../../src/components/MarkdownLoading.vue'
 import MermaidBlock from '../../src/components/MermaidBlock.vue'
 import MarkdownToc from '../../src/components/MarkdownToc.vue'
+import VueSyntaxHighlighter from '../../src/components/VueSyntaxHighlighter.vue'
 import { exportMarkdownHtmlSync } from '../../src/export'
 import { gfmPlugin } from '../../src/plugins/builtin'
 import type { MarkdownPipeline } from '../../src/core/types'
@@ -41,6 +42,18 @@ describe('server rendering', () => {
     // UI icons are static inline SVG; the Mermaid runtime must not contribute
     // a rendered diagram on the server.
     expect(html).not.toContain('vmd-mermaid-diagram')
+  })
+
+  it('does not virtualize long sources during server rendering', async () => {
+    const source = Array.from({ length: 300 }, (_, index) => `line ${index + 1}`).join(
+      '\n',
+    )
+    const html = await renderComponent(VueSyntaxHighlighter, {
+      source,
+      virtual: true,
+      virtualThreshold: 10,
+    })
+    expect(html.match(/data-vmd-part="highlighter-line"/g)?.length).toBe(300)
   })
 
   it('renders region slots on the server', async () => {

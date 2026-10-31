@@ -115,7 +115,7 @@ const actions: CodeBlockAction[] = [
 
 <DemoFrame title="CodeBlock" note="Default Mermaid-led header with copy/download icons">
   <MarkdownConfigProvider :theme="richTheme">
-    <CodeBlock :node="codeNode" />
+    <CodeBlock :node="codeNode" show-download />
   </MarkdownConfigProvider>
 </DemoFrame>
 
@@ -128,11 +128,11 @@ const actions: CodeBlockAction[] = [
 | `theme` | `MarkdownTheme` | context | Theme override for the block and highlighter. |
 | `actions` | `CodeBlockAction[]` | `[]` | Extra toolbar buttons with `key`, `label`, and `run`. |
 | `showActions` | `boolean` | `true` | Hides the default copy/download buttons. |
-| `showDownload` | `boolean` | `true` | Hides only the default download button. |
+| `showDownload` | `boolean` | `false` | Shows the default download button. |
 | `title` | `string` | — | Replaces the language label in the default header. |
 | `fileName` | `string` | — | Shows a file name and uses it for downloads. |
 | `lineNumbers` | `boolean` | `false` | Renders a gutter. |
-| `highlightLines` | `number[]` | `[]` | 1-based line numbers to emphasize. |
+| `highlightLines` | `HighlightLine[]` | `[]` | 1-based numbers or `start-end` ranges, for example `[2, '5-7']`. |
 | `maxLines` | `number` | `0` | Truncates and offers an expand control. |
 | `virtual` | `boolean` | `false` | Virtualizes after `virtualThreshold`. |
 | `virtualThreshold` | `number` | `200` | Line count that enables virtualization. |
@@ -364,7 +364,7 @@ import { VueSyntaxHighlighter } from 'vue-markdown-suite'
 | `theme` | `MarkdownTheme` | context | Highlight theme override. |
 | `highlighter` | `MarkdownHighlighter` | context | Adapter override. |
 | `lineNumbers` | `boolean` | `false` | Renders a gutter. |
-| `highlightLines` | `number[]` | `[]` | 1-based line numbers to emphasize. |
+| `highlightLines` | `HighlightLine[]` | `[]` | 1-based numbers or `start-end` ranges, for example `[2, '5-7']`. |
 | `maxLines` | `number` | `0` | Truncates to the first N lines and shows a “Show all lines” control. |
 | `virtual` | `boolean` | `false` | Virtualizes after `virtualThreshold`. |
 | `virtualThreshold` | `number` | `200` | Line count that enables virtualization. |
@@ -372,8 +372,9 @@ import { VueSyntaxHighlighter } from 'vue-markdown-suite'
 | `delay` | `number` | `0` | Debounces highlighting in milliseconds. |
 
 Events: `copy(source)` and `error(diagnostic)`.
-Slot: `highlighter` receives `{ source, language, nodes, lines, actions }`.
-Exposed: `copy()` and `highlighted`.
+Slots: `header`, `footer`, `empty`, `actions`, and `highlighter`. The
+`highlighter` slot receives `{ source, language, nodes, lines, highlighted, actions }`.
+Exposed: `copy()`, `getHighlighted()`, and `highlighted`.
 
 ## MermaidBlock
 

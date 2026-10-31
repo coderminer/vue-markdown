@@ -44,6 +44,8 @@ export const PARTS = {
   codeFeedback: 'code-feedback',
   highlighter: 'highlighter',
   highlighterHeader: 'highlighter-header',
+  highlighterActions: 'highlighter-actions',
+  highlighterFooter: 'highlighter-footer',
   highlighterBody: 'highlighter-body',
   highlighterGutter: 'highlighter-gutter',
   highlighterLine: 'highlighter-line',

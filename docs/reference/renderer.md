@@ -122,10 +122,11 @@ default region and receive scoped data and actions.
 | `loading` | `{ label }` |
 | `code` | `{ node, source, language, highlighted, nodes, lines, visibleLines, actions: { copy, download } }` |
 | `code-actions` | `{ source, language, fileName, title, highlighted, nodes, actions: { copy, download } }` |
-| `header` | CodeBlock: `{ source, language, label, fileName, title, highlighted, nodes, actions }`; MermaidBlock: `{ source, label, view, status, copied, fullscreen, compact, actions, showPreview, showSource }` |
+| `header` | CodeBlock: `{ source, language, label, fileName, title, highlighted, nodes, actions }`; MermaidBlock: `{ source, label, view, status, copied, fullscreen, compact, actions, showPreview, showSource }`; VueSyntaxHighlighter: `{ source, language, highlighted, nodes, lines, actions: { copy } }` |
 | `toolbar` | `{ source, language, fileName, title, highlighted, nodes, actions: { copy, download } }` |
 | `tabs` | `{ view, status, actions: { preview, source } }` |
 | `actions` | `{ source, status, copied, fullscreen, enableZoom, allowFullscreen, compact, actions }` |
+| `footer` | `{ source, language, highlighted, nodes, lines, actions: { copy } }` |
 | `highlighter` | `{ source, language, nodes, lines, highlighted, actions: { copy } }` |
 | `math` | `{ tex, displayMode, rendered, error }` |
 | `math-error` | `{ tex, error, retry }` |
