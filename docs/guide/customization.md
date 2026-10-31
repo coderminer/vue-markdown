@@ -136,6 +136,106 @@ remain available for advanced cases and receive
 `{ node, kind, tag, attrs, key, children, defaultRender, context }`.
 `defaultRender()` keeps built-in safety, heading IDs, and TOC behavior.
 
+### Complete example: custom code and Mermaid nodes
+
+This example registers a custom fenced-code node and a custom Mermaid node, then
+renders a Markdown string with both.
+
+`nodeComponents.code` replaces the inner `<code>` element of a fenced block. The
+outer `<pre>` is still rendered by `MarkdownCode`. `nodeComponents.mermaid` only
+runs when `mermaidPlugin()` has converted a Mermaid fence into a `mermaid` node,
+so the plugin is required in this example.
+
+```vue [CustomCode.vue]
+<script setup lang="ts">
+import type { MarkdownCodeNode } from 'vue-markdown-suite'
+
+defineProps<{
+  node?: MarkdownCodeNode
+  code?: string
+  language?: string
+  className?: string
+}>()
+</script>
+
+<template>
+  <code
+    :class="['custom-code', className]"
+    :data-language="language || 'text'"
+  >{{ code ?? node?.code }}</code>
+</template>
+```
+
+```vue [CustomMermaid.vue]
+<script setup lang="ts">
+import { MermaidBlock } from 'vue-markdown-suite'
+import type { MarkdownMermaidNode } from 'vue-markdown-suite'
+
+defineProps<{
+  node?: MarkdownMermaidNode
+  code?: string
+}>()
+</script>
+
+<template>
+  <MermaidBlock :source="code ?? node?.code ?? ''" show-errors />
+</template>
+```
+
+```vue [App.vue]
+<script setup lang="ts">
+import { MarkdownRenderer } from 'vue-markdown-suite'
+import { defaultPlugins } from 'vue-markdown-suite/plugins'
+import { mermaidPlugin } from 'vue-markdown-suite/mermaid'
+import CustomCode from './CustomCode.vue'
+import CustomMermaid from './CustomMermaid.vue'
+
+const source = `# Custom nodes
+
+\`\`\`ts
+const answer: number = 42
+\`\`\`
+
+\`\`\`mermaid
+flowchart LR
+  Markdown --> Node
+  Node --> Vue
+\`\`\`
+`
+
+// Keep plugin instances stable. Do not create them inline in the template.
+const plugins = [...defaultPlugins, mermaidPlugin()]
+
+const nodeComponents = {
+  code: CustomCode,
+  mermaid: CustomMermaid,
+}
+</script>
+
+<template>
+  <MarkdownRenderer
+    :source="source"
+    :plugins="plugins"
+    :node-components="nodeComponents"
+  />
+</template>
+```
+
+`nodeComponents.code` receives `{ node, code, language, className }`. It does not
+run a highlighter. To keep the built-in `CodeBlock` header, actions, and
+highlighting while replacing the whole block, use `regions.codeBlock` and render
+`CodeBlock` with `standalone`:
+
+```ts
+const regions = {
+  codeBlock: MyCodeBlock, // renders <CodeBlock standalone ... />
+}
+```
+
+`nodeComponents.mermaid` receives `{ node, code }`. Without `mermaidPlugin()`, a
+` ```mermaid ` fence stays a normal `code` node and your Mermaid component does
+not run.
+
 ### Regions
 
 `regions` replaces structural areas:

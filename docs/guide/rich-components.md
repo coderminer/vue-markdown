@@ -577,10 +577,16 @@ const plugins = [...fullPlugins, mathPlugin(), mermaidPlugin()]
     :source="source"
     :plugins="plugins"
     :regions="{ codeBlock: MyCodeBlock, mermaidBlock: MyMermaid }"
-    :node-components="{ code: MyCode, math: MyMath }"
+    :node-components="{ code: MyCode, math: MyMath, mermaid: MyMermaidNode }"
   />
 </template>
 ```
+
+A complete copy-paste example that registers custom `code` and `mermaid` nodes
+while rendering a Markdown string is in
+[Node components](./customization.md#complete-example-custom-code-and-mermaid-nodes).
+Remember that `nodeComponents.mermaid` only runs when `mermaidPlugin()` is in the
+plugin list.
 
 ::: tip Keep plugin identities stable
 An inline array such as `:plugins="[mathPlugin()]"` creates a new plugin object
