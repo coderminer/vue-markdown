@@ -407,8 +407,7 @@ a.home-card:hover {
 
 .vmd-live-body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  min-height: 340px;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .vmd-live-pane {
@@ -416,7 +415,7 @@ a.home-card:hover {
 }
 
 .vmd-live-pane + .vmd-live-pane {
-  border-left: 1px solid var(--vp-c-divider);
+  border-top: 1px solid var(--vp-c-divider);
 }
 
 .vmd-live-pane-header {
@@ -445,6 +444,7 @@ a.home-card:hover {
 }
 
 .vmd-live-output {
+  max-height: 65vh;
   padding: 18px;
   overflow: auto;
 }
@@ -461,13 +461,8 @@ a.home-card:hover {
 }
 
 @media (max-width: 860px) {
-  .vmd-live-body {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .vmd-live-pane + .vmd-live-pane {
-    border-top: 1px solid var(--vp-c-divider);
-    border-left: 0;
+  .vmd-live-output {
+    max-height: 55vh;
   }
 }
 

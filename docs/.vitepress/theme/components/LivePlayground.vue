@@ -117,7 +117,7 @@ Escaped characters: \\*not italic\\* and entities: &copy; &amp; &#169;.
 `,
   Essentials: `# Live playground
 
-Edit the Markdown on the left. The preview uses the same renderer you ship.
+Edit the Markdown below. The preview uses the same renderer you ship.
 
 ## What you get
 
@@ -233,10 +233,6 @@ function reset(): void {
 
     <div class="vmd-live-body">
       <div class="vmd-live-pane">
-        <div class="vmd-live-pane-header">Markdown</div>
-        <textarea v-model="source" spellcheck="false" aria-label="Markdown source" />
-      </div>
-      <div class="vmd-live-pane">
         <div class="vmd-live-pane-header">Preview</div>
         <div class="vmd-live-output">
           <MarkdownRenderer
@@ -248,6 +244,10 @@ function reset(): void {
             show-error
           />
         </div>
+      </div>
+      <div class="vmd-live-pane">
+        <div class="vmd-live-pane-header">Markdown</div>
+        <textarea v-model="source" spellcheck="false" aria-label="Markdown source" />
       </div>
     </div>
   </div>
