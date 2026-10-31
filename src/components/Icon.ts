@@ -8,6 +8,7 @@ export type IconName =
   | 'source'
   | 'zoom-in'
   | 'zoom-out'
+  | 'reset'
   | 'image'
   | 'fullscreen'
   | 'exit-fullscreen'
@@ -33,6 +34,13 @@ const ICON_PATHS: Record<IconName, string[]> = {
     'M10 4a6 6 0 1 0 0 12 6 6 0 0 0 0-12z',
     'M7 10h6',
     'M15.5 15.5L21 21',
+  ],
+  reset: [
+    'M8 8h8v8H8z',
+    'M4 12h4',
+    'M16 12h4',
+    'M12 4v4',
+    'M12 16v4',
   ],
   image: [
     'M4 5h16v14H4z',

@@ -260,12 +260,13 @@
 [data-vmd-part='code-header'],
 [data-vmd-part='mermaid-header'] {
   display: flex;
-  min-height: 2.75rem;
+  min-height: 3rem;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--vmd-space-2);
   padding: var(--vmd-space-1) var(--vmd-space-3);
   background: var(--vmd-code-toolbar-bg);
+  font-family: var(--vmd-font-family);
 }
 
 [data-vmd-part='code-header'] {

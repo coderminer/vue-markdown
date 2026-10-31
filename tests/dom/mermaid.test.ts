@@ -285,16 +285,16 @@ describe('MermaidBlock', () => {
     )
     await byText('Preview').trigger('click')
 
-    await byText('Copy').trigger('click')
+    await wrapper.find('[data-action="copy"]').trigger('click')
     await flushPromises()
     expect(writeText).toHaveBeenCalledWith('graph TD; A-->B')
 
-    await byText('+').trigger('click')
+    await wrapper.find('[data-action="zoom-in"]').trigger('click')
     expect(wrapper.find('.vmd-mermaid-diagram').attributes('style')).toContain(
       'scale(1.25)',
     )
 
-    await byText('Fullscreen').trigger('click')
+    await wrapper.find('[data-action="fullscreen"]').trigger('click')
     expect(wrapper.attributes('data-fullscreen')).toBe('true')
   })
 

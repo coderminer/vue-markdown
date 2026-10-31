@@ -463,32 +463,48 @@ defineExpose({ render, copy, exportPng, downloadSvg, toggleFullscreen })
         <button
           v-if="enableZoom"
           type="button"
+          data-action="zoom-in"
+          data-icon="true"
           :aria-label="resolveLabel(context.labels.zoomIn)"
           :title="resolveLabel(context.labels.zoomIn)"
           @click="zoom(0.25)"
         >
-          +
+          <Icon name="zoom-in" />
+          <span class="vmd-visually-hidden">
+            {{ resolveLabel(context.labels.zoomIn) }}
+          </span>
         </button>
         <button
           v-if="enableZoom"
           type="button"
+          data-action="zoom-out"
+          data-icon="true"
           :aria-label="resolveLabel(context.labels.zoomOut)"
           :title="resolveLabel(context.labels.zoomOut)"
           @click="zoom(-0.25)"
         >
-          −
+          <Icon name="zoom-out" />
+          <span class="vmd-visually-hidden">
+            {{ resolveLabel(context.labels.zoomOut) }}
+          </span>
         </button>
         <button
           v-if="enableZoom"
           type="button"
+          data-action="reset-zoom"
+          data-icon="true"
           :aria-label="resolveLabel(context.labels.reset)"
           :title="resolveLabel(context.labels.reset)"
           @click="resetZoom"
         >
-          1:1
+          <Icon name="reset" />
+          <span class="vmd-visually-hidden">
+            {{ resolveLabel(context.labels.reset) }}
+          </span>
         </button>
         <button
           type="button"
+          data-action="copy"
           data-icon="true"
           :aria-label="copied ? resolveLabel(context.labels.copied) : resolveLabel(context.labels.copy)"
           :title="copied ? resolveLabel(context.labels.copied) : resolveLabel(context.labels.copy)"
@@ -501,6 +517,7 @@ defineExpose({ render, copy, exportPng, downloadSvg, toggleFullscreen })
         </button>
         <button
           type="button"
+          data-action="export-png"
           data-icon="true"
           :aria-label="resolveLabel(context.labels.exportPng)"
           :title="resolveLabel(context.labels.exportPng)"
@@ -513,15 +530,21 @@ defineExpose({ render, copy, exportPng, downloadSvg, toggleFullscreen })
         </button>
         <button
           type="button"
+          data-action="download-svg"
+          data-icon="true"
           :aria-label="`${resolveLabel(context.labels.download)} SVG`"
           :title="`${resolveLabel(context.labels.download)} SVG`"
           @click="downloadSvg"
         >
-          SVG
+          <Icon name="download" />
+          <span class="vmd-visually-hidden">
+            {{ resolveLabel(context.labels.download) }} SVG
+          </span>
         </button>
         <button
           v-if="allowFullscreen"
           type="button"
+          data-action="fullscreen"
           data-icon="true"
           :aria-label="fullscreen ? resolveLabel(context.labels.exitFullscreen) : resolveLabel(context.labels.fullscreen)"
           :title="fullscreen ? resolveLabel(context.labels.exitFullscreen) : resolveLabel(context.labels.fullscreen)"
@@ -534,6 +557,7 @@ defineExpose({ render, copy, exportPng, downloadSvg, toggleFullscreen })
         </button>
         <button
           type="button"
+          data-action="retry"
           data-icon="true"
           :aria-label="resolveLabel(context.labels.retry)"
           :title="resolveLabel(context.labels.retry)"
