@@ -96,7 +96,7 @@ The library SHALL accept a typed `regions` map for structural regions such as ro
 
 Hosts SHALL be able to override rendering for Markdown constructs by node kind or element tag, including headings, links, images, lists, tables, blockquotes, code, math, Mermaid, footnotes, task items, raw HTML, and custom nodes. The primary override surface SHALL be the exported node component catalog. A function-based node renderer SHALL be available as a value of `nodeComponents`, SHALL take precedence over a component for the same key, and SHALL receive the node, its children renderer, the default renderer, and the render context, allowing both replacement and decoration.
 
-Resolution SHALL be deterministic: function value in `nodeComponents` > `nodeComponents[tag]` > `components[tag]` > `nodeComponents[kind]` > plugin node component > preset > built-in. At the same key, `nodeComponents` SHALL win over `components`. For fenced code, the semantic `nodeComponents.code` override SHALL win over the tag aliases `components.pre` and `components.code`.
+Resolution SHALL be deterministic: function value in `nodeComponents` > `nodeComponents[tag]` > `components[tag]` > `nodeComponents[kind]` > plugin node component > preset > built-in. At the same key, `nodeComponents` SHALL win over `components`. For fenced code, `components.pre` SHALL remain the wrapper and the semantic `nodeComponents.code` override SHALL replace the inner `code` element.
 
 #### Scenario: Replace an image component
 - **WHEN** a host supplies an image node component

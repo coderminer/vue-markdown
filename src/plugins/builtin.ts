@@ -6,14 +6,17 @@ import { searchDocument, type SearchOptions } from '../core/search'
 
 export const tocPlugin: MarkdownPlugin = {
   name: 'toc',
+  core: true,
 }
 
 export const codePlugin: MarkdownPlugin = {
   name: 'code',
+  core: true,
 }
 
 export const linkPlugin: MarkdownPlugin = {
   name: 'link',
+  core: true,
 }
 
 /** Segment search matches inside text nodes. */

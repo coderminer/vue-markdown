@@ -7,19 +7,23 @@ tree to the model builder. There is no HTML string round-trip.
 ## Stage order
 
 ```
-remark-parse
+plugin transformSource    (in resolved plugin order)
+  -> remark-parse
   -> library remark plugins
   -> host remarkPlugins
   -> remark-rehype        (allowDangerousHtml: true)
   -> rehype-raw           (only when the host adds it)
   -> rehype-sanitize      (immediately after rehype-raw)
-  -> library rehype plugins (heading IDs)
+  -> core heading IDs
   -> host rehypePlugins
   -> hast captured for the model
 ```
 
-This order is a contract. A host rehype plugin runs after library heading-ID
-work, and sanitization always runs immediately after raw parsing.
+This order is a contract. Source transforms are applied by `useMarkdownDocument`
+and the static export helpers before the pipeline starts; a direct
+`createOfficialPipeline` caller is responsible for passing already-transformed
+source. A host rehype plugin runs after core heading-ID work, and sanitization
+always runs immediately after raw parsing.
 
 ## Use it directly
 
@@ -31,6 +35,7 @@ import { defaultPlugins } from 'vue-markdown-suite/plugins'
 const pipeline = createOfficialPipeline()
 const result = await pipeline.process('# Hello', {
   source: '# Hello',
+  options: {},
   plugins: defaultPlugins,
   remarkPlugins: [],
   rehypePlugins: [],
@@ -47,6 +52,11 @@ const result = await pipeline.process('# Hello', {
 `processSync` is available when every plugin is synchronous. The renderer uses
 it first and falls back to `process` for async plugins.
 
+A failing remark or rehype plugin is reported as a diagnostic and handed to the
+owning `MarkdownPlugin.onError`. The cached processor reads the current run's
+context from the vfile, so reusing a processor does not write errors into an
+earlier run's diagnostics.
+
 ## Why not `markdown-it`
 
 `remark` gives the suite a typed mdast, a mature plugin ecosystem, and an
@@ -61,7 +71,7 @@ identities, and parse-affecting options. Presentation-only changes — tokens,
 labels, active heading — do not re-parse.
 
 ```ts
-import { memoClear, memoSize } from 'vue-markdown-suite/pipeline'
+import { memoClear, memoSize } from 'vue-markdown-suite'
 ```
 
 `memoClear()` is useful in tests and benchmarks. `memoSize()` reports the
@@ -74,7 +84,7 @@ are prefixed by `idPrefix`. Pass a custom `slugger` to change the algorithm:
 
 ```ts
 const slugger = {
-  slug: (value: string) => value.toLowerCase().replaceAll(' ', '-'),
+  slug: (value: string) => value.toLowerCase().split(' ').join('-'),
 }
 ```
 

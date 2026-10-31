@@ -6,7 +6,7 @@ import { unified } from 'unified'
 import remarkParse from 'remark-parse'
 import { visit } from 'unist-util-visit'
 import type { Properties, RootContent } from 'hast'
-import { exportMarkdownHtmlSync } from '../../src/core/export'
+import { exportMarkdownHtmlSync } from '../../src/export'
 import { gfmPlugin } from '../../src/plugins/builtin'
 import { gfmFixtures } from '../fixtures/gfm-conformance'
 

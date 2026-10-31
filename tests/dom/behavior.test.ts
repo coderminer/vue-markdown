@@ -77,6 +77,59 @@ describe('node resolution precedence', () => {
     expect(wrapper.find('pre').exists()).toBe(false)
   })
 
+  it('renders a plugin tocItem region component', () => {
+    const Item = defineComponent({
+      props: { item: Object, active: Boolean },
+      setup(props) {
+        const value = props.item as { id: string; text: string }
+        return () => h('span', { 'data-toc-item': value.id }, value.text)
+      },
+    })
+    const plugin = defineMarkdownPlugin({
+      name: 'toc-region',
+      regions: { tocItem: Item },
+    })
+
+    const wrapper = mount(MarkdownRenderer, {
+      props: {
+        source: '# One\n\n## Two',
+        toc: true,
+        plugins: [plugin],
+      },
+    })
+
+    expect(wrapper.find('[data-toc-item="one"]').text()).toBe('One')
+    expect(wrapper.find('[data-toc-item="two"]').text()).toBe('Two')
+  })
+
+  it('lets a local components.code override a plugin nodeComponents.code', () => {
+    const PluginCode = defineComponent({
+      setup() {
+        return () => h('figure', { 'data-plugin-code': '' })
+      },
+    })
+    const LocalCode = defineComponent({
+      setup(_, { slots }) {
+        return () => h('mark', { 'data-local-code': '' }, slots.default?.())
+      },
+    })
+    const plugin = defineMarkdownPlugin({
+      name: 'plugin-code',
+      nodeComponents: { code: PluginCode },
+    })
+
+    const wrapper = mount(MarkdownRenderer, {
+      props: {
+        source: '```js\nconst value = 1\n```',
+        plugins: [plugin],
+        components: { code: LocalCode },
+      },
+    })
+
+    expect(wrapper.find('[data-local-code]').text()).toBe('const value = 1')
+    expect(wrapper.find('[data-plugin-code]').exists()).toBe(false)
+  })
+
   it('renders text nodes as strings, not components', () => {
     const output = renderNode({ kind: 'text', key: '0', value: 'plain' }, context())
     expect(output).toBe('plain')

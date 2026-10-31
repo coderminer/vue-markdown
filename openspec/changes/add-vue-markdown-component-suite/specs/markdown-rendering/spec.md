@@ -1,6 +1,6 @@
 ## Purpose
 
-Renders Markdown source into a navigable, safely filtered document view with stable heading anchors, a table of contents, and composable extension points, while remaining DOM-free at its core and fully customizable at its surface.
+Renders Markdown source into a navigable, safely filtered document view with stable heading IDs, a table of contents, and composable extension points, while remaining DOM-free at its core and fully customizable at its surface.
 
 ## ADDED Requirements
 
@@ -38,7 +38,7 @@ The renderer SHALL accept Markdown through a `source` prop or the default slot. 
 
 ### Requirement: Tag component mapping
 
-The renderer SHALL accept a `components` map keyed by HTML tag name, aligned with react-markdown's component override model. Values SHALL be components or tag-name strings. Supported keys SHALL include `p`, `h1`–`h6`, `em`, `strong`, `del`, `a`, `img`, `ul`, `ol`, `li`, `blockquote`, `hr`, `table`, `thead`, `tbody`, `tr`, `th`, `td`, `pre`, `code`, `br`, `input`, and tags introduced by plugins. A tag override SHALL apply to every node with that tag. `components.pre` SHALL replace the fenced-code wrapper and receive the rendered `code` element as its child. `components.code` SHALL apply to both inline and fenced code; fenced code SHALL receive a `language-*` `className` and the source text as children. In v1.0, `components` is the only public override map. In v1.x, `nodeComponents` at the same key SHALL take precedence over `components`; otherwise a tag override SHALL take precedence over a semantic node-kind override, except for fenced code where the semantic `nodeComponents.code` override wins over `components.code` while `components.pre` remains the wrapper.
+The renderer SHALL accept a `components` map keyed by HTML tag name, aligned with react-markdown's component override model. Values SHALL be components or tag-name strings. Supported keys SHALL include `p`, `h1`–`h6`, `em`, `strong`, `del`, `a`, `img`, `ul`, `ol`, `li`, `blockquote`, `hr`, `table`, `thead`, `tbody`, `tr`, `th`, `td`, `pre`, `code`, `br`, `input`, and tags introduced by plugins. A tag override SHALL apply to every node with that tag. `components.pre` SHALL replace the fenced-code wrapper and receive the rendered `code` element as its child. `components.code` SHALL apply to both inline and fenced code; fenced code SHALL receive a `language-*` `className` and the source text as children. In v1.0, `components` is the only public override map. A local `components[tag]` SHALL win over a plugin-contributed `nodeComponents[tag]`; plugin `nodeComponents` participates beneath local `components`. In v1.x, `nodeComponents` at the same key SHALL take precedence over `components`; otherwise a tag override SHALL take precedence over a semantic node-kind override, except for fenced code where the semantic `nodeComponents.code` override wins over `components.code` while `components.pre` remains the wrapper.
 
 #### Scenario: Replace a heading tag
 - **WHEN** a host maps `h1` to `h2` through `components`
@@ -318,7 +318,7 @@ The headless API SHALL provide an explicit static HTML export helper that runs t
 
 ### Requirement: Accessibility
 
-The renderer SHALL preserve heading hierarchy, expose the TOC as a labeled navigation landmark, mark the active TOC entry with `aria-current`, keep heading anchors keyboard reachable, and expose render errors as status messages. Reading order and focus order SHALL follow the visual document order.
+The renderer SHALL preserve heading hierarchy, expose the TOC as a labeled navigation landmark, mark the active TOC entry with `aria-current`, keep heading IDs stable for in-page navigation, and expose render errors as status messages. Reading order and focus order SHALL follow the visual document order. Heading anchor links are a v1.x addition.
 
 #### Scenario: Accessible TOC
 - **WHEN** a screen reader navigates the TOC

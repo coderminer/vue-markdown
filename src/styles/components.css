@@ -114,7 +114,7 @@
   line-height: 1.6;
 }
 
-[data-vmd-part='code'] code {
+.vmd-code-element {
   font: inherit;
 }
 
@@ -132,7 +132,7 @@
 [data-vmd-part='toc-item'] {
   display: block;
   padding-block: var(--vmd-space-1);
-  padding-inline-start: calc(var(--vmd-toc-depth, 1) - 1) * var(--vmd-space-3);
+  padding-inline-start: calc((var(--vmd-toc-depth, 1) - 1) * var(--vmd-space-3));
   color: var(--vmd-color-muted);
   text-decoration: none;
 }

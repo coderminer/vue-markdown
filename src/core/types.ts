@@ -218,6 +218,11 @@ export interface PluginContext {
 
 export interface MarkdownPlugin {
   name: string
+  /**
+   * Core invariant markers cannot be disabled. Their names remain in the
+   * resolved set for ordering and diagnostics only.
+   */
+  core?: boolean
   phase?: 'pre' | 'normal' | 'post'
   remarkPlugins?: PluggableList
   rehypePlugins?: PluggableList
@@ -240,6 +245,11 @@ export type PluginInput = MarkdownPlugin | false | null | undefined
 
 export interface PipelineContext {
   source: string
+  /**
+   * The options that produced this run. Optional for custom pipelines that do
+   * not need plugin callbacks.
+   */
+  options?: MarkdownDocumentOptions
   plugins: MarkdownPlugin[]
   remarkPlugins: PluggableList
   rehypePlugins: PluggableList

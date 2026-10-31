@@ -32,6 +32,7 @@ import { memoGet, memoSet } from '../core/memo'
 import { buildDocument, withDerivedDocument } from '../core/model'
 import { normalizeHast } from '../core/normalize'
 import { createPluginContext } from '../plugins/define'
+import { applySourceTransforms } from '../plugins/source'
 import { defaultPlugins } from '../plugins/builtin'
 import { resolvePlugins } from '../plugins/registry'
 import { assertPipelineResult, resolvePipeline } from '../pipeline/custom'
@@ -204,6 +205,7 @@ export function useMarkdownDocument(
     nextDiagnostics: MarkdownDiagnostic[],
   ): PipelineContext => ({
     source,
+    options: optionsRef.value,
     plugins: resolved.value.plugins,
     remarkPlugins: remarkPlugins.value,
     rehypePlugins: rehypePlugins.value,
@@ -279,15 +281,11 @@ export function useMarkdownDocument(
     source: string,
     key: string,
     cache: boolean,
+    nextDiagnostics: MarkdownDiagnostic[],
   ): 'done' | 'async' => {
     const sync = pipeline.value.processSync
     if (!sync) return 'async'
 
-    const nextDiagnostics: MarkdownDiagnostic[] = [
-      ...pipelineResult.value.diagnostics,
-      ...resolved.value.diagnostics,
-      ...setupDiagnostics.value,
-    ]
     try {
       slugger.value.reset?.()
       const result = assertPipelineResult(sync.call(pipeline.value, source, createContext(source, nextDiagnostics)))
@@ -311,13 +309,9 @@ export function useMarkdownDocument(
     source: string,
     key: string,
     cache: boolean,
+    nextDiagnostics: MarkdownDiagnostic[],
   ): Promise<void> => {
     status.value = 'pending'
-    const nextDiagnostics: MarkdownDiagnostic[] = [
-      ...pipelineResult.value.diagnostics,
-      ...resolved.value.diagnostics,
-      ...setupDiagnostics.value,
-    ]
     try {
       slugger.value.reset?.()
       const result = assertPipelineResult(
@@ -339,25 +333,31 @@ export function useMarkdownDocument(
 
   const run = (force = false): Promise<void> => {
     const id = ++runId
-    const source = sourceRef.value
+    const nextDiagnostics: MarkdownDiagnostic[] = [
+      ...pipelineResult.value.diagnostics,
+      ...resolved.value.diagnostics,
+      ...setupDiagnostics.value,
+    ]
+    const source = applySourceTransforms(
+      sourceRef.value,
+      resolved.value.plugins,
+      optionsRef.value,
+      nextDiagnostics,
+    )
     const key = createMemoKey(source, pipelineIdentity.value)
 
     if (!force) {
       const cached = memoGet(key)
       if (cached) {
-        diagnostics.value = [
-          ...pipelineResult.value.diagnostics,
-          ...resolved.value.diagnostics,
-          ...setupDiagnostics.value,
-        ]
+        diagnostics.value = nextDiagnostics
         apply(cached)
         return Promise.resolve()
       }
     }
 
-    const sync = runSync(source, key, !force)
+    const sync = runSync(source, key, !force, nextDiagnostics)
     if (sync === 'done') return Promise.resolve()
-    return runAsync(id, source, key, !force)
+    return runAsync(id, source, key, !force, nextDiagnostics)
   }
 
   const refresh = (): Promise<void> => run(true)

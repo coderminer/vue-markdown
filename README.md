@@ -138,8 +138,9 @@ of throwing.
 
 ### Slots
 
-v1.0 has one slot: the `default` slot, treated as raw Markdown source and
-ignored when `source` is present.
+v1.0 has one slot: the `default` slot, read once as static Markdown input and
+ignored when `source` is present. Use `source` or `v-model:source` for reactive
+content; the slot is not re-read when its contents change.
 
 ## Overriding components
 

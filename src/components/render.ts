@@ -169,7 +169,14 @@ function renderCodeElement(node: MarkdownCodeNode, ctx: RenderContext): VNodeChi
   const key = `${node.key}-code`
 
   if (typeof component === 'string') {
-    return h(component, { class: className, key }, node.code)
+    return h(
+      component,
+      {
+        class: className ? ['vmd-code-element', className] : 'vmd-code-element',
+        key,
+      },
+      node.code,
+    )
   }
 
   return h(

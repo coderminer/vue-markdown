@@ -94,6 +94,29 @@ describe('standalone shell components', () => {
     expect(toc.emitted('navigate')?.[0]).toEqual(['one'])
   })
 
+  it('uses a provided tocItem component for every entry', () => {
+    const Item = defineComponent({
+      props: { item: Object, active: Boolean },
+      emits: ['navigate'],
+      setup(props) {
+        const value = props.item as { id: string; text: string }
+        return () => h('span', { 'data-custom-toc': value.id }, value.text)
+      },
+    })
+    const toc = mount(MarkdownToc, {
+      props: {
+        items: [
+          { id: 'one', text: 'One', level: 1 },
+          { id: 'two', text: 'Two', level: 2 },
+        ],
+        tocItem: Item,
+      },
+    })
+
+    expect(toc.find('[data-custom-toc="one"]').text()).toBe('One')
+    expect(toc.find('[data-custom-toc="two"]').text()).toBe('Two')
+  })
+
   it('renders TOC items independently', async () => {
     const item = mount(MarkdownTocItem, {
       props: { item: { id: 'three', text: 'Three', level: 3 } },

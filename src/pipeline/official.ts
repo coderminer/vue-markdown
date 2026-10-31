@@ -8,12 +8,16 @@ import { defaultSchema } from 'hast-util-sanitize'
 import { visit } from 'unist-util-visit'
 import type {
   MarkdownPipeline,
+  MarkdownPlugin,
   PipelineCapabilities,
   PipelineContext,
   PipelineResult,
+  PluginContext,
 } from '../core/types'
 import { identityOf, listIdentity } from '../core/identity'
 import { createDiagnostic, errorMessage } from '../core/diagnostics'
+
+const CONTEXT_KEY = 'vmdPipelineContext'
 
 const CAPABILITIES: PipelineCapabilities = {
   html: false,
@@ -46,13 +50,66 @@ function recordPluginError(
   )
 }
 
+function readContext(file: unknown, fallback: PipelineContext): PipelineContext {
+  const data = (file as { data?: Record<string, unknown> } | undefined)?.data
+  const value = data?.[CONTEXT_KEY]
+  return value && typeof value === 'object'
+    ? (value as PipelineContext)
+    : fallback
+}
+
+function pluginContext(ctx: PipelineContext): PluginContext {
+  return {
+    source: ctx.source,
+    options: ctx.options ?? {},
+    diagnostics: ctx.diagnostics,
+    addDiagnostic(diagnostic) {
+      ctx.diagnostics.push(diagnostic)
+    },
+  }
+}
+
+function reportPluginError(
+  ctx: PipelineContext,
+  phase: 'remark' | 'rehype',
+  name: string,
+  error: unknown,
+  owner: MarkdownPlugin | undefined,
+): void {
+  recordPluginError(ctx, phase, name, error)
+  if (!owner?.onError) return
+  try {
+    owner.onError(error, phase, pluginContext(ctx))
+  } catch (secondary) {
+    ctx.diagnostics.push(
+      createDiagnostic('plugin-onerror', errorMessage(secondary), {
+        phase,
+        plugin: name,
+      }),
+    )
+  }
+}
+
+function ownerOf(
+  ctx: PipelineContext,
+  item: Pluggable,
+  phase: 'remark' | 'rehype',
+): MarkdownPlugin | undefined {
+  for (const plugin of ctx.plugins) {
+    const list = phase === 'remark' ? plugin.remarkPlugins : plugin.rehypePlugins
+    if (list && list.indexOf(item) !== -1) return plugin
+  }
+  return undefined
+}
+
 /** Isolate a plugin transformer so one failure cannot abort the pipeline. */
 function guardItem(
   item: Pluggable,
-  ctx: PipelineContext,
   phase: 'remark' | 'rehype',
+  owner: MarkdownPlugin | undefined,
+  fallback: PipelineContext,
 ): Pluggable {
-  const name = pluginName(item) || 'anonymous'
+  const name = pluginName(item) || owner?.name || 'anonymous'
 
   const wrap = (plugin: unknown): unknown => {
     if (typeof plugin !== 'function') return plugin
@@ -63,19 +120,20 @@ function guardItem(
       )
       if (typeof transformer !== 'function') return transformer
       return (tree: unknown, file: unknown) => {
+        const ctx = readContext(file, fallback)
         try {
           const result = (
             transformer as (tree: unknown, file: unknown) => unknown
           )(tree, file)
           if (result && typeof (result as Promise<unknown>).then === 'function') {
             return (result as Promise<unknown>).catch((error: unknown) => {
-              recordPluginError(ctx, phase, name, error)
+              reportPluginError(ctx, phase, name, error, owner)
               return tree
             })
           }
           return result
         } catch (error) {
-          recordPluginError(ctx, phase, name, error)
+          reportPluginError(ctx, phase, name, error, owner)
           return tree
         }
       }
@@ -145,6 +203,7 @@ export function createOfficialPipeline(
     const hasRaw = rawItems.length > 0
 
     const key = [
+      ctx.plugins.map((plugin) => identityOf(plugin)).join(','),
       listIdentity(ctx.remarkPlugins),
       listIdentity(hostRehype),
       listIdentity(rawItems),
@@ -159,7 +218,7 @@ export function createOfficialPipeline(
     const processor = unified().use(remarkParse)
 
     for (const item of ctx.remarkPlugins) {
-      useItem(processor, guardItem(item, ctx, 'remark'))
+      useItem(processor, guardItem(item, 'remark', ownerOf(ctx, item, 'remark'), ctx))
     }
 
     processor.use(remarkRehype, {
@@ -169,7 +228,7 @@ export function createOfficialPipeline(
 
     if (hasRaw) {
       for (const item of rawItems) {
-        useItem(processor, guardItem(item, ctx, 'rehype'))
+        useItem(processor, guardItem(item, 'rehype', ownerOf(ctx, item, 'rehype'), ctx))
       }
       processor.use(rehypeSanitize, sanitizeSchema())
     }
@@ -177,7 +236,7 @@ export function createOfficialPipeline(
     processor.use(rehypeHeadingIds({ slugger: ctx.slugger, idPrefix: ctx.idPrefix }) as never)
 
     for (const item of hostRehype) {
-      useItem(processor, guardItem(item, ctx, 'rehype'))
+      useItem(processor, guardItem(item, 'rehype', ownerOf(ctx, item, 'rehype'), ctx))
     }
 
     cachedKey = key
@@ -199,6 +258,8 @@ export function createOfficialPipeline(
     async process(source, ctx) {
       const processor = build(ctx)
       const file = new VFile({ value: source })
+      const data = file.data as Record<string, unknown>
+      data[CONTEXT_KEY] = ctx
       const tree = processor.parse(file)
       const hast = (await processor.run(tree, file)) as unknown as Root
       return read(hast, file)
@@ -206,6 +267,8 @@ export function createOfficialPipeline(
     processSync(source, ctx) {
       const processor = build(ctx)
       const file = new VFile({ value: source })
+      const data = file.data as Record<string, unknown>
+      data[CONTEXT_KEY] = ctx
       const tree = processor.parse(file)
       const hast = processor.runSync(tree, file) as unknown as Root
       return read(hast, file)

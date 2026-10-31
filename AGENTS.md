@@ -14,15 +14,19 @@ demo / host app
         -> unified / remark / rehype
 ```
 
-Dependencies point downward only. The core must not import Vue, DOM globals, or
-component code. Vue components must not import the demo. Presets must not import
-internal implementation files of other presets.
+Dependencies point downward only. The core must not import Vue, DOM globals,
+component code, or the pipeline/plugin/export composition layers. Vue components
+must not import the demo. Presets must not import internal implementation files
+of other presets.
 
 - `src/core/` — DOM-free, Vue-free types, normalization, filtering, security,
   URL policy, TOC/search/model building, memoization.
 - `src/pipeline/` — official unified pipeline, custom pipeline contract,
   identity/memo keys.
-- `src/plugins/` — plugin contract, registry, built-in plugins.
+- `src/plugins/` — plugin contract, registry, built-in plugins, source and
+  document transforms.
+- `src/export/` — static HTML export composition layer; may import core,
+  pipeline, and plugins.
 - `src/composables/` — Vue state adapters; the only place that owns
   `shallowRef` documents and watchers.
 - `src/components/` — node catalog, renderer, render context, resolution.
@@ -61,21 +65,27 @@ npm run bench        # parse/render budget gate
   name.
 - A plugin may contribute remark/rehype plugins, `remarkRehypeOptions`, source
   and document transforms, components, labels, tokens, and setup/cleanup.
+- `transformSource` runs in resolved order before parsing. A thrown transform or
+  a non-string result keeps the previous source and reports a diagnostic.
+- `toc`, `code`, and `link` are core invariant markers, not disableable
+  behavior. `disablePlugins` reports `plugin-core` and keeps them in the set.
 - Order is `pre` -> `normal` -> `post`, then registration order. Duplicate names
   replace deterministically and report a diagnostic.
 - Setup runs once per resolved plugin set inside an `effectScope`; cleanup runs
   on reconfiguration and unmount. Never register global listeners outside a
   cleanup.
-- Plugin failures are isolated and reported with a diagnostic. A failing plugin
-  must not corrupt the last good document.
+- Plugin failures are isolated and reported with a diagnostic. The owning
+  plugin's `onError` receives remark/rehype failures, and a cached processor
+  must write to the current run's diagnostics. A failing plugin must not corrupt
+  the last good document.
 
 ## Pipeline rules
 
 - v1.0 uses `unified` + `remark-parse` + `remark-rehype`; do not add
   `markdown-it`, `htmlparser2`, or an HTML string round-trip.
-- Stage order: library remark plugins, host `remarkPlugins`, `remark-rehype`,
-  optional `rehype-raw`, `rehype-sanitize`, library rehype plugins, host
-  `rehypePlugins`.
+- Stage order: plugin source transforms, `remark-parse`, library remark plugins,
+  host `remarkPlugins`, `remark-rehype`, optional `rehype-raw`,
+  `rehype-sanitize`, core heading IDs, host `rehypePlugins`.
 - Raw HTML is dropped unless the host adds `rehype-raw`. Sanitize immediately
   after raw parsing.
 - Hast stays internal. The public model is serializable and contains no Vue,

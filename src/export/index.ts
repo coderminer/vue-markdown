@@ -8,6 +8,7 @@ import type {
   PipelineResult,
 } from '../core/types'
 import { defaultPlugins } from '../plugins/builtin'
+import { applySourceTransforms } from '../plugins/source'
 import { resolvePlugins } from '../plugins/registry'
 import { assertPipelineResult, resolvePipeline } from '../pipeline/custom'
 import GithubSlugger from 'github-slugger'
@@ -41,8 +42,16 @@ function prepare({ source, options, diagnostics }: RunOptions) {
     ...(options.rehypePlugins ?? []),
   ]
 
-  const context: PipelineContext = {
+  const transformedSource = applySourceTransforms(
     source,
+    resolved.plugins,
+    options,
+    diagnostics,
+  )
+
+  const context: PipelineContext = {
+    source: transformedSource,
+    options,
     plugins: resolved.plugins,
     remarkPlugins,
     rehypePlugins,
@@ -65,7 +74,7 @@ function prepare({ source, options, diagnostics }: RunOptions) {
     diagnostics,
   }
 
-  return { pipeline, context, resolved }
+  return { pipeline, context }
 }
 
 function toHtml(result: PipelineResult): string {
@@ -93,7 +102,7 @@ export async function exportMarkdownHtml(
 ): Promise<string> {
   const diagnostics: MarkdownDiagnostic[] = []
   const { pipeline, context } = prepare({ source, options, diagnostics })
-  const result = assertPipelineResult(await pipeline.process(source, context))
+  const result = assertPipelineResult(await pipeline.process(context.source, context))
   return finalize(result, diagnostics)
 }
 
@@ -107,6 +116,6 @@ export function exportMarkdownHtmlSync(
   if (!pipeline.processSync) {
     throw new Error('The configured pipeline does not support synchronous export.')
   }
-  const result = assertPipelineResult(pipeline.processSync(source, context))
+  const result = assertPipelineResult(pipeline.processSync(context.source, context))
   return finalize(result, diagnostics)
 }

@@ -14,7 +14,7 @@ This design starts from four principles — componentization, generalization, cu
 - Match `react-markdown` in v1.0: safe defaults, tag-keyed component overrides, element filtering, URL transformation, remark/rehype interoperability, and asynchronous rendering.
 - Use the same rendering model as `react-markdown`: Markdown → mdast → hast → Vue VNodes, with no HTML string round-trip and no browser HTML parser.
 - Keep the core DOM-free so the same document model supports client rendering, server rendering, and headless consumers.
-- Make plugins the single behavioral extension seam for parsing, transforms, renderers, labels, and defaults.
+- Make plugins the primary behavioral extension seam for parsing, transforms, renderers, labels, and defaults, while keeping TOC, code shape, link policy, and safety as core invariants.
 - Provide small preset components composed from exported subcomponents and a complete node component catalog.
 - Make syntax highlighting replaceable: highlight.js by default, Shiki as an official optional adapter, custom adapters supported.
 - Ship safe defaults without making customization require unsafe opt-outs.
@@ -37,7 +37,7 @@ This design starts from four principles — componentization, generalization, cu
 
 1. **Customization is the product.** A host should never need to fork a component to change a color, a label, an action, a structural region, a renderer, a pipeline, or a behavior.
 2. **Composition over monolith.** The renderer is a small composition of exported subcomponents; every construct maps to a node component.
-3. **Plugins are the behavior seam.** Built-in features are plugins, so the same mechanism that extends the library also configures it.
+3. **Plugins are the behavior seam.** Host features and most built-ins are plugins; TOC construction, code shape, link policy, and safety remain core invariants.
 4. **Engines are replaceable.** The Markdown pipeline and syntax highlighting are adapters, not assumptions baked into components.
 5. **Safe by default.** Raw HTML is off, URLs are filtered, Mermaid is strict, KaTeX trust is off, and plugins are explicitly trusted.
 6. **Environment-agnostic core.** Parsing and modeling do not require a browser; browser features activate on mount.
@@ -113,7 +113,7 @@ v1.0 is deliberately small. It ships only what the react-markdown parity baselin
 
 - The official `unified`/`remark` pipeline, hast normalization, document model, sanitizer, heading IDs, and TOC.
 - The `components` tag map, element filtering, `urlTransform`, `skipHtml`, raw-HTML rules, link target policy, and the `baseUrl`/`idPrefix`/`syncHash` options.
-- The plugin contract with the core built-ins (`tocPlugin`, `codePlugin` for code-node construction, `linkPlugin`, `searchPlugin`, `customTagsPlugin`), plus opt-in GFM and frontmatter. Highlighter invocation inside `codePlugin` is v1.x.
+- The plugin contract with `searchPlugin` and `customTagsPlugin` as real transforms; `tocPlugin`, `codePlugin`, and `linkPlugin` are exported core invariant markers that cannot be disabled and carry no behavior of their own. Plus opt-in GFM and frontmatter. Highlighter invocation inside the code path is v1.x.
 - The headless document composable, `MarkdownRenderer`, the core node catalog, SSR, security, performance, and packaging.
 
 Deferred to v1.x with stable contracts already written: `regions`, `nodeComponents`, slots, presets, manifests, the customization inspector, rich code blocks, highlighters, math, Mermaid, the live editor, and TOC/search UI. Deferred to post-v1: streaming, SSR streaming, extra adapters, and the Nuxt module.
@@ -356,11 +356,11 @@ Every renderable construct maps to an exported component. Text nodes use a fast 
 | footnote reference | `MarkdownFootnoteReference` | Superscript link to the note |
 | footnote section | `MarkdownFootnotes` | Back-links and ordered notes |
 | task list item | `MarkdownTaskItem` | Checkbox state from `remark-gfm` |
-| raw HTML | `MarkdownHtml` | Escaped text, or sanitized nodes when raw HTML is enabled |
+| raw HTML | element nodes | Renders as normal element components when `rehype-raw` is enabled; `MarkdownHtml` is a standalone export, not the default path |
 | custom tag | `MarkdownCustomTag` | Host component mapping |
 | plugin node | plugin component | Registered by the plugin |
 
-Resolution order for a node: function value in `nodeComponents` > `nodeComponents[tag]` > `components[tag]` > `nodeComponents[kind]` > plugin component > preset component > built-in component. `defaultRender` lets a renderer decorate the default component without reimplementing safety, heading IDs, or TOC behavior.
+In v1.0, element tags resolve as `nodeComponents[tag]` > `components[tag]` > built-in. Semantic nodes (`code`, `math`, `mermaid`, `custom`, plugin nodes) resolve through `nodeComponents[kind]` > built-in. Function values in `nodeComponents`, host `nodeComponents`/`regions` props, `defaultRender`, presets, and tag-to-kind aliases are v1.x.
 
 v1.0 ships the core catalog needed for react-markdown parity: text, paragraph, headings, emphasis, strong, strikethrough (with GFM), link, image, lists, list item, blockquote, horizontal rule, table family, inline code, fenced code, break, and raw-HTML fallback. Math, Mermaid, footnote, task-list, and custom-tag components are specified now and shipped in v1.x so their contracts do not change later.
 
@@ -410,19 +410,19 @@ Within a phase, registration order is preserved. The registry exposes the resolv
 
 | Plugin | Responsibility | Phase |
 | --- | --- | --- |
-| `tocPlugin` | Heading IDs, TOC extraction | core model |
-| `codePlugin` | Fenced-code nodes; highlighter invocation in v1.x | rehype + model |
-| `mermaidPlugin` | Mermaid nodes and completeness | rehype + model |
-| `mathPlugin` | `remark-math` + `rehype-katex` | remark + rehype |
+| `tocPlugin` | Core invariant marker: TOC construction is built in and cannot be disabled | marker |
+| `codePlugin` | Core invariant marker: fenced-code node construction is built in and cannot be disabled | marker |
+| `linkPlugin` | Core invariant marker: link policy and URL transforms are built in and cannot be disabled | marker |
+| `mermaidPlugin` | Mermaid nodes and completeness (v1.x) | rehype + model |
+| `mathPlugin` | `remark-math` + `rehype-katex` (v1.x) | remark + rehype |
 | `searchPlugin` | Case-aware text segmentation | document transform |
-| `customTagsPlugin` | Tag-to-component mapping and click payloads | rehype + model |
-| `linkPlugin` | Target/rel handling, URL transform, and link transform | rehype + model |
+| `customTagsPlugin` | Tag-to-component mapping and click payloads | document transform |
 | `gfmPlugin` | Tables, strikethrough, task lists, autolinks, footnotes | remark (`remark-gfm`) |
 | `frontmatterPlugin` | Frontmatter metadata, removed from output | remark (`remark-frontmatter`) |
 
 Sanitization, URL validation, and the base document model are core invariants, not plugins. A plugin can extend behavior but cannot silently disable unsafe-URL filtering; bypassing it requires an explicit trusted-content option documented as a trust boundary.
 
-`defaultPlugins` includes TOC, code, search, custom tags, and links. GFM, math, frontmatter, and Mermaid are opt-in official plugins; `fullPlugins` composes them for the demo and hosts that want a batteries-included preset.
+`defaultPlugins` includes the three core invariant markers plus search and custom tags. GFM, math, frontmatter, and Mermaid are opt-in official plugins; `fullPlugins` composes them for the demo and hosts that want a batteries-included preset.
 
 ### Error isolation
 
@@ -579,7 +579,8 @@ type NodeRenderer = (ctx: {
 Resolution:
 
 - Regions: slot > `regions` override > plugin region contribution > preset > built-in.
-- Nodes: function value in `nodeComponents` > `nodeComponents[tag]` > `components[tag]` > `nodeComponents[kind]` > plugin node component > preset > built-in.
+- Nodes (v1.x): function value in `nodeComponents` > `nodeComponents[tag]` > `components[tag]` > `nodeComponents[kind]` > plugin node component > preset > built-in.
+- Nodes (v1.0): local `components[tag]` > plugin `nodeComponents[tag]` > plugin `components[tag]` > built-in for element tags. For semantic nodes, a local `components` key for the same name wins, then plugin `nodeComponents[kind]`, then built-in.
 - When the same key exists in both `nodeComponents` and `components`, `nodeComponents` wins because it is the explicit typed catalog.
 - For fenced code, `nodeComponents.code` is the semantic override for the inner code element and takes precedence over `components.code`; `components.pre` still wraps it.
 - A tag override always beats a kind override at the same layer, so `components.a` beats `nodeComponents.link`, while `nodeComponents.a` beats `components.a`.
@@ -664,7 +665,7 @@ Deterministic precedence:
 
 - Configuration values: local prop > nearest provider > preset > plugin default > built-in default.
 - Region rendering: slot > `regions` override > plugin contribution > preset > built-in.
-- Node rendering: function value in `nodeComponents` > `nodeComponents[tag]` > `components[tag]` > `nodeComponents[kind]` > plugin component > preset > built-in.
+- Node rendering (v1.x): function value in `nodeComponents` > `nodeComponents[tag]` > `components[tag]` > `nodeComponents[kind]` > plugin component > preset > built-in.
 - At the same key, `nodeComponents` wins over `components`; for fenced code, `nodeComponents.code` wins over `components.code`, while `components.pre` remains the wrapper.
 - If two plugins contribute the same component, phase order then registration order decides; the resolved registry is inspectable.
 
@@ -1024,7 +1025,7 @@ const {
 type PluginInput = MarkdownPlugin | false | null | undefined;
 ```
 
-`false`, `null`, and `undefined` are ignored so conditional composition stays readable. Built-in exports: `defaultPlugins`, `fullPlugins`, `tocPlugin`, `codePlugin`, `linkPlugin`, `searchPlugin`, `customTagsPlugin`, `gfmPlugin`, `frontmatterPlugin`.
+`false`, `null`, and `undefined` are ignored so conditional composition stays readable. Built-in exports: `defaultPlugins`, `fullPlugins`, `tocPlugin`, `codePlugin`, `linkPlugin`, `searchPlugin`, `customTagsPlugin`, `gfmPlugin`, `frontmatterPlugin`. In v1.0, `tocPlugin`, `codePlugin`, and `linkPlugin` are core invariant markers; `searchPlugin` and `customTagsPlugin` are real transforms.
 
 ### Defaults
 

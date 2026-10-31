@@ -30,7 +30,7 @@ Default node components SHALL be small, functional, SSR-safe, and independent of
 
 ### Requirement: Node component resolution
 
-The renderer SHALL resolve a node in a documented order: function value in `nodeComponents`, `nodeComponents[tag]`, `components[tag]`, `nodeComponents[kind]`, plugin node component, preset node component, then built-in node component. Resolution SHALL support overrides by node kind and by element tag, with an exact tag override taking precedence over a kind override at the same layer. At the same key, `nodeComponents` SHALL win over `components`. For fenced code, the semantic `nodeComponents.code` override SHALL win over the tag aliases `components.pre` and `components.code`. The resolved component SHALL receive the node, attributes, children renderer, default renderer, and render context.
+The renderer SHALL resolve a node in a documented order: function value in `nodeComponents`, `nodeComponents[tag]`, `components[tag]`, `nodeComponents[kind]`, plugin node component, preset node component, then built-in node component. Resolution SHALL support overrides by node kind and by element tag, with an exact tag override taking precedence over a kind override at the same layer. At the same key, `nodeComponents` SHALL win over `components`. For fenced code, `components.pre` SHALL remain the wrapper and the semantic `nodeComponents.code` override SHALL replace the inner `code` element. The resolved component SHALL receive the node, attributes, children renderer, default renderer, and render context.
 
 #### Scenario: Override by tag
 - **WHEN** a host overrides the `a` tag through `components`
@@ -78,7 +78,7 @@ The catalog SHALL include specialized components with documented behavior beyond
 - `MarkdownMath`: delegates to the math component and math engine.
 - `MarkdownMermaid`: delegates to the Mermaid block.
 - `MarkdownFootnoteReference` / `MarkdownFootnotes`: superscript references, ordered notes, and back-links.
-- `MarkdownHtml`: drops raw HTML by default, or renders sanitized nodes when `rehype-raw` is enabled.
+- `MarkdownHtml`: standalone component for host use; raw HTML enabled through `rehype-raw` renders as normal element components and is not routed through `MarkdownHtml`.
 - `MarkdownCustomTag`: host component mapping with normalized props.
 
 Async components SHALL be supported through Vue `Suspense` or the renderer's pending state without changing the catalog contract.

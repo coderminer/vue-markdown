@@ -16,6 +16,6 @@ withDefaults(
 
 <template>
   <pre data-vmd-part="code" class="vmd-code"><slot>
-    <code :class="language ? `language-${language}` : undefined">{{ code }}</code>
+    <code class="vmd-code-element" :class="language ? `language-${language}` : undefined">{{ code }}</code>
   </slot></pre>
 </template>

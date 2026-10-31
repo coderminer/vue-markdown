@@ -68,7 +68,18 @@ export function resolvePlugins(
 
   const disabled = new Set(disablePlugins)
   const ordered = [...byName.values()]
-    .filter(({ plugin }) => !disabled.has(plugin.name))
+    .filter(({ plugin }) => {
+      if (!disabled.has(plugin.name)) return true
+      if (!plugin.core) return false
+      diagnostics.push(
+        createDiagnostic(
+          'plugin-core',
+          `Plugin "${plugin.name}" is a core invariant and cannot be disabled.`,
+          { severity: 'warning', phase: 'setup', plugin: plugin.name },
+        ),
+      )
+      return true
+    })
     .sort((a, b) => {
       const phase =
         PHASE_ORDER[a.plugin.phase ?? 'normal'] -

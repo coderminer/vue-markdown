@@ -19,7 +19,8 @@ import 'vue-markdown-suite/styles/components.css'
 
 `tokens.css` defines defaults on `:where(:root)`, so it has zero specificity and
 never overrides host styles. `components.css` targets `vmd-*` classes and
-`data-vmd-part` attributes only; it never targets internal DOM structure.
+`data-vmd-part` attributes. The content region additionally resets the first and
+last child margins; no other element selectors are used.
 
 ## Customize with tokens
 
@@ -61,7 +62,8 @@ Every visual part exposes both a stable class and a `data-vmd-part` attribute:
 ```
 
 Use parts instead of element selectors. A host may replace any tag component, so
-element-based CSS is not a stable contract.
+element-based CSS is not a stable contract. The built-in fenced-code inner
+element also carries the `vmd-code-element` class for font inheritance.
 
 ## Replace components
 

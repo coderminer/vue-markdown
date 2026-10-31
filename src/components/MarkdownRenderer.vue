@@ -187,6 +187,18 @@ const mergedComponents = computed(() => ({
   ...toRaw(props.components),
 }))
 
+// A local `components[tag]` override wins over a plugin-contributed
+// `nodeComponents[tag]`. Removing the plugin key keeps the resolver's
+// nodeComponents-first order intact for same-layer overrides.
+const mergedNodeComponents = computed(() => {
+  const local = toRaw(props.components)
+  const result = { ...resolvedNodeComponents.value }
+  for (const key of Object.keys(local)) {
+    if (local[key] !== undefined) delete result[key]
+  }
+  return result
+})
+
 const mergedTokens = computed(() => ({
   ...resolvedTokens.value,
   ...toRaw(props.tokens),
@@ -201,7 +213,7 @@ const regionLoading = computed(() => resolvedRegions.value.loading ?? MarkdownLo
 
 const renderContext = shallowReactive<RenderContext>({
   components: mergedComponents.value,
-  nodeComponents: resolvedNodeComponents.value,
+  nodeComponents: mergedNodeComponents.value,
   labels: labels.value,
   linkTarget: props.linkTarget,
   externalLinkTarget: props.externalLinkTarget,
@@ -217,7 +229,7 @@ watch(mergedComponents, (value) => {
   renderContext.components = value
 })
 
-watch(resolvedNodeComponents, (value) => {
+watch(mergedNodeComponents, (value) => {
   renderContext.nodeComponents = value
 })
 
@@ -325,6 +337,7 @@ defineExpose({
       :items="tocItems"
       :active-id="activeId"
       :label="labels.toc"
+      :toc-item="resolvedRegions.tocItem"
       @navigate="scrollToHeading"
     />
     <component

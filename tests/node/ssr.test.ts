@@ -6,7 +6,7 @@ import MarkdownEmpty from '../../src/components/MarkdownEmpty.vue'
 import MarkdownError from '../../src/components/MarkdownError.vue'
 import MarkdownLoading from '../../src/components/MarkdownLoading.vue'
 import MarkdownToc from '../../src/components/MarkdownToc.vue'
-import { exportMarkdownHtmlSync } from '../../src/core/export'
+import { exportMarkdownHtmlSync } from '../../src/export'
 import { gfmPlugin } from '../../src/plugins/builtin'
 import type { MarkdownPipeline } from '../../src/core/types'
 

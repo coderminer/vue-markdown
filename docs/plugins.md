@@ -1,8 +1,9 @@
 # Plugins and remark/rehype integration
 
-Plugins are the single behavioral extension seam. A plugin can contribute
-remark/rehype plugins, `remarkRehypeOptions`, source and document transforms,
-components, labels, tokens, and setup/cleanup.
+Plugins are the primary behavioral extension seam outside the core parsing,
+safety, TOC, code, and link invariants. A plugin can contribute remark/rehype
+plugins, `remarkRehypeOptions`, source and document transforms, components,
+labels, tokens, and setup/cleanup.
 
 ## Define a plugin
 
@@ -45,11 +46,17 @@ export const search = defineMarkdownPlugin((options: { query: string }) => ({
 }))
 ```
 
+`transformSource` runs in resolved plugin order before parsing. A transform that
+throws or returns a non-string keeps the previous source and reports
+`plugin-source`; `onError` receives the `source` phase.
+
 ## Ordering and duplicates
 
 Order is `pre` → `normal` → `post`, then registration order. A duplicate name
 replaces the earlier registration deterministically and reports a diagnostic.
-`disablePlugins` removes names from the resolved set.
+`disablePlugins` removes non-core plugins from the resolved set. Core invariant
+markers (`toc`, `code`, `link`) cannot be disabled; requesting it reports a
+`plugin-core` diagnostic and keeps the marker in place.
 
 ```vue
 <MarkdownRenderer :source="source" :disable-plugins="['search']" />
@@ -57,21 +64,28 @@ replaces the earlier registration deterministically and reports a diagnostic.
 
 ## Precedence
 
-When several sources provide a component for the same construct:
+For element tags:
 
-1. A function value in `nodeComponents`
-2. `nodeComponents[tag]`
-3. `components[tag]`
-4. `nodeComponents[kind]`
-5. Plugin contribution
-6. Preset
-7. Built-in
+1. Local `components[tag]`
+2. Plugin-contributed `nodeComponents[tag]`
+3. Plugin-contributed `components[tag]`
+4. Built-in component
 
-`nodeComponents.code` beats `components.pre` and `components.code`.
+For semantic nodes (`code`, `math`, `mermaid`, `custom`, and plugin nodes), the
+renderer consults `nodeComponents[kind]` after any local `components` key for
+the same name. In particular, a local `components.code` beats a plugin
+`nodeComponents.code`. A tag key such as `nodeComponents.paragraph` does not
+apply to element nodes.
 
-In v1.0 the renderer exposes `components`; plugin contributions for
-`nodeComponents`, `regions`, `labels`, and `tokens` are merged underneath local
-props, so local overrides always win.
+Fenced code is the exception: `components.pre` always wraps the block, while the
+inner element resolves as local `components.code` > plugin
+`nodeComponents.code` > plugin `components.code` > built-in.
+
+Host-level `nodeComponents` and `regions` props are v1.x contracts. In v1.0,
+plugins may contribute `nodeComponents`, `regions`, `labels`, and `tokens`; the
+renderer merges those contributions. Local `components` and `tokens` props still
+win over plugin contributions. Function values in `nodeComponents` are also
+v1.x; v1.0 accepts component objects and tag-name strings.
 
 ## Lifecycle
 
@@ -83,7 +97,9 @@ renderer unmounts. Never register global listeners outside a cleanup.
 
 A failing remark plugin, rehype plugin, or transform is reported with the plugin
 name and stage. The last good document is preserved, and the same failure is not
-reported in a loop.
+reported in a loop. The owning plugin's `onError` receives the `remark` or
+`rehype` phase; cached processors read the current run's diagnostics, so errors
+do not leak into an earlier run.
 
 ```ts
 onError(error, phase, ctx) {
@@ -125,16 +141,19 @@ after library rehype plugins. Adding `rehype-raw` is what enables raw HTML.
 
 | Plugin | Purpose |
 | --- | --- |
-| `tocPlugin` | TOC construction |
-| `codePlugin` | Code-node construction |
-| `linkPlugin` | Link policy |
-| `searchPlugin(options)` | Segment search matches |
-| `customTagsPlugin({ tags })` | Convert tags to custom nodes |
-| `gfmPlugin` | `remark-gfm` |
-| `frontmatterPlugin` | `remark-frontmatter` + YAML capture |
+| `tocPlugin` | Core invariant marker; TOC construction is built in and cannot be disabled. |
+| `codePlugin` | Core invariant marker; code-node construction is built in and cannot be disabled. |
+| `linkPlugin` | Core invariant marker; link policy is built in and cannot be disabled. |
+| `searchPlugin(options)` | Segment search matches; a real document transform. |
+| `customTagsPlugin({ tags })` | Convert tags to custom nodes; a real document transform. |
+| `gfmPlugin` | `remark-gfm`. |
+| `frontmatterPlugin` | `remark-frontmatter` + YAML capture. |
 
-`defaultPlugins` is `[toc, code, link, search, custom-tags]`. `fullPlugins` adds
-GFM and frontmatter.
+`defaultPlugins` is `[toc, code, link, search, custom-tags]`. The first three are
+core invariant markers: they remain in the resolved set for ordering and
+diagnostics, but `disablePlugins` reports a warning instead of removing them.
+`search` and `custom-tags` are real transforms and can be disabled. `fullPlugins`
+adds GFM and frontmatter.
 
 ## Conditional composition
 

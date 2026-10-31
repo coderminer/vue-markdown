@@ -13,7 +13,7 @@ import {
 } from '../../src/plugins/builtin'
 import { defineMarkdownPlugin } from '../../src/plugins/define'
 import { resolvePlugins } from '../../src/plugins/registry'
-import { exportMarkdownHtmlSync } from '../../src/core/export'
+import { exportMarkdownHtmlSync } from '../../src/export'
 import type {
   MarkdownNode,
   MarkdownPipeline,
@@ -188,6 +188,69 @@ describe('pipeline stages and raw HTML', () => {
         expect.objectContaining({ code: 'plugin-run', plugin: 'broken' }),
       ]),
     )
+  })
+
+  it('reports later failures to the current run when a cached processor is reused', () => {
+    let fail = false
+    const flaky = () => () => {
+      if (fail) throw new Error('late boom')
+    }
+    const slugger = new GithubSlugger()
+    const base = {
+      plugins: defaultPlugins,
+      remarkPlugins: [flaky],
+      rehypePlugins: [],
+      remarkRehypeOptions: {},
+      slugger,
+      idPrefix: '',
+      allowHtml: false,
+    }
+    const pipeline = createOfficialPipeline()
+
+    const first: PipelineContext['diagnostics'] = []
+    pipeline.processSync!('# One', { ...base, source: '# One', diagnostics: first })
+    expect(first.some((item) => item.code === 'plugin-run')).toBe(false)
+
+    fail = true
+    const second: PipelineContext['diagnostics'] = []
+    pipeline.processSync!('# Two', { ...base, source: '# Two', diagnostics: second })
+    expect(second.some((item) => item.code === 'plugin-run')).toBe(true)
+    expect(first.some((item) => item.code === 'plugin-run')).toBe(false)
+  })
+
+  it('calls the owning plugin onError for remark failures', () => {
+    let reportedPhase = ''
+    const broken = () => () => {
+      throw new Error('boom')
+    }
+    const plugin = defineMarkdownPlugin({
+      name: 'owner',
+      remarkPlugins: [broken],
+      onError(_error, phase) {
+        reportedPhase = phase
+      },
+    })
+    const empty = defineMarkdownPlugin({ name: 'empty' })
+    const diagnostics: PipelineContext['diagnostics'] = []
+    const ctx: PipelineContext = {
+      source: '# Title',
+      plugins: [empty, plugin],
+      remarkPlugins: [broken],
+      rehypePlugins: [],
+      remarkRehypeOptions: {},
+      slugger: new GithubSlugger(),
+      idPrefix: '',
+      allowHtml: false,
+      diagnostics,
+    }
+    createOfficialPipeline().processSync!('# Title', ctx)
+
+    expect(reportedPhase).toBe('remark')
+    expect(
+      diagnostics.some(
+        (item) => item.code === 'plugin-run' && item.plugin === 'broken',
+      ),
+    ).toBe(true)
   })
 })
 
@@ -395,6 +458,37 @@ describe('built-in plugins', () => {
     })
     expect(result.document.value?.nodes.some((node) => node.kind === 'text' && node.value.includes('title:'))).toBe(false)
   })
+
+  it('applies source transforms before parsing', () => {
+    const plugin = defineMarkdownPlugin({
+      name: 'source-prefix',
+      transformSource: (source) => `# ${source}`,
+    })
+    const result = useMarkdownDocument('Hello', { plugins: [plugin] })
+    expect(result.document.value?.toc[0]?.text).toBe('Hello')
+  })
+
+  it('keeps the original source and reports when a source transform fails', () => {
+    let reported = 0
+    const plugin = defineMarkdownPlugin({
+      name: 'broken-source',
+      transformSource() {
+        throw new Error('nope')
+      },
+      onError() {
+        reported += 1
+      },
+    })
+    const result = useMarkdownDocument('# Safe', { plugins: [plugin] })
+
+    expect(result.document.value?.toc[0]?.id).toBe('safe')
+    expect(
+      result.diagnostics.value.some(
+        (item) => item.code === 'plugin-source' && item.phase === 'source',
+      ),
+    ).toBe(true)
+    expect(reported).toBeGreaterThanOrEqual(1)
+  })
 })
 
 describe('plugin registry', () => {
@@ -430,6 +524,21 @@ describe('plugin registry', () => {
     ])
     expect(resolved.components.h1).toBe('h2')
     expect(resolved.labels.toc).toBe('Contents')
+  })
+
+  it('keeps core invariant plugins and reports when they are disabled', () => {
+    const resolved = resolvePlugins(defaultPlugins, ['toc'])
+    expect(resolved.names).toContain('toc')
+    expect(
+      resolved.diagnostics.some(
+        (item) => item.code === 'plugin-core' && item.plugin === 'toc',
+      ),
+    ).toBe(true)
+  })
+
+  it('still disables non-core plugins', () => {
+    const resolved = resolvePlugins(defaultPlugins, ['search'])
+    expect(resolved.names).not.toContain('search')
   })
 })
 
@@ -485,6 +594,15 @@ describe('custom pipelines and export', () => {
     const html = exportMarkdownHtmlSync('# Title\n\n**bold**')
     expect(html).toContain('<h1 id="title">Title</h1>')
     expect(html).toContain('<strong>bold</strong>')
+  })
+
+  it('applies source transforms during static export', () => {
+    const plugin = defineMarkdownPlugin({
+      name: 'export-source',
+      transformSource: (source) => `# ${source}`,
+    })
+    const html = exportMarkdownHtmlSync('Hello', { plugins: [plugin] })
+    expect(html).toContain('<h1 id="hello">Hello</h1>')
   })
 })
 
