@@ -128,6 +128,9 @@ describe('CodeBlock', () => {
     const wrapper = mountBlock()
     await flushPromises()
     expect(
+      wrapper.find('[data-vmd-part="code-heading"] svg.vmd-icon').exists(),
+    ).toBe(true)
+    expect(
       wrapper.find('[data-action="copy"] svg.vmd-icon').exists(),
     ).toBe(true)
     expect(wrapper.find('[data-action="copy"]').attributes('aria-label')).toBe(

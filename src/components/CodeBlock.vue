@@ -495,6 +495,7 @@ const HeaderContent = defineComponent({
             'span',
             { class: 'vmd-code-heading', 'data-vmd-part': 'code-heading' },
             [
+              h(Icon, { name: 'source' }),
               props.title
                 ? h(
                     'span',

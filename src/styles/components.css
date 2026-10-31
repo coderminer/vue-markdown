@@ -269,7 +269,6 @@
 }
 
 [data-vmd-part='code-header'] {
-  justify-content: space-between;
   border-bottom: 1px solid var(--vmd-code-border);
 }
 
@@ -285,6 +284,10 @@
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+[data-vmd-part='code-heading'] .vmd-icon {
+  color: var(--vmd-color-accent);
 }
 
 [data-vmd-part='code-title'],
@@ -311,6 +314,7 @@
   display: flex;
   align-items: center;
   gap: var(--vmd-space-1);
+  margin-left: auto;
 }
 
 .vmd-icon {
@@ -463,10 +467,6 @@
   border: 1px solid var(--vmd-mermaid-border);
   border-radius: var(--vmd-radius-sm);
   background: var(--vmd-mermaid-bg);
-}
-
-[data-vmd-part='mermaid-actions'] {
-  margin-left: auto;
 }
 
 [data-vmd-part='mermaid-tabs'] button[data-active='true'] {
