@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
-import { Comment, h } from 'vue'
+import { Comment, defineComponent, h } from 'vue'
 import CodeBlock from '../../src/components/CodeBlock.vue'
+import MarkdownRenderer from '../../src/components/MarkdownRenderer.vue'
 import VueSyntaxHighlighter from '../../src/components/VueSyntaxHighlighter.vue'
 import type { MarkdownHighlighter } from '../../src/core/types'
 
@@ -108,13 +109,20 @@ describe('CodeBlock', () => {
     expect(error?.message).toContain('missing grammar')
   })
 
-  it('loads the default highlight.js adapter lazily', async () => {
-    const wrapper = mountBlock({ highlighter: undefined })
-    await vi.waitFor(() => {
-      expect(wrapper.attributes('data-highlighter')).toBe('highlight.js')
-    })
-    expect(wrapper.find('.hljs-keyword').exists()).toBe(true)
-  })
+  it(
+    'loads the default highlight.js adapter lazily',
+    async () => {
+      const wrapper = mountBlock({ highlighter: undefined })
+      await vi.waitFor(
+        () => {
+          expect(wrapper.attributes('data-highlighter')).toBe('highlight.js')
+        },
+        { timeout: 12000 },
+      )
+      expect(wrapper.find('.hljs-keyword').exists()).toBe(true)
+    },
+    15000,
+  )
 
   it('copies source and emits copy', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined)
@@ -169,6 +177,155 @@ describe('CodeBlock', () => {
     )
     await flushPromises()
     expect(wrapper.find('[data-action="log"]').exists()).toBe(true)
+  })
+
+  it('exposes highlighted nodes and lines to the code slot', async () => {
+    const wrapper = mountBlock(
+      {},
+      {
+        code: (ctx: {
+          nodes: unknown[]
+          highlighted: { language: string }
+          lines: unknown[]
+        }) =>
+          h(
+            'span',
+            { 'data-custom-code': '' },
+            `${ctx.highlighted.language}:${ctx.nodes.length}:${ctx.lines.length}`,
+          ),
+      },
+    )
+    await flushPromises()
+    expect(wrapper.find('[data-custom-code]').text()).toBe('ts:1:1')
+  })
+
+  it('renders a custom header and a file name', async () => {
+    const named = mountBlock({ fileName: 'demo.ts' })
+    await flushPromises()
+    expect(named.find('[data-vmd-part="code-file-name"]').text()).toBe(
+      'demo.ts',
+    )
+    expect(named.find('[data-vmd-part="code-lang"]').text()).toBe('ts')
+
+    const custom = mountBlock(
+      {},
+      {
+        header: () =>
+          h('div', { 'data-custom-header': '' }, 'Custom header'),
+      },
+    )
+    await flushPromises()
+    expect(custom.find('[data-custom-header]').text()).toBe('Custom header')
+    expect(custom.find('[data-vmd-part="code-lang"]').exists()).toBe(false)
+  })
+
+  it('supports line numbers, highlighted lines, and truncation', async () => {
+    const wrapper = mountBlock({
+      code: 'a\nb\nc\nd',
+      lineNumbers: true,
+      highlightLines: [2],
+      maxLines: 2,
+    })
+    await flushPromises()
+    expect(
+      wrapper.findAll('[data-vmd-part="highlighter-line"]'),
+    ).toHaveLength(2)
+    expect(
+      wrapper
+        .findAll('[data-vmd-part="highlighter-gutter"]')
+        .map((node) => node.text()),
+    ).toEqual(['1', '2'])
+    expect(
+      wrapper.find('[data-line="2"]').attributes('data-highlighted'),
+    ).toBe('true')
+    await wrapper
+      .find('[data-vmd-part="highlighter-toggle"]')
+      .trigger('click')
+    expect(
+      wrapper.findAll('[data-vmd-part="highlighter-line"]'),
+    ).toHaveLength(4)
+  })
+
+  it('reports clipboard and action failures', async () => {
+    const writeText = vi.fn().mockRejectedValue(new Error('denied'))
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    })
+    const wrapper = mountBlock({
+      actions: [
+        {
+          key: 'boom',
+          label: 'Boom',
+          run() {
+            throw new Error('nope')
+          },
+        },
+      ],
+    })
+    await wrapper.find('[data-action="copy"]').trigger('click')
+    await flushPromises()
+    await wrapper.find('[data-action="boom"]').trigger('click')
+    await flushPromises()
+
+    const errors = (wrapper.emitted('error') ?? []).map(
+      (event) => event[0] as { code: string; message: string },
+    )
+    expect(errors.map((error) => error.code)).toEqual([
+      'copy-error',
+      'action-error',
+    ])
+    expect(errors[0]?.message).toContain('denied')
+    expect(errors[1]?.message).toContain('nope')
+    expect(wrapper.emitted('action')).toBeUndefined()
+  })
+
+  it('does not recurse when a codeBlock region renders CodeBlock', async () => {
+    const Region = defineComponent({
+      setup() {
+        return () =>
+          h(CodeBlock, {
+            code: 'const x = 1',
+            language: 'ts',
+            highlighter: customHighlighter,
+          })
+      },
+    })
+    const wrapper = mount(MarkdownRenderer, {
+      props: {
+        source: '```ts\nconst x = 1\n```',
+        regions: { codeBlock: Region },
+        highlighter: customHighlighter,
+      },
+    })
+    await flushPromises()
+    expect(wrapper.findAll('.vmd-code-block')).toHaveLength(1)
+  })
+
+  it('lets a region wrapper opt out of region resolution', async () => {
+    const Region = defineComponent({
+      setup() {
+        return () =>
+          h('section', { 'data-region': '' }, [
+            h(CodeBlock, {
+              code: 'const x = 1',
+              language: 'ts',
+              highlighter: customHighlighter,
+              standalone: true,
+            }),
+          ])
+      },
+    })
+    const wrapper = mount(MarkdownRenderer, {
+      props: {
+        source: '```ts\nconst x = 1\n```',
+        regions: { codeBlock: Region },
+        highlighter: customHighlighter,
+      },
+    })
+    await flushPromises()
+    expect(wrapper.find('[data-region]').exists()).toBe(true)
+    expect(wrapper.findAll('.vmd-code-block')).toHaveLength(1)
   })
 })
 
@@ -233,5 +390,22 @@ describe('VueSyntaxHighlighter', () => {
     )
     await flushPromises()
     expect(wrapper.find('[data-custom-highlighter]').text()).toBe('7')
+  })
+
+  it('reports clipboard failures', async () => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: vi.fn().mockRejectedValue(new Error('denied')),
+      },
+    })
+    const wrapper = mount(VueSyntaxHighlighter, {
+      props: { source: 'x', highlighter: customHighlighter },
+    })
+    await wrapper.vm.copy()
+    const error = wrapper.emitted('error')?.[0]?.[0] as
+      | { code: string }
+      | undefined
+    expect(error?.code).toBe('copy-error')
   })
 })

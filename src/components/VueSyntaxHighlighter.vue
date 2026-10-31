@@ -1,31 +1,17 @@
 <script setup lang="ts">
-import {
-  computed,
-  defineComponent,
-  h,
-  onMounted,
-  onUnmounted,
-  ref,
-  shallowRef,
-  useSlots,
-  watch,
-  type VNodeChild,
-} from 'vue'
+import { defineComponent, h, useSlots, type VNodeChild } from 'vue'
 import type {
-  HighlightResult,
   MarkdownDiagnostic,
   MarkdownHighlighter,
   MarkdownTheme,
 } from '../core/types'
 import { createDiagnostic, errorMessage } from '../core/diagnostics'
 import { resolveLabel } from '../core/labels'
-import {
-  plaintextHighlight,
-  runHighlighter,
-  splitHighlightLines,
-} from '../highlight/shared'
+import { useCodeHighlighter } from '../composables/useCodeHighlighter'
+import { useLineWindow } from '../composables/useLineWindow'
 import { renderNodes } from './render'
 import { isEmptySlotContent, useRenderContext } from './context'
+import { useMarkdownConfig } from './config'
 
 const props = withDefaults(
   defineProps<{
@@ -60,188 +46,74 @@ const emit = defineEmits<{
   error: [diagnostic: MarkdownDiagnostic]
 }>()
 const context = useRenderContext()
+const config = useMarkdownConfig()
 const ownSlots = useSlots()
-const result = shallowRef<HighlightResult>(
-  plaintextHighlight(props.source, props.language),
-)
-const scrollTop = ref(0)
-const viewportHeight = ref(0)
-const scrollRef = ref<HTMLElement>()
-const resolvedTheme = computed<MarkdownTheme>(
-  () => props.theme ?? context.theme ?? 'light',
-)
-const expanded = ref(false)
-const overscan = 4
-const copied = ref(false)
-let timer: ReturnType<typeof setTimeout> | undefined
-let copiedTimer: ReturnType<typeof setTimeout> | undefined
-let defaultPromise: Promise<MarkdownHighlighter> | undefined
 
-function defaultHighlighter(): Promise<MarkdownHighlighter> {
-  if (!defaultPromise) {
-    defaultPromise = import('../highlight/highlightjs').then(
-      (module) => module.highlightjs,
-    )
-  }
-  return defaultPromise
-}
-
-const reportedDiagnostics = new Set<string>()
 function reportDiagnostic(diagnostic: MarkdownDiagnostic): void {
-  const signature = `${diagnostic.code}\u001f${diagnostic.message}`
-  if (reportedDiagnostics.has(signature)) return
-  reportedDiagnostics.add(signature)
   context.onRenderError?.(diagnostic)
   emit('error', diagnostic)
 }
 
-const lines = computed(() => props.source.split('\n'))
-const highlightedLines = computed(() => splitHighlightLines(result.value.nodes))
-const truncatable = computed(
-  () => props.maxLines > 0 && lines.value.length > props.maxLines,
-)
-const limited = computed(
-  () => truncatable.value && !expanded.value,
-)
-const totalLines = computed(() =>
-  limited.value
-    ? Math.min(lines.value.length, props.maxLines)
-    : lines.value.length,
-)
-
-const virtualActive = computed(
-  () => props.virtual && totalLines.value >= props.virtualThreshold,
-)
-const startLine = computed(() =>
-  virtualActive.value
-    ? Math.max(
-        0,
-        Math.floor(scrollTop.value / props.lineHeight) - overscan,
-      )
-    : 0,
-)
-const endLine = computed(() =>
-  virtualActive.value
-    ? Math.min(
-        totalLines.value,
-        Math.ceil(
-          (scrollTop.value + viewportHeight.value) / props.lineHeight,
-        ) + overscan,
-      )
-    : totalLines.value,
-)
-
-const visibleLines = computed(() => {
-  const output: Array<{ index: number; nodes: ReturnType<typeof splitHighlightLines>[number] }> = []
-  for (let index = startLine.value; index < endLine.value; index += 1) {
-    output.push({
-      index,
-      nodes: highlightedLines.value[index] ?? [],
-    })
-  }
-  return output
+const { result, active, resolvedTheme, getHighlighted } = useCodeHighlighter({
+  source: () => props.source,
+  language: () => props.language,
+  highlighter: () =>
+    props.highlighter ?? context.highlighter ?? config.value.highlighter,
+  theme: () => props.theme,
+  contextTheme: () => context.theme ?? config.value.theme,
+  delay: () => props.delay,
+  onDiagnostic: reportDiagnostic,
 })
 
-function colorScheme(): 'light' | 'dark' {
-  const theme = resolvedTheme.value
-  if (theme === 'dark') return 'dark'
-  if (theme === 'auto' && typeof window !== 'undefined') {
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
-      ? 'dark'
-      : 'light'
-  }
-  return 'light'
-}
-
-function refresh(): void {
-  if (timer) clearTimeout(timer)
-  const run = async (): Promise<void> => {
-    let instance = props.highlighter ?? context.highlighter
-    if (!instance) {
-      try {
-        instance = await defaultHighlighter()
-      } catch (error) {
-        reportDiagnostic(
-          createDiagnostic(
-            'highlighter-unavailable',
-            'The default highlight.js adapter could not be loaded. Install the optional `highlight.js` peer dependency to enable syntax highlighting.',
-            { severity: 'warning', phase: 'render' },
-          ),
-        )
-        if (import.meta.env.DEV) {
-          console.error('highlight.js failed to load', error)
-        }
-        instance = undefined
-      }
-    }
-    if (!instance || typeof instance.highlight !== 'function') {
-      result.value = plaintextHighlight(props.source, props.language)
-      return
-    }
-    try {
-      await instance.load?.()
-      if (props.language) await instance.loadLanguage?.(props.language)
-    } catch (error) {
-      reportDiagnostic(
-        createDiagnostic(
-          'highlighter-load',
-          `The highlighter could not prepare this language: ${errorMessage(error)}`,
-          { severity: 'warning', phase: 'render' },
-        ),
-      )
-    }
-    result.value = runHighlighter(instance, props.source, props.language, {
-      theme: resolvedTheme.value,
-      colorScheme: colorScheme(),
-    })
-  }
-  if (props.delay > 0) timer = setTimeout(() => void run(), props.delay)
-  else void run()
-}
-
-function onScroll(event: Event): void {
-  const target = event.target as HTMLElement
-  scrollTop.value = target.scrollTop
-  viewportHeight.value = target.clientHeight
-}
-
-function measure(): void {
-  if (scrollRef.value) viewportHeight.value = scrollRef.value.clientHeight
-}
-
-onMounted(() => {
-  measure()
-  refresh()
+const {
+  expanded,
+  truncatable,
+  totalLines,
+  virtualActive,
+  startLine,
+  endLine,
+  visibleLines,
+  lineHeight,
+  scrollRef,
+  onScroll,
+  toggle,
+} = useLineWindow({
+  nodes: () => result.value.nodes,
+  source: () => props.source,
+  maxLines: () => props.maxLines,
+  virtual: () => props.virtual,
+  virtualThreshold: () => props.virtualThreshold,
+  lineHeight: () => props.lineHeight,
 })
-onUnmounted(() => {
-  if (timer) clearTimeout(timer)
-  if (copiedTimer) clearTimeout(copiedTimer)
-})
-watch(
-  () => [props.source, props.language, props.highlighter, resolvedTheme.value] as const,
-  ([source], previous) => {
-    if (!previous || source !== previous[0]) expanded.value = false
-    refresh()
-  },
-)
 
 async function copy(): Promise<void> {
   try {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
       await navigator.clipboard.writeText(props.source)
+    } else if (typeof document !== 'undefined') {
+      const area = document.createElement('textarea')
+      area.value = props.source
+      document.body.appendChild(area)
+      area.select()
+      const succeeded = document.execCommand('copy')
+      area.remove()
+      if (succeeded === false) throw new Error('The copy command was rejected.')
+    } else {
+      throw new Error('Clipboard access is not available.')
     }
     emit('copy', props.source)
-    copied.value = true
-    if (copiedTimer) clearTimeout(copiedTimer)
-    copiedTimer = setTimeout(() => {
-      copied.value = false
-    }, 1500)
-  } catch {
-    copied.value = false
+  } catch (error) {
+    reportDiagnostic(
+      createDiagnostic(
+        'copy-error',
+        `The source could not be copied to the clipboard: ${errorMessage(error)}`,
+        { severity: 'warning', phase: 'render' },
+      ),
+    )
   }
 }
 
-defineExpose({ copy, highlighted: result })
+defineExpose({ copy, getHighlighted, highlighted: result })
 
 const Body = defineComponent({
   setup() {
@@ -253,6 +125,7 @@ const Body = defineComponent({
           language: props.language,
           nodes: result.value.nodes,
           lines: visibleLines.value,
+          highlighted: result.value,
           actions: { copy },
         },
         () => {
@@ -263,6 +136,7 @@ const Body = defineComponent({
               language: props.language,
               nodes: result.value.nodes,
               lines: visibleLines.value,
+              highlighted: result.value,
               actions: { copy },
             })
             if (!isEmptySlotContent(output)) return output
@@ -282,7 +156,7 @@ const Body = defineComponent({
             children.push(
               h('div', {
                 'aria-hidden': 'true',
-                style: { height: `${startLine.value * props.lineHeight}px` },
+                style: { height: `${startLine.value * lineHeight.value}px` },
               }),
             )
           }
@@ -309,7 +183,11 @@ const Body = defineComponent({
                         String(line.index + 1),
                       )
                     : null,
-                  h('code', { class: 'vmd-highlighter-code' }, renderNodes(line.nodes, context)),
+                  h(
+                    'code',
+                    { class: 'vmd-highlighter-code' },
+                    renderNodes(line.nodes, context),
+                  ),
                 ],
               ),
             )
@@ -319,7 +197,7 @@ const Body = defineComponent({
               h('div', {
                 'aria-hidden': 'true',
                 style: {
-                  height: `${(totalLines.value - endLine.value) * props.lineHeight}px`,
+                  height: `${(totalLines.value - endLine.value) * lineHeight.value}px`,
                 },
               }),
             )
@@ -332,9 +210,8 @@ const Body = defineComponent({
                   type: 'button',
                   class: 'vmd-highlighter-toggle',
                   'data-vmd-part': 'highlighter-toggle',
-                  onClick: () => {
-                    expanded.value = !expanded.value
-                  },
+                  'aria-expanded': expanded.value ? 'true' : 'false',
+                  onClick: toggle,
                 },
                 expanded.value
                   ? resolveLabel(context.labels.showLess)
@@ -356,8 +233,13 @@ const Body = defineComponent({
     class="vmd-highlighter"
     :data-vmd-theme="resolvedTheme"
     :data-language="language || 'text'"
+    :data-highlighter="active?.id"
     :data-virtual="virtualActive ? 'true' : undefined"
-    :style="virtualActive ? { maxHeight: `${lineHeight * 20}px`, overflow: 'auto' } : undefined"
+    :style="
+      virtualActive
+        ? { maxHeight: `${lineHeight * 20}px`, overflow: 'auto' }
+        : undefined
+    "
     @scroll="onScroll"
   >
     <div data-vmd-part="highlighter-body" class="vmd-highlighter-body">

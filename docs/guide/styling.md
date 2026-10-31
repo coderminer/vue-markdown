@@ -133,8 +133,9 @@ unchanged.
 
 The stylesheet includes hooks for the rich catalog and optional engines:
 `task-item`, `task-checkbox`, `footnote-reference`, `footnotes`, `code-header`,
-`code-lang`, `code-toolbar`, `code-action`, `code-body`, `highlighter`,
-`highlighter-line`, `highlighter-gutter`, `highlighter-empty`, `math`,
+`code-heading`, `code-title`, `code-file-name`, `code-lang`, `code-toolbar`,
+`code-action`, `code-body`, `code-feedback`, `highlighter`, `highlighter-line`,
+`highlighter-gutter`, `highlighter-empty`, `math`,
 `math-error`, `mermaid`, `mermaid-header`, `mermaid-tabs`, `mermaid-actions`,
 `mermaid-preview`, `mermaid-source`, `mermaid-pending`, `mermaid-error`,
 `editor`, `editor-toolbar`, `editor-pane`, `editor-divider`,

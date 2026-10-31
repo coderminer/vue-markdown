@@ -158,9 +158,11 @@ Slots and minimum contexts:
 | Slot | Context |
 | --- | --- |
 | `root`, `toc`, `toc-item`, `content`, `error`, `empty`, `loading` | existing documented contexts |
-| `code` | `{ node, source, language, actions: { copy, download } }` |
-| `code-actions` | `{ source, language, actions: { copy, download } }` |
-| `highlighter` | `{ source, language, nodes, lines, actions: { copy } }` |
+| `code` | `{ node, source, language, highlighted, nodes, lines, visibleLines, actions: { copy, download } }` |
+| `code-actions` | `{ source, language, fileName, title, highlighted, nodes, actions: { copy, download } }` |
+| `header` | `{ source, language, label, fileName, title, highlighted, nodes, actions: { copy, download } }` |
+| `toolbar` | `{ source, language, fileName, title, highlighted, nodes, actions: { copy, download } }` |
+| `highlighter` | `{ source, language, nodes, lines, highlighted, actions: { copy } }` |
 | `math` | `{ tex, displayMode, rendered, error }` |
 | `math-error` | `{ tex, error, retry }` |
 | `mermaid` | `{ source, svg, status, error, actions: { copy, exportPng, fullscreen, retry } }` |
@@ -213,9 +215,12 @@ and requested languages, supports dual light/dark output, and falls back to
 plaintext on the server or before readiness.
 
 `CodeBlock` owns the wrapper, language label, highlighted content, copy,
-download, custom actions, events, and the `code`/`code-actions` slots.
-`VueSyntaxHighlighter` owns line numbers, highlighted lines, truncation,
-virtual scrolling, delayed highlighting, and empty-input behavior.
+download, custom actions, events, and the `code`/`code-actions`/`header`/
+`toolbar` slots. It also supports line numbers, highlighted lines, truncation,
+virtual scrolling, and delayed highlighting. Both components share the
+highlighter state composable so adapter selection, themes, readiness loading,
+and diagnostics cannot drift apart. `VueSyntaxHighlighter` adds empty-input
+behavior and the `highlighter` slot.
 
 Root exports the components, but the default highlighter is loaded dynamically
 so a consumer that never renders code does not pay for highlight.js. Shiki is

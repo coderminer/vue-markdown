@@ -119,9 +119,11 @@ default region and receive scoped data and actions.
 | `error` | `{ diagnostics, label, retry }` |
 | `empty` | `{ label }` |
 | `loading` | `{ label }` |
-| `code` | `{ node, source, language, actions: { copy, download } }` |
-| `code-actions` | `{ source, language, actions: { copy, download } }` |
-| `highlighter` | `{ source, language, nodes, lines, actions: { copy } }` |
+| `code` | `{ node, source, language, highlighted, nodes, lines, visibleLines, actions: { copy, download } }` |
+| `code-actions` | `{ source, language, fileName, title, highlighted, nodes, actions: { copy, download } }` |
+| `header` | `{ source, language, label, fileName, title, highlighted, nodes, actions: { copy, download } }` |
+| `toolbar` | `{ source, language, fileName, title, highlighted, nodes, actions: { copy, download } }` |
+| `highlighter` | `{ source, language, nodes, lines, highlighted, actions: { copy } }` |
 | `math` | `{ tex, displayMode, rendered, error }` |
 | `math-error` | `{ tex, error, retry }` |
 | `mermaid` | `{ source, svg, status, error, actions: { copy, exportPng, fullscreen, retry } }` |

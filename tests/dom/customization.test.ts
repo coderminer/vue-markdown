@@ -226,6 +226,46 @@ describe('regions and node components', () => {
     expect(highlight).not.toHaveBeenCalled()
   })
 
+  it('passes the complete code configuration to a code region', () => {
+    const highlighter: MarkdownHighlighter = {
+      id: 'region-highlighter',
+      highlight(code, language) {
+        return { language, nodes: [{ kind: 'text', key: 'x', value: code }] }
+      },
+    }
+    const CodeRegion = defineComponent({
+      props: {
+        highlighter: Object,
+        showActions: Boolean,
+        showDownload: Boolean,
+        actions: Array,
+        highlighted: Object,
+      },
+      setup(props) {
+        return () =>
+          h(
+            'section',
+            { 'data-custom-code': '' },
+            [
+              (props.highlighter as MarkdownHighlighter | undefined)?.id ?? '',
+              String(props.showActions),
+              String(props.showDownload),
+              String(props.actions?.length ?? -1),
+              String(Boolean(props.highlighted)),
+            ].join(':'),
+          )
+      },
+    })
+    const wrapper = renderer({
+      source: '```ts\nconst x = 1\n```',
+      regions: { codeBlock: CodeRegion },
+      highlighter,
+    })
+    expect(wrapper.find('[data-custom-code]').text()).toBe(
+      'region-highlighter:true:true:0:true',
+    )
+  })
+
   it('resolves node components by tag and kind with documented precedence', () => {
     const CustomLink = defineComponent({
       props: { href: String, node: Object },

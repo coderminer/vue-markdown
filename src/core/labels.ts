@@ -21,6 +21,7 @@ export const DEFAULT_LABELS: MarkdownLabels = {
   externalLink: 'Opens in a new tab',
   copy: 'Copy',
   copied: 'Copied',
+  copyFailed: 'Copy failed',
   download: 'Download',
   footnoteReference: 'Footnote',
   footnotes: 'Footnotes',

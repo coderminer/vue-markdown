@@ -82,7 +82,8 @@ supplies its own wrapper.
 When the lazy default adapter cannot be imported, `CodeBlock` and
 `VueSyntaxHighlighter` report `highlighter-unavailable` with an install hint and
 emit `error`; a failed `load()` or `loadLanguage()` reports `highlighter-load`.
-The source always stays readable.
+Copy and custom action failures report `copy-error` and `action-error`; a failed
+download reports `download-error`. The source always stays readable.
 
 ## Server rendering
 

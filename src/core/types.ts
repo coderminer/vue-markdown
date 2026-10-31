@@ -180,6 +180,7 @@ export interface MarkdownLabels {
   externalLink: MarkdownLabelValue
   copy: MarkdownLabelValue
   copied: MarkdownLabelValue
+  copyFailed: MarkdownLabelValue
   download: MarkdownLabelValue
   footnoteReference: MarkdownLabelValue
   footnotes: MarkdownLabelValue

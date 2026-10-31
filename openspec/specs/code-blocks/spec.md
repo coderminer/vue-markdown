@@ -17,6 +17,22 @@ A code block SHALL display the fenced language identifier, or a plain-text label
 - **WHEN** a fenced block declares no language
 - **THEN** the block renders with a plain-text label and unhighlighted source
 
+### Requirement: Header and line presentation
+
+The block SHALL let hosts replace the default header or expose a title and file
+name, and SHALL support optional line numbers, highlighted line ranges,
+truncation, and virtual scrolling with the same options as the standalone
+highlighter. A custom code slot SHALL receive the highlighted result and its
+normalized nodes so custom markup does not need to re-run the adapter.
+
+#### Scenario: Custom header
+- **WHEN** a host supplies a header slot or a file name
+- **THEN** the default language label is replaced or augmented while actions keep working
+
+#### Scenario: Highlighted slot data
+- **WHEN** a host renders the code slot
+- **THEN** the slot receives the source, language, highlighted result, and normalized nodes
+
 ### Requirement: Injectable syntax highlighting
 
 The component SHALL use the shared highlighter adapter contract. The default adapter SHALL use highlight.js and `rehype-highlight`. The library SHALL ship Shiki as an official optional adapter with asynchronous preloading and dual-theme support, and hosts SHALL be able to supply any other adapter. Adapters SHALL return normalized nodes rather than HTML strings. The active adapter SHALL be selectable by local prop, nearest provider, preset, or built-in default, in that order. Asynchronous adapters SHALL show unhighlighted source until ready. An invalid adapter SHALL be reported and SHALL fall back to plain text without breaking the block.
@@ -79,7 +95,7 @@ When actions are enabled, the block SHALL offer a copy action that copies the ex
 
 #### Scenario: Clipboard failure
 - **WHEN** the clipboard write rejects
-- **THEN** the error event is emitted and the copy action remains usable
+- **THEN** a `copy-error` diagnostic is reported through the error event and the copy action remains usable
 
 ### Requirement: Download action
 
@@ -100,6 +116,10 @@ Hosts SHALL be able to add, remove, or replace toolbar actions without rebuildin
 #### Scenario: Add a custom action
 - **WHEN** a host adds a "run" action for JavaScript blocks
 - **THEN** the action appears in the toolbar with the same accessibility and state behavior as built-in actions
+
+#### Scenario: Custom action failure
+- **WHEN** a custom action throws
+- **THEN** an `action-error` diagnostic is reported through the error event and the block keeps rendering
 
 #### Scenario: Remove built-in actions
 - **WHEN** a host renders only a custom action through the actions slot

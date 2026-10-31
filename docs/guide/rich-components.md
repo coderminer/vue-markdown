@@ -126,37 +126,56 @@ const actions: CodeBlockAction[] = [
 | `theme` | `MarkdownTheme` | context | Theme override for the block and highlighter. |
 | `actions` | `CodeBlockAction[]` | `[]` | Extra toolbar buttons with `key`, `label`, and `run`. |
 | `showActions` | `boolean` | `true` | Hides the default copy/download buttons. |
+| `showDownload` | `boolean` | `true` | Hides only the default download button. |
+| `title` | `string` | — | Replaces the language label in the default header. |
+| `fileName` | `string` | — | Shows a file name and uses it for downloads. |
+| `lineNumbers` | `boolean` | `false` | Renders a gutter. |
+| `highlightLines` | `number[]` | `[]` | 1-based line numbers to emphasize. |
+| `maxLines` | `number` | `0` | Truncates and offers an expand control. |
+| `virtual` | `boolean` | `false` | Virtualizes after `virtualThreshold`. |
+| `virtualThreshold` | `number` | `200` | Line count that enables virtualization. |
+| `lineHeight` | `number` | `20` | Row height used by virtualization. |
+| `delay` | `number` | `0` | Debounces highlighting in milliseconds. |
+| `standalone` | `boolean` | `false` | Ignores `regions.codeBlock`. |
+| `ignoreRegion` | `boolean` | `false` | Alias for `standalone`. |
 
 Events: `copy(source)`, `download(source)`, `action(key)`, and `error(diagnostic)`.
-Slots: `code` and `code-actions` receive the source, language, and copy/download
-actions.
-Exposed: `copy()`, `download()`, `getHighlighted()`, and `highlighted`.
+Copy failures report `copy-error`; custom action failures report `action-error`;
+download failures report `download-error`. All three also emit `error`.
+Slots: `code`, `code-actions`, `header`, and `toolbar`. `code` receives
+`{ node, source, language, highlighted, nodes, lines, visibleLines, actions }`;
+the action slots receive `{ source, language, fileName, title, highlighted,
+nodes, actions }`.
 
 ```vue
-<CodeBlock :code="code" language="ts">
-  <template #code-actions="{ actions }">
+<CodeBlock :code="code" language="ts" file-name="demo.ts">
+  <template #header="{ fileName, language, actions }">
+    <strong>{{ fileName }}</strong>
+    <span>{{ language }}</span>
     <button type="button" @click="actions.copy">Copy</button>
-    <button type="button" @click="actions.download">Download</button>
   </template>
 </CodeBlock>
 ```
 
 In the renderer, `components.pre` wraps the block, `components.code` /
 `nodeComponents.code` replace the inner element, and `regions.codeBlock` replaces
-the whole block.
+the whole block. A region may render `CodeBlock` internally; nested code
+components automatically ignore the region, and `standalone` / `ignoreRegion`
+make that intent explicit.
 
 ## Build a custom code block with CodeBlock
 
 A custom code element does not need to reimplement highlighting or copy/
 download. Compose the public `CodeBlock` features:
 
-- `node`, `code`, and `language` inputs
+- `node`, `code`, `language`, `title`, and `fileName` inputs
 - `theme` and `highlighter` overrides
 - `actions` for extra toolbar buttons
-- `showActions` for the default copy/download buttons
-- `#code` and `#code-actions` slots
+- `showActions` / `showDownload` for the default buttons
+- line numbers, highlighted lines, truncation, and virtualization
+- `#code`, `#code-actions`, `#toolbar`, and `#header` slots
 - `copy`, `download`, `action`, and `error` events
-- `copy()`, `download()`, and `highlighted` on the instance
+- `copy()`, `download()`, `getHighlighted()`, and `highlighted` on the instance
 
 ```vue [ReviewCodeBlock.vue]
 <script setup lang="ts">
@@ -267,8 +286,9 @@ Use the lab to verify:
 | `highlighter` | Switch between highlight.js, an uppercase adapter, and a broken loader. |
 | `actions` | Use **Log source** in the toolbar. |
 | `showActions` | Hide the default buttons; the custom action remains. |
-| `#code` slot | Enable **Use #code slot** for a plain source rendering. |
-| `#code-actions` slot | Enable **Use #code-actions slot** for a custom toolbar. |
+| `#code` slot | Enable **Use #code slot** for a plain source rendering. The slot also exposes `highlighted`, `nodes`, and `lines`. |
+| `#header` / `#toolbar` slots | Replace the title area or only the action area. |
+| line options | Pass `line-numbers`, `highlight-lines`, `max-lines`, or `virtual` like the standalone highlighter. |
 | `copy` / `download` events | Use either toolbar; the event log records it. |
 | `action` event | Trigger **Log source** or the custom toolbar action. |
 | `error` event | Select **broken loader**; the warning is logged. |
@@ -294,10 +314,11 @@ const components = {
 </template>
 ```
 
-::: warning Wrap vs. replace
-`regions.codeBlock` replaces the entire block. A region component that renders
-`CodeBlock` internally would re-enter the same region and recurse. Use
-`components.pre` for a wrapper, or implement the region from scratch.
+::: tip Wrap vs. replace
+`regions.codeBlock` replaces the entire block. A region component may render
+`CodeBlock` internally: nested code components automatically ignore the region,
+so it cannot recurse. Pass `standalone` (or its alias `ignoreRegion`) when the
+intent should be explicit.
 :::
 
 ## VueSyntaxHighlighter
