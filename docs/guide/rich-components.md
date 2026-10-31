@@ -88,8 +88,9 @@ import MermaidBlock from 'vue-markdown-suite/components/MermaidBlock'
 ## CodeBlock
 
 `CodeBlock` is the default fenced-code component. It lazy-loads highlight.js when
-no highlighter is configured, renders a copy/download toolbar, and accepts extra
-actions.
+no highlighter is configured, renders a styled header with inline SVG icon
+actions for copy/download, and accepts extra actions. The built-in icons do not
+require an icon package; every icon button keeps an accessible label and title.
 
 ```vue
 <script setup lang="ts">
@@ -285,7 +286,7 @@ Use the lab to verify:
 | `theme` | Switch light, dark, auto, and custom. |
 | `highlighter` | Switch between highlight.js, an uppercase adapter, and a broken loader. |
 | `actions` | Use **Log source** in the toolbar. |
-| `showActions` | Hide the default buttons; the custom action remains. |
+| `showActions` | Hide the default icon buttons; the custom action remains. |
 | `#code` slot | Enable **Use #code slot** for a plain source rendering. The slot also exposes `highlighted`, `nodes`, and `lines`. |
 | `#header` / `#toolbar` slots | Replace the title area or only the action area. |
 | line options | Pass `line-numbers`, `highlight-lines`, `max-lines`, or `virtual` like the standalone highlighter. |
@@ -376,7 +377,9 @@ Exposed: `copy()` and `highlighted`.
 ## MermaidBlock
 
 `MermaidBlock` renders one diagram. It keeps the last good diagram while a new
-render is pending, sanitizes SVG, and exposes preview/source tabs.
+render is pending, sanitizes SVG, and exposes preview/source tabs. The default
+header, tabs, label, and icon actions are styled by the optional stylesheet, so
+the block is usable without adding toolbar markup or an icon library.
 
 ```vue
 <script setup lang="ts">

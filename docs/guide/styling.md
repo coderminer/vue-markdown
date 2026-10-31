@@ -70,6 +70,16 @@ Scoped token overrides still win inside a themed subtree:
 }
 ```
 
+## Built-in rich-component chrome
+
+The stylesheet includes usable default headers and toolbars for `CodeBlock` and
+`MermaidBlock`, including inline-SVG icon actions, hover/focus states, active
+tab styling, and copy feedback. No icon package or extra markup is required.
+Every action keeps an accessible label even when its visible label is hidden.
+
+The default icon sizing is controlled by `.vmd-icon`; button spacing and colors
+use the standard tokens, so token overrides restyle the chrome automatically.
+
 ## Target parts
 
 Every visual part exposes both a stable class and a `data-vmd-part` attribute:

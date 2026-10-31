@@ -268,6 +268,15 @@ describe('MermaidBlock', () => {
     const wrapper = mountBlock({ enableZoom: true })
     await flushPromises()
 
+    expect(
+      wrapper.find('[data-vmd-part="mermaid-tabs"] svg.vmd-icon').exists(),
+    ).toBe(true)
+    expect(
+      wrapper
+        .find('[data-vmd-part="mermaid-actions"] button[data-icon="true"] svg.vmd-icon')
+        .exists(),
+    ).toBe(true)
+
     const buttons = wrapper.findAll('button')
     const byText = (text: string) => buttons.find((button) => button.text() === text)!
     await byText('Source').trigger('click')

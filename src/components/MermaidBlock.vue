@@ -22,6 +22,7 @@ import { isValidMermaidRenderer } from '../core/adapters'
 import { isEmptySlotContent, useRenderContext } from './context'
 import { renderNodes } from './render'
 import { createMermaidRenderId, renderMermaid } from '../mermaid/runtime'
+import Icon from './Icon'
 import { sanitizeMermaidNodes, sanitizeSvg } from '../mermaid/sanitize'
 
 const props = withDefaults(
@@ -428,7 +429,10 @@ defineExpose({ render, copy, exportPng, downloadSvg, toggleFullscreen })
     tabindex="-1"
   >
     <div data-vmd-part="mermaid-header" class="vmd-mermaid-header">
-      <span class="vmd-mermaid-label">{{ label }}</span>
+      <span class="vmd-mermaid-label">
+        <Icon name="diagram" />
+        {{ label }}
+      </span>
       <div data-vmd-part="mermaid-tabs" class="vmd-mermaid-tabs" role="tablist">
         <button
           type="button"
@@ -436,14 +440,20 @@ defineExpose({ render, copy, exportPng, downloadSvg, toggleFullscreen })
           :aria-selected="view === 'preview'"
           :data-active="view === 'preview' ? 'true' : undefined"
           @click="view = 'preview'"
-        >{{ resolveLabel(context.labels.preview) }}</button>
+        >
+          <Icon name="preview" />
+          {{ resolveLabel(context.labels.preview) }}
+        </button>
         <button
           type="button"
           role="tab"
           :aria-selected="view === 'source'"
           :data-active="view === 'source' ? 'true' : undefined"
           @click="view = 'source'"
-        >{{ resolveLabel(context.labels.source) }}</button>
+        >
+          <Icon name="source" />
+          {{ resolveLabel(context.labels.source) }}
+        </button>
       </div>
       <div
         v-if="!compact"
@@ -454,34 +464,85 @@ defineExpose({ render, copy, exportPng, downloadSvg, toggleFullscreen })
           v-if="enableZoom"
           type="button"
           :aria-label="resolveLabel(context.labels.zoomIn)"
+          :title="resolveLabel(context.labels.zoomIn)"
           @click="zoom(0.25)"
-        >+</button>
+        >
+          +
+        </button>
         <button
           v-if="enableZoom"
           type="button"
           :aria-label="resolveLabel(context.labels.zoomOut)"
+          :title="resolveLabel(context.labels.zoomOut)"
           @click="zoom(-0.25)"
-        >−</button>
+        >
+          −
+        </button>
         <button
           v-if="enableZoom"
           type="button"
           :aria-label="resolveLabel(context.labels.reset)"
+          :title="resolveLabel(context.labels.reset)"
           @click="resetZoom"
-        >1:1</button>
-        <button type="button" @click="copy">
-          {{ copied ? resolveLabel(context.labels.copied) : resolveLabel(context.labels.copy) }}
+        >
+          1:1
         </button>
-        <button type="button" @click="exportPng">
-          {{ resolveLabel(context.labels.exportPng) }}
+        <button
+          type="button"
+          data-icon="true"
+          :aria-label="copied ? resolveLabel(context.labels.copied) : resolveLabel(context.labels.copy)"
+          :title="copied ? resolveLabel(context.labels.copied) : resolveLabel(context.labels.copy)"
+          @click="copy"
+        >
+          <Icon :name="copied ? 'check' : 'copy'" />
+          <span class="vmd-visually-hidden">
+            {{ copied ? resolveLabel(context.labels.copied) : resolveLabel(context.labels.copy) }}
+          </span>
         </button>
-        <button type="button" @click="downloadSvg">SVG</button>
+        <button
+          type="button"
+          data-icon="true"
+          :aria-label="resolveLabel(context.labels.exportPng)"
+          :title="resolveLabel(context.labels.exportPng)"
+          @click="exportPng"
+        >
+          <Icon name="image" />
+          <span class="vmd-visually-hidden">
+            {{ resolveLabel(context.labels.exportPng) }}
+          </span>
+        </button>
+        <button
+          type="button"
+          :aria-label="`${resolveLabel(context.labels.download)} SVG`"
+          :title="`${resolveLabel(context.labels.download)} SVG`"
+          @click="downloadSvg"
+        >
+          SVG
+        </button>
         <button
           v-if="allowFullscreen"
           type="button"
+          data-icon="true"
+          :aria-label="fullscreen ? resolveLabel(context.labels.exitFullscreen) : resolveLabel(context.labels.fullscreen)"
+          :title="fullscreen ? resolveLabel(context.labels.exitFullscreen) : resolveLabel(context.labels.fullscreen)"
           @click="toggleFullscreen()"
-        >{{ fullscreen ? resolveLabel(context.labels.exitFullscreen) : resolveLabel(context.labels.fullscreen) }}</button>
-        <button type="button" @click="render">
-          {{ resolveLabel(context.labels.retry) }}
+        >
+          <Icon :name="fullscreen ? 'exit-fullscreen' : 'fullscreen'" />
+          <span class="vmd-visually-hidden">
+            {{ fullscreen ? resolveLabel(context.labels.exitFullscreen) : resolveLabel(context.labels.fullscreen) }}
+          </span>
+        </button>
+        <button
+          type="button"
+          data-icon="true"
+          :aria-label="resolveLabel(context.labels.retry)"
+          :title="resolveLabel(context.labels.retry)"
+          @click="render"
+        >
+          <Icon name="retry" />
+          <span class="vmd-visually-hidden">
+            {{ resolveLabel(context.labels.retry) }}
+          </span>
         </button>
       </div>
     </div>

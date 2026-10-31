@@ -24,6 +24,7 @@ import { renderNodes } from './render'
 import { isEmptySlotContent, useRenderContext } from './context'
 import { useMarkdownConfig } from './config'
 import { useCodeBlockRegion } from './codeRegion'
+import Icon from './Icon'
 
 const props = withDefaults(
   defineProps<{
@@ -368,6 +369,12 @@ const ActionsContent = defineComponent({
             if (!props.showActions && props.actions.length === 0) return null
             const children: VNodeChild[] = []
             if (props.showActions) {
+              const copyLabel =
+                copyState.value === 'copied'
+                  ? resolveLabel(context.labels.copied)
+                  : copyState.value === 'failed'
+                    ? resolveLabel(context.labels.copyFailed)
+                    : resolveLabel(context.labels.copy)
               children.push(
                 h(
                   'button',
@@ -376,17 +383,26 @@ const ActionsContent = defineComponent({
                     class: 'vmd-code-action',
                     'data-vmd-part': 'code-action',
                     'data-action': 'copy',
+                    'data-icon': 'true',
                     'data-state': copyState.value,
+                    'aria-label': copyLabel,
+                    title: copyLabel,
                     onClick: copy,
                   },
-                  copyState.value === 'copied'
-                    ? resolveLabel(context.labels.copied)
-                    : copyState.value === 'failed'
-                      ? resolveLabel(context.labels.copyFailed)
-                      : resolveLabel(context.labels.copy),
+                  [
+                    h(Icon, {
+                      name: copyState.value === 'copied' ? 'check' : 'copy',
+                    }),
+                    h(
+                      'span',
+                      { class: 'vmd-visually-hidden' },
+                      copyLabel,
+                    ),
+                  ],
                 ),
               )
               if (props.showDownload) {
+                const downloadLabel = resolveLabel(context.labels.download)
                 children.push(
                   h(
                     'button',
@@ -395,9 +411,19 @@ const ActionsContent = defineComponent({
                       class: 'vmd-code-action',
                       'data-vmd-part': 'code-action',
                       'data-action': 'download',
+                      'data-icon': 'true',
+                      'aria-label': downloadLabel,
+                      title: downloadLabel,
                       onClick: download,
                     },
-                    resolveLabel(context.labels.download),
+                    [
+                      h(Icon, { name: 'download' }),
+                      h(
+                        'span',
+                        { class: 'vmd-visually-hidden' },
+                        downloadLabel,
+                      ),
+                    ],
                   ),
                 )
               }

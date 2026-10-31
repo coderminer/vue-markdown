@@ -124,6 +124,23 @@ describe('CodeBlock', () => {
     15000,
   )
 
+  it('renders built-in icon actions with accessible labels', async () => {
+    const wrapper = mountBlock()
+    await flushPromises()
+    expect(
+      wrapper.find('[data-action="copy"] svg.vmd-icon').exists(),
+    ).toBe(true)
+    expect(wrapper.find('[data-action="copy"]').attributes('aria-label')).toBe(
+      'Copy',
+    )
+    expect(
+      wrapper.find('[data-action="download"] svg.vmd-icon').exists(),
+    ).toBe(true)
+    expect(
+      wrapper.find('[data-action="download"]').attributes('aria-label'),
+    ).toBe('Download')
+  })
+
   it('copies source and emits copy', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined)
     Object.defineProperty(navigator, 'clipboard', {

@@ -382,6 +382,10 @@ SSR-safe.
 | `MermaidLiveEditor` | `modelValue`, `debounce`, `theme`, `renderer`, `diagnosticsFormatter`, `compact`, `initialRatio`, `minRatio` | `update:modelValue`, `preview`, `error` | `editor`, `editor-diagnostics` | `focus`, `refreshPreview`, `toggleFullscreen`, `getDiagnostics` |
 | `MarkdownMath` | `node`, `tex`, `displayMode`, `rendered`, `error`, `mathEngine` | — | `math`, `math-error` | — |
 
+`CodeBlock` and `MermaidBlock` ship styled headers and inline-SVG icon actions.
+The icon buttons keep accessible labels and work with the optional stylesheet
+without adding an icon dependency.
+
 See [Rich components](../guide/rich-components.md) for complete usage and
 [Components](./components.md) for the manifest registry.
 

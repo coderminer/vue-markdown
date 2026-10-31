@@ -38,7 +38,9 @@ describe('server rendering', () => {
     const html = await renderComponent(MermaidBlock, { source: 'graph TD; A-->B' })
     expect(html).toContain('data-vmd-part="mermaid"')
     expect(html).toContain('Rendering diagram')
-    expect(html).not.toContain('<svg')
+    // UI icons are static inline SVG; the Mermaid runtime must not contribute
+    // a rendered diagram on the server.
+    expect(html).not.toContain('vmd-mermaid-diagram')
   })
 
   it('renders region slots on the server', async () => {
