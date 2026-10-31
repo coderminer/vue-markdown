@@ -167,6 +167,13 @@ describe('stylesheet compatibility fallbacks', () => {
     expect(focusVisible).toBeGreaterThanOrEqual(0)
     expect(focus).toBeLessThan(focusVisible)
   })
+
+  it('reserves marker space for multi-digit TOC entries', () => {
+    const components = readStyle('components.css')
+    expect(components).toContain(".vmd-toc-nav[data-vmd-part='toc-nav']")
+    expect(components).toContain('padding-left: 2.25rem;')
+    expect(components).toContain('list-style: decimal outside;')
+  })
 })
 
 describe('design tokens and theme modes', () => {

@@ -141,13 +141,26 @@
   font-size: 0.925em;
 }
 
-[data-vmd-part='toc-nav'] {
+.vmd-toc-nav[data-vmd-part='toc-nav'] {
   position: -webkit-sticky;
   position: sticky;
   top: var(--vmd-space-4);
   inset-block-start: var(--vmd-space-4);
   max-height: calc(100vh - var(--vmd-space-6));
+  margin: 0;
+  padding-left: 2.25rem;
+  padding-inline-start: 2.25rem;
   overflow: auto;
+  list-style: decimal outside;
+}
+
+.vmd-toc-entry {
+  margin: 0;
+}
+
+.vmd-toc-entry::marker {
+  color: var(--vmd-color-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 [data-vmd-part='toc-item'] {
