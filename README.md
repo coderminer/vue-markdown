@@ -59,11 +59,13 @@ Vite downlevels it to `es2016` at build time. Runtime APIs must stay within
 ES2016 because the build does not polyfill them. Browser-only APIs are guarded
 and degrade gracefully during SSR.
 
-The optional stylesheet currently uses logical properties and `gap`, so styled
-usage requires Chrome/Edge 87+, Firefox 78+, Safari 14.1+, and iOS 14.5+.
-Unstyled and headless usage follows the runtime baseline. The CSS baseline will
-be widened during the dedicated CSS compatibility pass; until then the Vite
-`cssTarget` stays pinned to it.
+The optional stylesheet targets the same browser baseline. It keeps logical
+properties, `:focus-visible`, `position: sticky`, and `text-align: start` as
+progressive enhancement while shipping physical-property, `:focus`,
+`-webkit-sticky`, and `text-align: left` fallbacks. `prefers-color-scheme`,
+`text-underline-offset`, and `forced-colors` remain enhancements in browsers
+that support them. Unstyled and headless usage follows the runtime baseline, and
+the demo stylesheet is not part of the published support claim.
 
 ## Entry points
 
@@ -73,6 +75,7 @@ be widened during the dedicated CSS compatibility pass; until then the Vite
 | `vue-markdown-suite/headless` | Types, model helpers, composables; no preset components or CSS |
 | `vue-markdown-suite/pipeline` | Official pipeline, custom pipeline validation, identity |
 | `vue-markdown-suite/plugins` | `defineMarkdownPlugin`, registry, built-in plugins |
+| `vue-markdown-suite/presets` | `defineMarkdownPreset`, `composePresets`, configuration types |
 | `vue-markdown-suite/node-components` | The node component catalog only |
 | `vue-markdown-suite/components/*` | One entry per public component |
 | `vue-markdown-suite/style.css` | Full stylesheet |
@@ -85,8 +88,12 @@ be widened during the dedicated CSS compatibility pass; until then the Vite
 
 | Prop | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `source` | `string` | `''` | Markdown input. Wins over the default slot. Supports `v-model:source`. |
+| `source` | `string` | `''` | Controlled Markdown input. Wins over the default slot. Supports `v-model:source`. |
 | `components` | `Record<string, Component \| string>` | `{}` | Tag-keyed overrides. |
+| `regions` | `Partial<Record<string, Component \| string>>` | `{}` | Root, content, TOC, TOC item, error, empty, and loading region overrides. |
+| `nodeComponents` | `Partial<Record<string, Component \| string \| MarkdownNodeRenderer>>` | `{}` | Semantic node overrides and function renderers. |
+| `labels` | `Partial<MarkdownLabels>` | `{}` | String or function labels for built-in text. |
+| `preset` | `MarkdownPreset \| MarkdownPreset[]` | — | Applies one or more presets. |
 | `plugins` | `PluginInput[]` | `defaultPlugins` | Replaces the default plugin set when provided. |
 | `disablePlugins` | `string[]` | `[]` | Removes named plugins from the resolved set. |
 | `remarkPlugins` | `PluggableList` | `[]` | Runs after library remark plugins. |
@@ -94,6 +101,10 @@ be widened during the dedicated CSS compatibility pass; until then the Vite
 | `remarkRehypeOptions` | `Record<string, unknown>` | `{ allowDangerousHtml: true }` | Merged into the conversion step. |
 | `pipeline` | `MarkdownPipeline` | official | Advanced escape hatch; must return hast. |
 | `slugger` | `MarkdownSlugger` | `github-slugger` | Heading ID generator. |
+| `highlighter` | `MarkdownHighlighter` | — | Syntax highlighting adapter. |
+| `mathEngine` | `MathEngine` | — | Math rendering adapter. |
+| `mermaidRenderer` | `MermaidRenderer` | — | Mermaid rendering adapter. |
+| `diagnosticsFormatter` | `DiagnosticFormatter` | — | Formats render errors. |
 | `allowedElements` | `string[]` | — | Mutually exclusive with `disallowedElements`; wins on conflict. |
 | `disallowedElements` | `string[]` | — | Deny list. |
 | `unwrapDisallowed` | `boolean` | `false` | Keep the children of a removed element. |
@@ -108,6 +119,7 @@ be widened during the dedicated CSS compatibility pass; until then the Vite
 | `toc` | `boolean` | `false` | Renders the TOC region. |
 | `showError` | `boolean` | `false` | Renders the error region on failure. |
 | `tokens` | `Record<string, string>` | `{}` | Inline `--vmd-*` custom properties on the root. |
+| `theme` | `'light' \| 'dark' \| 'auto' \| 'custom'` | `'light'` | Sets `data-vmd-theme` on the root. |
 | `as` | `string \| Component` | `'div'` | Root element or component. |
 
 A non-string `source` reports a diagnostic and renders the empty state instead
@@ -138,9 +150,34 @@ of throwing.
 
 ### Slots
 
-v1.0 has one slot: the `default` slot, read once as static Markdown input and
-ignored when `source` is present. Use `source` or `v-model:source` for reactive
-content; the slot is not re-read when its contents change.
+The `default` slot is raw Markdown text. Its text content is re-read when it
+changes, so a reactive slot updates the rendered document. `source` is the
+controlled prop: when a non-empty `source` is bound it wins over the slot, and
+the slot is ignored. The slot is text-only; use `source` or `v-model:source` for
+richer input.
+
+Named region slots fully replace their default region and receive scoped
+context: `root`, `toc`, `toc-item`, `content`, `error`, `empty`, and `loading`.
+See [Customization](docs/customization.md#slots).
+
+### Heading anchors
+
+Every heading rendered through the built-in heading component gets a
+deterministic ID plus an anchor link. The link uses `data-vmd-part="heading-anchor"`
+and `class="vmd-heading-anchor"`, targets `#<id>`, and takes its accessible name
+from the `headingAnchor` label (`Link to this heading` by default). Anchors are
+keyboard-focusable, appear on heading hover or anchor focus, and are hidden in
+print. A heading without an ID renders no anchor, and replacing `h1`–`h6`
+through `components` makes the replacement own its anchor behavior.
+
+### Raw HTML and `MarkdownHtml`
+
+Raw HTML is dropped by default. Adding `rehype-raw` to `rehypePlugins` parses it
+into normal element nodes, which render through the element components
+(`components.b`, a plugin `nodeComponents.b`, and so on). `MarkdownHtml` is a
+standalone component for host use: mount it directly with a `value` and it
+renders escaped text in the `html` part without parsing Markdown. It is not the
+raw-HTML render path, and the renderer never creates `html` nodes.
 
 ## Overriding components
 
@@ -225,6 +262,7 @@ See [docs/security.md](docs/security.md) for the full policy.
 ## Guides
 
 - [Styled usage](docs/styled.md)
+- [Customization](docs/customization.md)
 - [Headless usage](docs/headless.md)
 - [The official pipeline](docs/pipeline.md)
 - [Authoring a custom pipeline](docs/custom-pipeline.md)

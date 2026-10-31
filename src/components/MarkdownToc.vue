@@ -17,7 +17,11 @@ const props = withDefaults(
   },
 )
 
-defineEmits<{ navigate: [id: string] }>()
+const emit = defineEmits<{ navigate: [id: string] }>()
+
+function navigate(id: string): void {
+  emit('navigate', id)
+}
 
 const itemComponent = computed(() => props.tocItem ?? MarkdownTocItem)
 </script>
@@ -25,14 +29,21 @@ const itemComponent = computed(() => props.tocItem ?? MarkdownTocItem)
 <template>
   <nav data-vmd-part="toc" class="vmd-toc" :aria-label="label">
     <ol data-vmd-part="toc-nav" class="vmd-toc-nav">
-      <component
-        :is="itemComponent"
-        v-for="item in items"
-        :key="item.id"
-        :item="item"
-        :active="item.id === activeId"
-        @navigate="$emit('navigate', $event)"
-      />
+      <template v-for="item in items" :key="item.id">
+        <slot
+          name="toc-item"
+          :item="item"
+          :active="item.id === activeId"
+          :navigate="navigate"
+        >
+          <component
+            :is="itemComponent"
+            :item="item"
+            :active="item.id === activeId"
+            @navigate="navigate"
+          />
+        </slot>
+      </template>
     </ol>
   </nav>
 </template>

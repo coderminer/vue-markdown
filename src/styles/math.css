@@ -5,6 +5,8 @@
 
 [data-vmd-part='math'][data-display='true'] {
   display: block;
+  margin-top: var(--vmd-space-4);
+  margin-bottom: var(--vmd-space-4);
   margin-block: var(--vmd-space-4);
   overflow-x: auto;
   text-align: center;

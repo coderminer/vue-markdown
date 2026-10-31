@@ -1,4 +1,16 @@
-import type { MarkdownLabels } from '../core/types'
+import type {
+  MarkdownLabelContext,
+  MarkdownLabelValue,
+  MarkdownLabels,
+} from '../core/types'
+
+/** Resolve a static or context-aware label value. */
+export function resolveLabel(
+  value: MarkdownLabelValue,
+  context?: MarkdownLabelContext,
+): string {
+  return typeof value === 'function' ? value(context ?? {}) : value
+}
 
 export const DEFAULT_LABELS: MarkdownLabels = {
   toc: 'Table of contents',

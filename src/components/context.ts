@@ -1,8 +1,12 @@
 import { inject, type InjectionKey } from 'vue'
 import type {
+  DiagnosticFormatter,
   MarkdownComponentValue,
+  MarkdownHighlighter,
   MarkdownLabels,
   MarkdownNode,
+  MathEngine,
+  MermaidRenderer,
 } from '../core/types'
 import { DEFAULT_LABELS } from '../core/labels'
 
@@ -26,6 +30,10 @@ export interface RenderContext {
   labels: MarkdownLabels
   linkTarget: string
   externalLinkTarget: string
+  highlighter?: MarkdownHighlighter
+  mathEngine?: MathEngine
+  mermaidRenderer?: MermaidRenderer
+  diagnosticsFormatter?: DiagnosticFormatter
   onLinkClick(payload: LinkClickPayload): void
   onCustomTagClick(payload: CustomTagClickPayload): void
 }

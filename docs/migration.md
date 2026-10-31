@@ -163,18 +163,20 @@ components, labels, and lifecycle hooks.
 
 ## `children`
 
-react-markdown takes Markdown through children. In Vue, pass `source`; the
-default slot is read once as static input when `source` is absent.
+react-markdown takes Markdown through children. In Vue, pass `source` or use the
+default slot. Both are raw Markdown text, and the slot is re-read when its text
+content changes.
 
 ```vue
 <MarkdownRenderer># From the slot</MarkdownRenderer>
 <MarkdownRenderer source="# From the prop" />
 ```
 
-Use `source` or `v-model:source` for reactive content. `source` is controlled:
-the renderer emits `update:source` but does not keep a private copy, so bind
-`v-model:source` if you want two-way updates. The default slot is not re-read
-when its contents change, so it is best for fixed examples.
+`source` is controlled and wins over the slot: the renderer emits
+`update:source` but does not keep a private copy, so bind `v-model:source` if
+you want two-way updates. A bound `source` continues to render when the slot
+changes; the slot is re-read only while `source` is empty. The slot is
+text-only, so use `source` for richer input.
 
 ## `MarkdownAsync`
 

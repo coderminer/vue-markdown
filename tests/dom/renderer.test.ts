@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
-import { defineComponent, h, isReactive, nextTick } from 'vue'
+import { defineComponent, h, isReactive, nextTick, ref } from 'vue'
 import rehypeRaw from 'rehype-raw'
 import MarkdownRenderer from '../../src/components/MarkdownRenderer.vue'
 import {
@@ -290,6 +290,27 @@ describe('TOC and heading navigation', () => {
     const wrapper = renderer({ source: '# Title', idPrefix: 'doc-' })
     expect(wrapper.find('h1').attributes('id')).toBe('doc-title')
   })
+
+  it('renders a heading anchor with the generated ID and label', () => {
+    const wrapper = renderer({ source: '# Title' })
+    const heading = wrapper.find('h1')
+    expect(heading.attributes('id')).toBe('title')
+    const anchor = heading.find('a[data-vmd-part="heading-anchor"]')
+    expect(anchor.attributes('href')).toBe('#title')
+    expect(anchor.attributes('aria-label')).toBe('Link to this heading')
+    expect(anchor.classes()).toContain('vmd-heading-anchor')
+  })
+
+  it('omits the anchor for replaced headings and headings without IDs', () => {
+    const replaced = renderer({ source: '# Title', components: { h1: 'h2' } })
+    expect(replaced.find('h2').exists()).toBe(true)
+    expect(replaced.find('[data-vmd-part="heading-anchor"]').exists()).toBe(false)
+
+    const empty = renderer({ source: '# ' })
+    expect(empty.find('h1').exists()).toBe(true)
+    expect(empty.find('h1').attributes('id')).toBeUndefined()
+    expect(empty.find('[data-vmd-part="heading-anchor"]').exists()).toBe(false)
+  })
 })
 
 describe('search and raw HTML', () => {
@@ -306,6 +327,16 @@ describe('search and raw HTML', () => {
       components: { mark: 'em' },
     })
     expect(custom.findAll('em.vmd-search-match')).toHaveLength(2)
+  })
+
+  it('renders raw HTML through element components without an html part', () => {
+    const wrapper = renderer({
+      source: '<b>bold</b>\n\nHello',
+      rehypePlugins: [rehypeRaw],
+      components: { b: 'strong' },
+    })
+    expect(wrapper.find('strong').text()).toBe('bold')
+    expect(wrapper.find('[data-vmd-part="html"]').exists()).toBe(false)
   })
 
   it('drops raw HTML by default and renders sanitized nodes with rehype-raw', () => {
@@ -384,6 +415,18 @@ describe('component resolution and plugin contributions', () => {
 })
 
 describe('memoization and resilience', () => {
+  it('applies the theme mode to the root without re-parsing', async () => {
+    const { pipeline, counter } = countingPipeline('memo-theme')
+    const wrapper = renderer({ source: '# A', pipeline, theme: 'auto' })
+    expect(wrapper.find('.vmd-root').attributes('data-vmd-theme')).toBe('auto')
+    expect(counter.calls).toBe(1)
+
+    await wrapper.setProps({ theme: 'dark' })
+    await nextTick()
+    expect(wrapper.find('.vmd-root').attributes('data-vmd-theme')).toBe('dark')
+    expect(counter.calls).toBe(1)
+  })
+
   it('does not re-parse for presentation-only changes', async () => {
     const { pipeline, counter } = countingPipeline('memo-presentation')
     const wrapper = renderer({ source: '# A', pipeline })
@@ -439,5 +482,71 @@ describe('memoization and resilience', () => {
     const document = vm.getDocument()
     expect(document).toBeDefined()
     expect(isReactive(document)).toBe(false)
+  })
+})
+
+describe('default slot input', () => {
+  it('re-reads reactive slot text after mount', async () => {
+    const text = ref('# One')
+    const Host = defineComponent({
+      setup() {
+        return () => {
+          const value = text.value
+          return h(MarkdownRenderer, null, { default: () => value })
+        }
+      },
+    })
+    const wrapper = mount(Host)
+    expect(wrapper.find('h1').attributes('id')).toBe('one')
+
+    text.value = '# Two'
+    await nextTick()
+    expect(wrapper.find('h1').attributes('id')).toBe('two')
+  })
+
+  it('keeps a bound source while the slot changes', async () => {
+    const text = ref('# Slot')
+    const Host = defineComponent({
+      setup() {
+        return () => {
+          const value = text.value
+          return h(MarkdownRenderer, { source: '# Prop' }, { default: () => value })
+        }
+      },
+    })
+    const wrapper = mount(Host)
+    expect(wrapper.find('h1').attributes('id')).toBe('prop')
+
+    text.value = '# Other'
+    await nextTick()
+    expect(wrapper.find('h1').attributes('id')).toBe('prop')
+    expect(wrapper.find('#other').exists()).toBe(false)
+  })
+
+  it('does not re-parse when the slot text is unchanged', async () => {
+    const { pipeline, counter } = countingPipeline('memo-slot')
+    const tick = ref(0)
+    const text = ref('# A')
+    const Host = defineComponent({
+      setup() {
+        return () => {
+          const value = text.value
+          return h('div', { 'data-tick': tick.value }, [
+            h(MarkdownRenderer, { pipeline }, { default: () => value }),
+          ])
+        }
+      },
+    })
+    const wrapper = mount(Host)
+    expect(counter.calls).toBe(1)
+
+    tick.value += 1
+    await nextTick()
+    expect(counter.calls).toBe(1)
+
+    text.value = '# B'
+    await nextTick()
+    expect(counter.calls).toBe(2)
+    expect(wrapper.find('h1').attributes('id')).toBe('b')
   })
 })

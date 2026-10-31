@@ -11,6 +11,7 @@ import PluginSection from './sections/PluginSection.vue'
 import HeadlessSection from './sections/HeadlessSection.vue'
 import MigrationSection from './sections/MigrationSection.vue'
 import SsrSection from './sections/SsrSection.vue'
+import CustomizationSection from './sections/CustomizationSection.vue'
 
 const sections = [
   { id: 'playground', label: 'Playground' },
@@ -24,6 +25,7 @@ const sections = [
   { id: 'headless', label: 'Headless' },
   { id: 'migration', label: 'Migration' },
   { id: 'ssr', label: 'SSR' },
+  { id: 'customization', label: 'Customization' },
 ]
 </script>
 
@@ -61,6 +63,7 @@ const sections = [
       <HeadlessSection />
       <MigrationSection />
       <SsrSection />
+      <CustomizationSection />
     </main>
   </div>
 </template>

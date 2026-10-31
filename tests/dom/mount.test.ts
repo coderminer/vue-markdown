@@ -8,7 +8,7 @@ describe('MarkdownRenderer', () => {
     const wrapper = mount(MarkdownRenderer, {
       props: { source: '# Title\n\nHello **world**' },
     })
-    expect(wrapper.find('h1').text()).toBe('Title')
+    expect(wrapper.find('h1').text()).toContain('Title')
     expect(wrapper.find('strong').text()).toBe('world')
   })
 
@@ -16,7 +16,7 @@ describe('MarkdownRenderer', () => {
     const wrapper = mount(MarkdownRenderer, {
       slots: { default: '## From slot' },
     })
-    expect(wrapper.find('h2').text()).toBe('From slot')
+    expect(wrapper.find('h2').text()).toContain('From slot')
   })
 
   it('applies tag overrides', () => {

@@ -17,10 +17,22 @@ import 'vue-markdown-suite/styles/tokens.css'
 import 'vue-markdown-suite/styles/components.css'
 ```
 
-`tokens.css` defines defaults on `:where(:root)`, so it has zero specificity and
-never overrides host styles. `components.css` targets `vmd-*` classes and
+`tokens.css` defines defaults on `:root`, so host overrides win by cascade order
+and normal class or attribute selectors outrank them. Load the stylesheet before
+your own overrides. `components.css` targets `vmd-*` classes and
 `data-vmd-part` attributes. The content region additionally resets the first and
 last child margins; no other element selectors are used.
+
+## Browser support
+
+The stylesheet targets the runtime baseline: Chrome 54+, Edge 15+, Firefox 52+,
+Safari 10.1+, and iOS 10.3+. Logical properties, `:focus-visible`,
+`position: sticky`, and `text-align: start` remain progressive enhancement, and
+physical-property, `:focus`, `-webkit-sticky`, and `text-align: left` fallbacks
+keep layout and focus behavior usable in older engines.
+`prefers-color-scheme`, `text-underline-offset`, and `forced-colors` are
+enhancements in browsers that support them. The demo stylesheet is not part of
+this support claim.
 
 ## Customize with tokens
 
@@ -45,6 +57,25 @@ Or pass them inline through the `tokens` prop:
 ```
 
 Inline tokens land on the root element and inherit into every nested part.
+
+## Themes
+
+Set the `theme` prop to `light`, `dark`, `auto`, or `custom`. The renderer writes
+the value to `data-vmd-theme` on its root only; it never touches the host page.
+`auto` follows `prefers-color-scheme` without JavaScript. `custom` applies no
+preset color values, so the host's token overrides are used unchanged.
+
+```vue
+<MarkdownRenderer :source="source" theme="auto" />
+```
+
+Scoped token overrides still win inside a themed subtree:
+
+```css
+.my-docs {
+  --vmd-color-accent: #8250df;
+}
+```
 
 ## Target parts
 
@@ -97,6 +128,9 @@ unchanged.
 ## Accessibility
 
 - Headings keep deterministic IDs, so in-page navigation works.
+- Every heading with an ID renders a keyboard-focusable anchor link with the
+  `heading-anchor` part and the `headingAnchor` label. Anchors are hidden in
+  print; a heading without an ID has no anchor.
 - The TOC renders as a labelled `nav` with `aria-current` on the active item.
 - Links that open in a new tab get `rel="noopener noreferrer"`.
 - Images fall back to their alt text when loading fails.

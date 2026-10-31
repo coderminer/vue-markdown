@@ -39,6 +39,10 @@
       "types": "./dist/plugins.d.ts",
       "import": "./dist/plugins.js"
     },
+    "./presets": {
+      "types": "./dist/presets.d.ts",
+      "import": "./dist/presets.js"
+    },
     "./node-components": {
       "types": "./dist/node-components.d.ts",
       "import": "./dist/node-components.js"

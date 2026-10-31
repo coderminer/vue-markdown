@@ -83,20 +83,20 @@
 
 ## 7. v1.x Customization suite
 
-- [ ] 7.1 Implement `tokens.css` with the documented color, type, spacing, radius, motion, code, math, and Mermaid tokens; verify defaults apply and ancestor overrides inherit into nested components.
-- [ ] 7.2 Implement `light`, `dark`, `auto`, and `custom` theme modes through `data-vmd-theme` and `prefers-color-scheme`; verify auto mode follows the media query and custom mode applies no preset colors.
-- [ ] 7.3 Implement the customization manifest type and registry, publish manifests for every public component, and make the manifest validator compare declared parts, slots, and labels with rendered output.
-- [ ] 7.4 Implement the labels system with defaults, string/function values, context-aware rendering, and merge behavior; verify every built-in control has an override test.
-- [ ] 7.5 Add CJK coverage for line breaking, spacing, and heading IDs, and add print and forced-colors checks; verify the documented scenarios.
-- [ ] 7.6 Implement `MarkdownConfigProvider` with nested merging and provide/inject for theme, tokens, labels, tag components, region components, node components, plugins, pipeline, highlighter, math engine, and other behavior; verify local > provider > preset > plugin > default precedence.
+- [x] 7.1 Implement `tokens.css` with the documented color, type, spacing, radius, motion, code, math, and Mermaid tokens; verify defaults apply and ancestor overrides inherit into nested components.
+- [x] 7.2 Implement `light`, `dark`, `auto`, and `custom` theme modes through `data-vmd-theme` and `prefers-color-scheme`; verify auto mode follows the media query and custom mode applies no preset colors.
+- [x] 7.3 Implement the customization manifest type and registry, publish manifests for every public component, and make the manifest validator compare declared parts, slots, and labels with rendered output.
+- [x] 7.4 Implement the labels system with defaults, string/function values, context-aware rendering, and merge behavior; verify every built-in control has an override test.
+- [x] 7.5 Add CJK coverage for line breaking, spacing, and heading IDs, and add print and forced-colors checks; verify the documented scenarios.
+- [x] 7.6 Implement `MarkdownConfigProvider` with nested merging and provide/inject for theme, tokens, labels, tag components, region components, node components, plugins, pipeline, highlighter, math engine, and other behavior; verify local > provider > preset > plugin > default precedence.
 - [ ] 7.7 Implement named slots with scoped contexts and actions for renderer, code, highlighter, math, Mermaid, and editor regions; verify a slot fully replaces its region and receives functional actions.
-- [ ] 7.8 Implement the typed `regions` map for root, content, TOC, TOC item, code block, Mermaid block, error, empty, and loading; verify local override wins and receives the same props as the default.
-- [ ] 7.9 Implement the typed `nodeComponents` map including function renderers, `defaultRender` decoration, and the fenced-code exception; verify decorated links keep safety and overridden headings keep stable IDs and TOC behavior.
-- [ ] 7.10 Implement behavior injection for pipeline, highlighter, math engine, slugger, URL transform, Mermaid renderer, and diagnostics formatter with validation and fallback; verify custom slugger uniqueness and invalid adapter fallback.
-- [ ] 7.11 Implement `defineMarkdownPreset` and `composePresets` with plugins, components, labels, tokens, theme, and injected behavior; verify presets are scoped, inspectable, and compose deterministically.
-- [ ] 7.12 Implement unstyled and headless modes so behavior and accessibility do not depend on CSS; verify components work with no stylesheet and headless markup can be fully custom.
-- [ ] 7.13 Implement direction-aware layout, reduced-motion handling, and focus-visible guarantees through tokens and documented parts; verify RTL spacing and reduced-motion tests.
-- [ ] 7.14 Build the demo customization inspector from component manifests; verify it can change tokens, labels, theme, slots, pipeline, highlighter, tag components, region components, node components, and overrides live without a rebuild.
+- [x] 7.8 Implement the typed `regions` map for root, content, TOC, TOC item, code block, Mermaid block, error, empty, and loading; verify local override wins and receives the same props as the default.
+- [x] 7.9 Implement the typed `nodeComponents` map including function renderers, `defaultRender` decoration, and the fenced-code exception; verify decorated links keep safety and overridden headings keep stable IDs and TOC behavior.
+- [x] 7.10 Implement behavior injection for pipeline, highlighter, math engine, slugger, URL transform, Mermaid renderer, and diagnostics formatter with validation and fallback; verify custom slugger uniqueness and invalid adapter fallback.
+- [x] 7.11 Implement `defineMarkdownPreset` and `composePresets` with plugins, components, labels, tokens, theme, and injected behavior; verify presets are scoped, inspectable, and compose deterministically.
+- [x] 7.12 Implement unstyled and headless modes so behavior and accessibility do not depend on CSS; verify components work with no stylesheet and headless markup can be fully custom.
+- [x] 7.13 Implement direction-aware layout, reduced-motion handling, and focus-visible guarantees through tokens and documented parts; verify RTL spacing and reduced-motion tests.
+- [x] 7.14 Build the demo customization inspector from component manifests; verify it can change tokens, labels, theme, slots, pipeline, highlighter, tag components, region components, node components, and overrides live without a rebuild.
 
 ## 8. v1.x Rich node catalog and content
 

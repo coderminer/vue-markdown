@@ -41,8 +41,8 @@ export default defineConfig({
     ],
   },
   build: {
-    // Match the library runtime baseline. The demo's stylesheet still uses the
-    // current CSS baseline until the CSS compatibility pass.
+    // Match the library runtime baseline. The demo keeps its own modern
+    // target and is not part of the published support claim.
     target: 'es2016',
     cssTarget: ['chrome87', 'edge88', 'firefox78', 'safari14.1', 'ios14.5'],
     outDir: '../dist-demo',

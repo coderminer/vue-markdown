@@ -124,10 +124,14 @@ speculatively. Bundle size is a sanity check, not a primary design constraint.
   nullish coalescing, class fields, async/await) because Vite downlevels it to
   `es2016` at build time. `tsconfig` targets ES2022 for authoring; the published
   syntax target is `build.target`.
-- The optional stylesheet currently requires Chrome/Edge 87+, Firefox 78+,
-  Safari 14.1+, and iOS 14.5+ because it uses logical properties, `gap`, and
-  `:where()`. Unstyled and headless usage follows the runtime baseline. Do not
-  widen or narrow the CSS claim until the dedicated CSS pass; avoid `:has()`,
+- The optional stylesheet follows the same browser baseline as the runtime:
+  Chrome 54+, Edge 15+, Firefox 52+, Safari 10.1+, and iOS 10.3+. It keeps
+  logical properties, `:focus-visible`, `position: sticky`, and
+  `text-align: start` as progressive enhancement and ships physical-property,
+  `:focus`, `-webkit-sticky`, and `text-align: left` fallbacks for older
+  engines. `prefers-color-scheme`, `text-underline-offset`, and `forced-colors`
+  are enhancements. Unstyled and headless usage follows the runtime baseline.
+  The demo stylesheet is not part of the published claim. Avoid `:has()`,
   container queries, CSS nesting, `color-mix()`, `oklch()`, `dvh`, and
   `text-wrap: balance`.
 - The Vite configs pin `build.target` to `es2016` and `cssTarget` to the

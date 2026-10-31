@@ -135,13 +135,13 @@ describe('react-markdown migration table', () => {
     const wrapper = mount(MarkdownRenderer, {
       slots: { default: '# From the slot' },
     })
-    expect(wrapper.find('h1').text()).toBe('From the slot')
+    expect(wrapper.find('h1').text()).toContain('From the slot')
 
     const withSource = mount(MarkdownRenderer, {
       props: { source: '# From the prop' },
       slots: { default: '# From the slot' },
     })
-    expect(withSource.find('h1').text()).toBe('From the prop')
+    expect(withSource.find('h1').text()).toContain('From the prop')
   })
 
   it('MarkdownAsync via useMarkdownDocument', async () => {

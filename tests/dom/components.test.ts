@@ -12,6 +12,7 @@ import MarkdownEmpty from '../../src/components/MarkdownEmpty.vue'
 import MarkdownError from '../../src/components/MarkdownError.vue'
 import MarkdownHeading from '../../src/components/MarkdownHeading.vue'
 import MarkdownHorizontalRule from '../../src/components/MarkdownHorizontalRule.vue'
+import MarkdownHtml from '../../src/components/MarkdownHtml.vue'
 import MarkdownImage from '../../src/components/MarkdownImage.vue'
 import MarkdownInlineCode from '../../src/components/MarkdownInlineCode.vue'
 import MarkdownLink from '../../src/components/MarkdownLink.vue'
@@ -60,11 +61,21 @@ function renderContext(overrides: Partial<RenderContext> = {}): RenderContext {
 describe('standalone shell components', () => {
   it('renders the root, content, and text fast path', () => {
     const root = mount(MarkdownRoot, {
-      props: { tokens: { '--vmd-color-text': 'rgb(1, 2, 3)' } },
+      props: {
+        tokens: { '--vmd-color-text': 'rgb(1, 2, 3)' },
+        theme: 'dark',
+      },
       slots: { default: '<p>inside</p>' },
     })
     expect(root.classes()).toContain('vmd-root')
     expect(root.attributes('style')).toContain('--vmd-color-text')
+    expect(root.attributes('data-vmd-theme')).toBe('dark')
+
+    const light = mount(MarkdownRoot)
+    expect(light.attributes('data-vmd-theme')).toBe('light')
+
+    const custom = mount(MarkdownRoot, { props: { theme: 'custom' } })
+    expect(custom.attributes('data-vmd-theme')).toBe('custom')
 
     const content = mount(MarkdownContent, { slots: { default: 'content' } })
     expect(content.text()).toBe('content')
@@ -166,6 +177,43 @@ describe('standalone node components', () => {
     const list = mount(MarkdownList, { props: { node: node('ol') } })
     expect(list.element.tagName).toBe('OL')
     expect(mount(MarkdownListItem, { props: { node: node('li') } }).element.tagName).toBe('LI')
+  })
+
+  it('renders a heading anchor only when the heading has an ID', () => {
+    const withId = mount(MarkdownHeading, {
+      props: { node: { ...node('h2'), attrs: { id: 'title' } } },
+      slots: { default: 'Title' },
+      global: {
+        provide: {
+          [RENDER_CONTEXT]: renderContext({
+            labels: { ...DEFAULT_LABELS, headingAnchor: 'Permalink' },
+          }),
+        },
+      },
+    })
+    expect(withId.find('h2').attributes('id')).toBe('title')
+    const anchor = withId.find('a[data-vmd-part="heading-anchor"]')
+    expect(anchor.attributes('href')).toBe('#title')
+    expect(anchor.attributes('aria-label')).toBe('Permalink')
+    expect(anchor.classes()).toContain('vmd-heading-anchor')
+
+    const plain = mount(MarkdownHeading, {
+      props: { node: node('h2') },
+      slots: { default: 'Plain' },
+    })
+    expect(plain.find('[data-vmd-part="heading-anchor"]').exists()).toBe(false)
+  })
+
+  it('renders MarkdownHtml as standalone escaped text', () => {
+    const html = mount(MarkdownHtml, {
+      props: { value: '**not bold** <em>not parsed</em>' },
+    })
+    expect(html.element.tagName).toBe('SPAN')
+    expect(html.attributes('data-vmd-part')).toBe('html')
+    expect(html.classes()).toContain('vmd-html')
+    expect(html.text()).toBe('**not bold** <em>not parsed</em>')
+    expect(html.find('strong').exists()).toBe(false)
+    expect(html.find('em').exists()).toBe(false)
   })
 
   it('renders inline semantics', () => {

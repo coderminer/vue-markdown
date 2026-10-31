@@ -38,16 +38,16 @@ export default defineConfig({
     // Runtime JavaScript follows Vue 3's baseline: native ES2016, no IE11.
     // This does not polyfill runtime APIs; source code must stay ES2016-compatible.
     target: 'es2016',
-    // The bundled stylesheet still uses logical properties and `gap`, so its
-    // own baseline stays at Chrome/Edge 87+, Firefox 78+, Safari 14.1+ until
-    // the CSS compatibility pass.
-    cssTarget: ['chrome87', 'edge88', 'firefox78', 'safari14.1', 'ios14.5'],
+    // The stylesheet targets the same browser baseline as the runtime and uses
+    // additive physical-property and interaction fallbacks for older engines.
+    cssTarget: ['chrome54', 'edge15', 'firefox52', 'safari10.1', 'ios10.3'],
     lib: {
       entry: {
         index: resolveSrc('./src/index.ts'),
         headless: resolveSrc('./src/headless.ts'),
         pipeline: resolveSrc('./src/pipeline.ts'),
         plugins: resolveSrc('./src/plugins.ts'),
+        presets: resolveSrc('./src/presets.ts'),
         'node-components': resolveSrc('./src/node-components.ts'),
         'components/index': resolveSrc('./src/components/index.ts'),
         ...componentEntries,

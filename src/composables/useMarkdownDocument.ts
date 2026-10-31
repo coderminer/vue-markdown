@@ -31,6 +31,7 @@ import { identityOf } from '../core/identity'
 import { memoGet, memoSet } from '../core/memo'
 import { buildDocument, withDerivedDocument } from '../core/model'
 import { normalizeHast } from '../core/normalize'
+import { withUniqueSlugs } from '../core/slugger'
 import { createPluginContext } from '../plugins/define'
 import { applySourceTransforms } from '../plugins/source'
 import { defaultPlugins } from '../plugins/builtin'
@@ -118,7 +119,8 @@ export function useMarkdownDocument(
   }))
 
   const defaultSlugger: MarkdownSlugger = new GithubSlugger()
-  const slugger = computed(() => optionsRef.value.slugger ?? defaultSlugger)
+  const baseSlugger = computed(() => optionsRef.value.slugger ?? defaultSlugger)
+  const slugger = computed(() => withUniqueSlugs(baseSlugger.value))
   const idPrefix = computed(() => optionsRef.value.idPrefix ?? '')
   const allowHtml = computed(
     () =>

@@ -143,7 +143,11 @@ export interface MarkdownDiagnostic {
  * The core stays free of Vue types; the Vue-facing aliases in
  * `components/types.ts` narrow this to Vue's `Component`.
  */
-export type MarkdownComponentValue = string | object | undefined
+export type MarkdownComponentValue =
+  | string
+  | object
+  | ((...args: never[]) => unknown)
+  | undefined
 
 export type MarkdownTagComponents = Record<string, MarkdownComponentValue>
 
@@ -154,21 +158,120 @@ export interface MarkdownRegionComponents {
   content?: MarkdownComponentValue
   toc?: MarkdownComponentValue
   tocItem?: MarkdownComponentValue
+  codeBlock?: MarkdownComponentValue
+  mermaidBlock?: MarkdownComponentValue
   error?: MarkdownComponentValue
   empty?: MarkdownComponentValue
   loading?: MarkdownComponentValue
 }
 
+export type MarkdownLabelContext = Record<string, unknown>
+
+export type MarkdownLabelValue =
+  | string
+  | ((context: MarkdownLabelContext) => string)
+
 export interface MarkdownLabels {
-  toc: string
-  error: string
-  empty: string
-  loading: string
-  headingAnchor: string
-  externalLink: string
-  copy: string
-  copied: string
-  download: string
+  toc: MarkdownLabelValue
+  error: MarkdownLabelValue
+  empty: MarkdownLabelValue
+  loading: MarkdownLabelValue
+  headingAnchor: MarkdownLabelValue
+  externalLink: MarkdownLabelValue
+  copy: MarkdownLabelValue
+  copied: MarkdownLabelValue
+  download: MarkdownLabelValue
+}
+
+export type MarkdownTheme = 'light' | 'dark' | 'auto' | 'custom'
+
+export interface HighlightOptions {
+  theme?: string
+  colorScheme?: 'light' | 'dark'
+  [option: string]: unknown
+}
+
+export interface HighlightResult {
+  language: string
+  nodes: MarkdownNode[]
+  mode?: 'content' | 'block'
+  className?: string
+}
+
+export interface MarkdownHighlighter {
+  id: string
+  load?(): Promise<void>
+  languages?: string[]
+  loadLanguage?(language: string): Promise<void>
+  highlight(
+    code: string,
+    language: string,
+    options: HighlightOptions,
+  ): HighlightResult
+}
+
+export interface MathRenderOptions {
+  displayMode?: boolean
+  [option: string]: unknown
+}
+
+export interface MathRenderResult {
+  nodes: MarkdownNode[]
+  error?: string
+}
+
+export interface MathEngine {
+  id: string
+  load?(): Promise<void>
+  render(tex: string, options: MathRenderOptions): MathRenderResult
+}
+
+export interface MermaidRenderOptions {
+  theme?: MarkdownTheme
+  id?: string
+  [option: string]: unknown
+}
+
+export interface MermaidRenderResult {
+  nodes: MarkdownNode[]
+  svg?: string
+  error?: string
+}
+
+export interface MermaidRenderer {
+  id: string
+  render(
+    source: string,
+    options: MermaidRenderOptions,
+  ): MermaidRenderResult | Promise<MermaidRenderResult>
+}
+
+export interface DiagnosticFormatter {
+  id?: string
+  format(error: unknown, source: string): MarkdownDiagnostic
+}
+
+/** Parsed configuration shared by the provider, presets, and the renderer. */
+export interface MarkdownConfig {
+  theme?: MarkdownTheme
+  tokens?: Record<string, string>
+  labels?: Partial<MarkdownLabels>
+  components?: MarkdownTagComponents
+  regions?: MarkdownRegionComponents
+  nodeComponents?: MarkdownNodeComponents
+  plugins?: PluginInput[]
+  pipeline?: MarkdownPipeline
+  highlighter?: MarkdownHighlighter
+  mathEngine?: MathEngine
+  mermaidRenderer?: MermaidRenderer
+  diagnosticsFormatter?: DiagnosticFormatter
+  slugger?: MarkdownSlugger
+  urlTransform?: MarkdownUrlTransform
+}
+
+/** A named, declarative bundle of configuration. Not JSON-serializable. */
+export interface MarkdownPreset extends MarkdownConfig {
+  name: string
 }
 
 export interface MarkdownSlugger {
