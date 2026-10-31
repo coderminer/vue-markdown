@@ -257,6 +257,11 @@
   overflow: hidden;
 }
 
+/* The rich block owns its header/body padding; the legacy pre keeps the base padding. */
+.vmd-code-block[data-vmd-part='code'] {
+  padding: 0;
+}
+
 [data-vmd-part='code-header'],
 [data-vmd-part='mermaid-header'] {
   display: flex;

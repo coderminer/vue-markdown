@@ -174,6 +174,16 @@ describe('stylesheet compatibility fallbacks', () => {
     expect(components).toContain('padding-left: 2.25rem;')
     expect(components).toContain('list-style: decimal outside;')
   })
+
+  it('does not add outer padding around the rich code block shell', () => {
+    const components = readStyle('components.css')
+    expect(components).toContain(
+      ".vmd-code-block[data-vmd-part='code']",
+    )
+    expect(components).toMatch(
+      /\.vmd-code-block\[data-vmd-part='code'\]\s*\{\s*padding:\s*0;/,
+    )
+  })
 })
 
 describe('design tokens and theme modes', () => {
