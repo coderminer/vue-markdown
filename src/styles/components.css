@@ -257,29 +257,40 @@
   overflow: hidden;
 }
 
-[data-vmd-part='code-header'] {
+[data-vmd-part='code-header'],
+[data-vmd-part='mermaid-header'] {
   display: flex;
-  min-height: 2.5rem;
+  min-height: 2.75rem;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
   gap: var(--vmd-space-2);
   padding: var(--vmd-space-1) var(--vmd-space-3);
   background: var(--vmd-code-toolbar-bg);
+}
+
+[data-vmd-part='code-header'] {
+  justify-content: space-between;
   border-bottom: 1px solid var(--vmd-code-border);
 }
 
-[data-vmd-part='code-heading'] {
-  display: flex;
+[data-vmd-part='code-heading'],
+.vmd-mermaid-label {
+  display: inline-flex;
   min-width: 0;
-  align-items: baseline;
+  align-items: center;
   gap: var(--vmd-space-2);
+  overflow: hidden;
+  color: var(--vmd-code-text);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 [data-vmd-part='code-title'],
 [data-vmd-part='code-file-name'] {
   overflow: hidden;
-  color: var(--vmd-code-text);
-  font-size: 0.75rem;
+  color: inherit;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -291,10 +302,12 @@
 [data-vmd-part='code-lang'] {
   font-family: var(--vmd-font-mono);
   font-size: 0.75rem;
+  font-weight: 500;
   color: var(--vmd-color-muted);
 }
 
-[data-vmd-part='code-toolbar'] {
+[data-vmd-part='code-toolbar'],
+[data-vmd-part='mermaid-actions'] {
   display: flex;
   align-items: center;
   gap: var(--vmd-space-1);
@@ -319,7 +332,9 @@
   border: 0;
 }
 
-[data-vmd-part='code-action'] {
+[data-vmd-part='code-action'],
+[data-vmd-part='mermaid-actions'] button,
+[data-vmd-part='mermaid-tabs'] button {
   display: inline-flex;
   min-width: 1.75rem;
   min-height: 1.75rem;
@@ -336,16 +351,21 @@
   font-size: 0.75rem;
 }
 
-[data-vmd-part='code-action'][data-icon='true'] {
+[data-vmd-part='code-action'][data-icon='true'],
+[data-vmd-part='mermaid-actions'] button[data-icon='true'] {
   padding: 0;
 }
 
-[data-vmd-part='code-action']:hover {
+[data-vmd-part='code-action']:hover,
+[data-vmd-part='mermaid-actions'] button:hover,
+[data-vmd-part='mermaid-tabs'] button:hover {
   background: var(--vmd-color-surface);
   color: var(--vmd-color-text);
 }
 
-[data-vmd-part='code-action']:focus {
+[data-vmd-part='code-action']:focus,
+[data-vmd-part='mermaid-actions'] button:focus,
+[data-vmd-part='mermaid-tabs'] button:focus {
   outline: 2px solid var(--vmd-color-accent);
   outline-offset: 2px;
 }
@@ -429,27 +449,7 @@
 }
 
 [data-vmd-part='mermaid-header'] {
-  display: flex;
-  min-height: 2.75rem;
-  flex-wrap: wrap;
-  gap: var(--vmd-space-2);
-  align-items: center;
-  padding: var(--vmd-space-1) var(--vmd-space-3);
   border-bottom: 1px solid var(--vmd-mermaid-border);
-  background: var(--vmd-code-toolbar-bg);
-}
-
-.vmd-mermaid-label {
-  display: inline-flex;
-  min-width: 0;
-  align-items: center;
-  gap: var(--vmd-space-2);
-  color: var(--vmd-code-text);
-  font-size: 0.75rem;
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .vmd-mermaid-label .vmd-icon {
@@ -466,44 +466,7 @@
 }
 
 [data-vmd-part='mermaid-actions'] {
-  display: flex;
-  gap: var(--vmd-space-1);
-  align-items: center;
   margin-left: auto;
-}
-
-[data-vmd-part='mermaid-actions'] button,
-[data-vmd-part='mermaid-tabs'] button {
-  display: inline-flex;
-  min-width: 1.75rem;
-  min-height: 1.75rem;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35em;
-  padding: 0 var(--vmd-space-1);
-  border: 0;
-  border-radius: var(--vmd-radius-sm);
-  background: transparent;
-  color: var(--vmd-color-muted);
-  cursor: pointer;
-  font: inherit;
-  font-size: 0.75rem;
-}
-
-[data-vmd-part='mermaid-actions'] button[data-icon='true'] {
-  padding: 0;
-}
-
-[data-vmd-part='mermaid-actions'] button:hover,
-[data-vmd-part='mermaid-tabs'] button:hover {
-  background: var(--vmd-color-surface);
-  color: var(--vmd-color-text);
-}
-
-[data-vmd-part='mermaid-actions'] button:focus,
-[data-vmd-part='mermaid-tabs'] button:focus {
-  outline: 2px solid var(--vmd-color-accent);
-  outline-offset: 2px;
 }
 
 [data-vmd-part='mermaid-tabs'] button[data-active='true'] {

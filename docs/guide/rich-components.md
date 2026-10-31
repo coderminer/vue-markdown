@@ -379,7 +379,9 @@ Exposed: `copy()` and `highlighted`.
 `MermaidBlock` renders one diagram. It keeps the last good diagram while a new
 render is pending, sanitizes SVG, and exposes preview/source tabs. The default
 header, tabs, label, and icon actions are styled by the optional stylesheet, so
-the block is usable without adding toolbar markup or an icon library.
+the block is usable without adding toolbar markup or an icon library. Its header
+uses the same height, padding, background, typography, and action-button styling
+as `CodeBlock`.
 
 ```vue
 <script setup lang="ts">

@@ -74,7 +74,9 @@ Scoped token overrides still win inside a themed subtree:
 
 The stylesheet includes usable default headers and toolbars for `CodeBlock` and
 `MermaidBlock`, including inline-SVG icon actions, hover/focus states, active
-tab styling, and copy feedback. No icon package or extra markup is required.
+tab styling, and copy feedback. Both headers share the same height, padding,
+background, typography, and action-button treatment; Mermaid only adds its
+segmented Preview/Source tabs. No icon package or extra markup is required.
 Every action keeps an accessible label even when its visible label is hidden.
 
 The default icon sizing is controlled by `.vmd-icon`; button spacing and colors
