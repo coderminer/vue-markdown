@@ -20,7 +20,13 @@
       "vue-markdown-suite/headless": ["./src/headless.ts"],
       "vue-markdown-suite/pipeline": ["./src/pipeline.ts"],
       "vue-markdown-suite/plugins": ["./src/plugins.ts"],
-      "vue-markdown-suite/node-components": ["./src/node-components.ts"]
+      "vue-markdown-suite/presets": ["./src/presets.ts"],
+      "vue-markdown-suite/node-components": ["./src/node-components.ts"],
+      "vue-markdown-suite/highlight": ["./src/highlight/index.ts"],
+      "vue-markdown-suite/highlight/shiki": ["./src/highlight/shiki.ts"],
+      "vue-markdown-suite/math": ["./src/math/index.ts"],
+      "vue-markdown-suite/mermaid": ["./src/mermaid/index.ts"],
+      "vue-markdown-suite/editor": ["./src/editor/index.ts"]
     }
   },
   "include": [
