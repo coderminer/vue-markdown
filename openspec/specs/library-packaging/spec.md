@@ -19,7 +19,7 @@ The project SHALL build a distributable library that exposes ES modules and Type
 
 ### Requirement: Public entry points
 
-The package SHALL provide documented entries for the styled root, headless API, pipeline, plugins, presets, node components, the default highlight.js adapter, the optional Shiki adapter, the optional KaTeX math entry, individual components, design tokens, and the aggregate stylesheet. Each entry SHALL be independently importable and SHALL NOT require importing the root entry.
+The package SHALL provide documented entries for the styled root, headless API, pipeline, plugins, presets, node components, the default highlight.js adapter, the optional Shiki adapter, the optional KaTeX math entry, the optional Mermaid plugin/runtime entry, individual components, design tokens, math container styles, a self-contained math stylesheet, and the aggregate stylesheet. Each entry SHALL be independently importable and SHALL NOT require importing the root entry.
 
 #### Scenario: Root import
 - **WHEN** a consumer imports a preset component from the package root

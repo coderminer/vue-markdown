@@ -73,6 +73,18 @@ The default output SHALL include MathML alongside visual markup or an equivalent
 - **WHEN** inline math appears inside a sentence
 - **THEN** the surrounding sentence remains readable without duplicate formula announcements
 
+### Requirement: Standalone math component
+
+`MarkdownMath` SHALL accept a per-component `mathEngine` as well as the provider engine and pre-rendered nodes. When it has no engine and no pre-rendered output, it SHALL keep the TeX visible and report a `math-engine-unavailable` diagnostic instead of rendering an empty node. The package SHALL expose a complete math stylesheet that includes KaTeX's CSS and the suite's math container styles.
+
+#### Scenario: Standalone engine
+- **WHEN** a host mounts `MarkdownMath` with `tex` and a `mathEngine` prop outside a renderer
+- **THEN** the formula renders through that engine
+
+#### Scenario: Missing engine
+- **WHEN** a host mounts `MarkdownMath` with only `tex`
+- **THEN** the TeX stays readable and the missing-engine diagnostic is reported
+
 ### Requirement: Security
 
 The default engine SHALL disable trust for commands that inject HTML, URLs, or styles. Strictness SHALL default to a safe mode, and enabling trusted commands SHALL require an explicit host option documented as a trust boundary. Rendered math output SHALL be normalized into nodes and validated; it SHALL NOT be injected with `v-html`, and the same URL and event-handler rules SHALL apply.

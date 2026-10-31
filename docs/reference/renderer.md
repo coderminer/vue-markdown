@@ -48,7 +48,7 @@ import 'vue-markdown-suite/style.css'
 | `linkTarget` | `string` | Default `'_self'`. Applied to links. |
 | `externalLinkTarget` | `'_self' \| '_blank'` | Default `'_self'`. `_blank` adds `rel="noopener noreferrer"`. |
 | `baseUrl` | `string` | Resolves relative URLs before `urlTransform`. |
-| `idPrefix` | `string` | Default `''`. Prefixes generated heading IDs. |
+| `idPrefix` | `string` | Default `''`. Prefixes generated heading IDs. Use a unique prefix when one page contains multiple renderers. |
 | `syncHash` | `boolean` | Default `false`. Updates the URL hash on heading activation. |
 | `skipHtml` | `boolean` | Default `false`. Removes raw HTML nodes. |
 | `toc` | `boolean` | Default `false`. Renders the TOC region. |
@@ -56,6 +56,16 @@ import 'vue-markdown-suite/style.css'
 | `tokens` | `Record<string, string>` | Default `{}`. Inline `--vmd-*` custom properties on the root. |
 | `theme` | `'light' \| 'dark' \| 'auto' \| 'custom'` | Default `'light'`. Sets `data-vmd-theme` on the root. |
 | `as` | `string \| Component` | Default `'div'`. Root element or component. |
+
+::: tip Multiple renderers on one page
+Heading slugs are only unique inside one document. Give each renderer a distinct
+`idPrefix` (`doc-`, `sidebar-`, …) so anchors, `syncHash`, and deep links remain
+unambiguous. TOC navigation and active-heading tracking are already scoped to
+the renderer's own root when markup is scoped this way.
+:::
+
+Keep plugin arrays stable as well. Inline factory calls create new plugin
+objects on every parent render and invalidate the parse memo.
 
 ## Events
 
@@ -72,6 +82,11 @@ import 'vue-markdown-suite/style.css'
 ## Exposed actions
 
 ```ts
+import { ref } from 'vue'
+import type { MarkdownRendererInstance } from 'vue-markdown-suite'
+
+const renderer = ref<MarkdownRendererInstance>()
+
 renderer.value?.scrollToHeading('install')
 renderer.value?.getToc()
 renderer.value?.getDocument()
@@ -86,6 +101,9 @@ renderer.value?.updateSource('# New source')
 | `getToc` | `() => TocItem[]` |
 | `refresh` | `() => Promise<void>` |
 | `updateSource` | `(source: string) => void` |
+
+The same shape is exported as `MarkdownRendererInstance`, so hosts do not need
+`InstanceType<typeof MarkdownRenderer>`.
 
 ## Slots
 

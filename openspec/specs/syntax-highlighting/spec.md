@@ -95,7 +95,7 @@ Highlighted output SHALL be cached by adapter identity, source text, language, t
 
 ### Requirement: Language loading and fallback
 
-Adapters SHALL be able to declare supported languages and load additional grammars on demand. While a grammar is loading, the component SHALL show escaped plain source. A failed grammar load SHALL fall back to plain source, report the failure through the adapter, and leave the rest of the document unaffected.
+Adapters SHALL be able to declare supported languages and load additional grammars on demand. While a grammar is loading, the component SHALL show escaped plain source. A failed grammar load SHALL fall back to plain source, report the failure through the adapter, and leave the rest of the document unaffected. When the lazy default adapter cannot be imported, the component SHALL report `highlighter-unavailable` with an install hint; a failed `load()` or `loadLanguage()` SHALL report `highlighter-load`. Both SHALL also be emitted as an `error` event.
 
 #### Scenario: Lazy grammar
 - **WHEN** a Shiki grammar is loaded on demand for a language
@@ -167,7 +167,7 @@ Hosts SHALL be able to mark one or more lines as highlighted using individual nu
 
 ### Requirement: Truncation
 
-When a positive maximum line count is configured, the highlighter SHALL display only that many lines and SHALL indicate that additional lines are hidden, including the hidden count when available. A zero or negative limit SHALL mean no truncation.
+When a positive maximum line count is configured, the highlighter SHALL display only that many lines and SHALL indicate that additional lines are hidden, including the hidden count when available. A zero or negative limit SHALL mean no truncation. The default truncation indicator SHALL offer a control that expands the full source and collapses it again.
 
 #### Scenario: Truncated output
 - **WHEN** a 100-line source is rendered with a maximum of 20 lines
@@ -175,7 +175,7 @@ When a positive maximum line count is configured, the highlighter SHALL display 
 
 ### Requirement: Virtual scrolling
 
-When virtual scrolling is enabled for a source that exceeds the visible area, only the visible lines plus a small overscan buffer SHALL be mounted in the DOM. The scroll container SHALL preserve the full content height and maintain a stable scroll position while scrolling. Virtualization SHALL activate only after client-side measurement; server rendering SHALL produce stable non-virtualized markup.
+When virtual scrolling is enabled for a source that exceeds the visible area, only the visible lines plus a small overscan buffer SHALL be mounted in the DOM. The scroll container SHALL preserve the full content height and maintain a stable scroll position while scrolling. Virtualization SHALL activate only after client-side measurement; server rendering SHALL produce stable non-virtualized markup. The row height used by the windowing calculation SHALL be configurable so custom font sizes and line heights stay aligned.
 
 #### Scenario: Large source uses a windowed DOM
 - **WHEN** a large source is rendered with virtual scrolling enabled on the client

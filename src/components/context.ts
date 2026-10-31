@@ -1,4 +1,12 @@
-import { inject, type InjectionKey, type Slot, type VNodeChild } from 'vue'
+import {
+  Comment,
+  Fragment,
+  inject,
+  type InjectionKey,
+  type Slot,
+  type VNode,
+  type VNodeChild,
+} from 'vue'
 import type {
   DiagnosticFormatter,
   MarkdownComponentValue,
@@ -86,6 +94,18 @@ export function isEmptySlotContent(value: VNodeChild): boolean {
   if (typeof value === 'string') return value.trim() === ''
   if (Array.isArray(value)) {
     return value.length === 0 || value.every((child) => isEmptySlotContent(child))
+  }
+  if (typeof value === 'object') {
+    const vnode = value as VNode
+    // `v-if="false"` inside a slot compiles to a comment vnode. It must not
+    // count as meaningful output, or the default region/toolbar disappears.
+    if (vnode.type === Comment) return true
+    if (vnode.type === Fragment && Array.isArray(vnode.children)) {
+      return (
+        vnode.children.length === 0 ||
+        vnode.children.every((child) => isEmptySlotContent(child as VNodeChild))
+      )
+    }
   }
   return false
 }

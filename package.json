@@ -89,6 +89,7 @@
     "./styles/tokens.css": "./dist/styles/tokens.css",
     "./styles/components.css": "./dist/styles/components.css",
     "./styles/math.css": "./dist/styles/math.css",
+    "./styles/math-full.css": "./dist/styles/math-full.css",
     "./style.css": "./dist/style.css",
     "./package.json": "./package.json"
   },

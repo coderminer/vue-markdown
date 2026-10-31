@@ -185,9 +185,12 @@ export interface MarkdownLabels {
   footnotes: MarkdownLabelValue
   math: MarkdownLabelValue
   mermaid: MarkdownLabelValue
+  mermaidFallback: MarkdownLabelValue
   preview: MarkdownLabelValue
   source: MarkdownLabelValue
   retry: MarkdownLabelValue
+  showAll: MarkdownLabelValue
+  showLess: MarkdownLabelValue
   exportPng: MarkdownLabelValue
   fullscreen: MarkdownLabelValue
   exitFullscreen: MarkdownLabelValue

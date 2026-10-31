@@ -5,6 +5,18 @@ Renders Mermaid diagram source into an interactive preview that tolerates incomp
 
 ## Requirements
 
+### Requirement: Markdown fence transformation
+
+The Mermaid entry SHALL provide an opt-in document plugin that converts fenced code blocks with a Mermaid language (`mermaid` or `mmd` by default) into Mermaid nodes. The plugin SHALL preserve the exact source and source range. Without the plugin, Mermaid fences SHALL remain ordinary code blocks. The plugin SHALL NOT load the Mermaid runtime.
+
+#### Scenario: Mermaid fence becomes a diagram
+- **WHEN** a host adds `mermaidPlugin()` and the source contains a `mermaid` fenced code block
+- **THEN** the renderer displays a Mermaid block instead of a code block
+
+#### Scenario: Plugin is opt-in
+- **WHEN** the host does not add `mermaidPlugin()`
+- **THEN** Mermaid fences continue to render as code blocks and no Mermaid runtime is requested
+
 ### Requirement: Diagram rendering
 
 A Mermaid block SHALL render valid diagram source into an SVG preview using the configured theme, with `securityLevel: 'strict'`. Rendering SHALL occur in the browser and SHALL NOT execute scripts or arbitrary HTML embedded in diagram labels. Rendered SVG SHALL be parsed into nodes and sanitized; it SHALL NOT be injected with `v-html`. The Mermaid runtime SHALL be loaded lazily, only when a diagram actually needs rendering. Concurrent renders SHALL be serialized, SHALL use unique IDs, and SHALL discard stale results.
@@ -43,7 +55,7 @@ The block SHALL accept a renderer function or adapter that replaces the default 
 
 ### Requirement: Last-good rendering for incomplete or invalid source
 
-While the source is incomplete or invalid, the block SHALL keep displaying the last successfully rendered diagram instead of blanking the preview. A pending state SHALL be shown while a source update is being applied. Once the source settles as complete and invalid, the block SHALL report a render error and SHALL show an error message only when error display is enabled.
+While the source is incomplete or invalid, the block SHALL keep displaying the last successfully rendered diagram instead of blanking the preview. A pending state SHALL be shown while a source update is being applied. Once the source settles as complete and invalid, the block SHALL report a render error. A first-render failure SHALL show a lightweight fallback even when detailed error display is disabled; the detailed diagnostic SHALL be shown only when error display is enabled. A missing Mermaid peer SHALL be reported as an unavailable diagnostic with an install hint.
 
 #### Scenario: Incomplete source update
 - **WHEN** an update temporarily produces an incomplete diagram

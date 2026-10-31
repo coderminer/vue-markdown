@@ -18,11 +18,14 @@ import {
   defineMarkdownPreset,
   defineMarkdownPlugin,
 } from 'vue-markdown-suite'
-import { gfmPlugin, searchPlugin } from 'vue-markdown-suite/plugins'
+import {
+  defaultPlugins,
+  gfmPlugin,
+  searchPlugin,
+} from 'vue-markdown-suite/plugins'
 import { mathPlugin } from 'vue-markdown-suite/math'
 import 'vue-markdown-suite/style.css'
-import 'katex/dist/katex.min.css'
-import 'vue-markdown-suite/styles/math.css'
+import 'vue-markdown-suite/styles/math-full.css'
 
 const docsPlugin = defineMarkdownPlugin({
   name: 'docs',
@@ -42,7 +45,13 @@ const docsPreset = defineMarkdownPreset({
   },
 })
 
-const plugins = [gfmPlugin, mathPlugin(), docsPlugin, searchPlugin({ query: '' })]
+const plugins = [
+  ...defaultPlugins,
+  gfmPlugin,
+  mathPlugin(),
+  docsPlugin,
+  searchPlugin({ query: '' }),
+]
 </script>
 
 <template>
@@ -126,20 +135,24 @@ import { shiki } from 'vue-markdown-suite/highlight/shiki'
 separate entry and preloads its themes and languages. Unknown languages and
 adapter failures fall back to plain source.
 
-Read [Syntax highlighting](./highlighting.md).
+Read [Syntax highlighting](./highlighting.md) for adapter details, or
+[Rich components](./rich-components.md) for standalone `CodeBlock` and
+`VueSyntaxHighlighter` examples.
 
 ## Math
 
 ```ts
+import { defaultPlugins } from 'vue-markdown-suite/plugins'
 import { mathPlugin, katexEngine } from 'vue-markdown-suite/math'
-import 'katex/dist/katex.min.css'
-import 'vue-markdown-suite/styles/math.css'
+import 'vue-markdown-suite/styles/math-full.css'
+
+const plugins = [...defaultPlugins, mathPlugin()]
 ```
 
 ```vue
 <MarkdownRenderer
   :source="source"
-  :plugins="[mathPlugin()]"
+  :plugins="plugins"
   :math-engine="katexEngine"
 />
 ```
@@ -148,7 +161,8 @@ import 'vue-markdown-suite/styles/math.css'
 display `$$...$$` are enabled by default; custom delimiters and macros are
 supported.
 
-Read [Math](./math.md).
+Read [Math](./math.md), or [Rich components](./rich-components.md) for the
+`MarkdownMath` node component.
 
 ## Mermaid
 
@@ -175,7 +189,8 @@ The runtime is lazy, uses Mermaid's strict security mode, and sanitizes the SVG
 before it becomes nodes. `MermaidBlock` provides preview/source tabs, zoom,
 fullscreen, copy, SVG download, PNG export, and retry.
 
-Read [Mermaid](./mermaid.md).
+Read [Mermaid](./mermaid.md), or [Rich components](./rich-components.md) for
+`MermaidBlock` and `MermaidLiveEditor`.
 
 ## Headless rendering
 

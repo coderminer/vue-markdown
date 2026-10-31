@@ -2,9 +2,9 @@ import DefaultTheme from 'vitepress/theme'
 import type { Theme } from 'vitepress'
 import { defineAsyncComponent } from 'vue'
 import 'vue-markdown-suite/style.css'
-import 'katex/dist/katex.min.css'
-import 'vue-markdown-suite/styles/math.css'
+import 'vue-markdown-suite/styles/math-full.css'
 import './custom.css'
+import DemoFrame from './components/DemoFrame.vue'
 
 export default {
   extends: DefaultTheme,
@@ -21,5 +21,10 @@ export default {
       'CustomizationLab',
       defineAsyncComponent(() => import('./components/CustomizationLab.vue')),
     )
+    app.component(
+      'CodeBlockLab',
+      defineAsyncComponent(() => import('./components/CodeBlockLab.vue')),
+    )
+    app.component('DemoFrame', DemoFrame)
   },
 } satisfies Theme

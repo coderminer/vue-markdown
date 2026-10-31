@@ -181,6 +181,10 @@ The renderer SHALL support a `baseUrl` option that resolves relative link and im
 - **WHEN** `idPrefix` is set to `doc-` and a heading generates the slug `intro`
 - **THEN** the heading ID is `doc-intro` and the TOC links to it
 
+#### Scenario: Multiple renderers with colliding IDs
+- **WHEN** two renderers on one page generate the same heading ID
+- **THEN** each renderer's TOC navigation and active-heading tracking resolve headings inside its own root
+
 #### Scenario: Hash synchronization
 - **WHEN** `syncHash` is enabled and a heading is activated
 - **THEN** the URL hash updates without reloading the document

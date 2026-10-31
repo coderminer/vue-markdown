@@ -24,6 +24,26 @@ describe('MarkdownMath', () => {
     expect(error.text()).toContain('bad')
   })
 
+  it('accepts a math engine prop for standalone use', () => {
+    const mathEngine: MathEngine = {
+      id: 'standalone',
+      render: (tex) => ({
+        nodes: [{ kind: 'text', key: 'standalone', value: `rendered:${tex}` }],
+      }),
+    }
+    const wrapper = mount(MarkdownMath, {
+      props: { tex: 'x^2', mathEngine },
+    })
+    expect(wrapper.text()).toContain('rendered:x^2')
+  })
+
+  it('keeps readable TeX when no engine or pre-rendered output exists', () => {
+    const wrapper = mount(MarkdownMath, {
+      props: { tex: 'x^2' },
+    })
+    expect(wrapper.text()).toContain('x^2')
+  })
+
   it('surfaces default KaTeX error markup as a math diagnostic', async () => {
     const wrapper = mount(MarkdownRenderer, {
       props: {

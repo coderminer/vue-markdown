@@ -8,7 +8,7 @@ const dist = resolve(root, 'dist')
 
 await mkdir(resolve(dist, 'styles'), { recursive: true })
 
-for (const file of ['tokens.css', 'components.css', 'math.css']) {
+for (const file of ['tokens.css', 'components.css', 'math.css', 'math-full.css']) {
   await cp(resolve(source, 'styles', file), resolve(dist, 'styles', file))
 }
 

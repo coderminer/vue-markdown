@@ -7,7 +7,7 @@ import {
   watch,
   type VNodeChild,
 } from 'vue'
-import type { MarkdownNode } from '../core/types'
+import type { MarkdownNode, MathEngine } from '../core/types'
 import { createDiagnostic } from '../core/diagnostics'
 import { resolveLabel } from '../core/labels'
 import { useRenderContext } from './context'
@@ -19,6 +19,7 @@ const props = defineProps<{
   displayMode?: boolean
   rendered?: MarkdownNode[]
   error?: string
+  mathEngine?: MathEngine
 }>()
 
 const context = useRenderContext()
@@ -33,7 +34,7 @@ const display = computed(
 const rendered = computed(
   () => props.rendered ?? (props.node?.kind === 'math' ? props.node.rendered : []),
 )
-const engine = computed(() => context.mathEngine)
+const engine = computed(() => props.mathEngine ?? context.mathEngine)
 const engineResult = computed(() => {
   if (!engine.value) return undefined
   try {
@@ -45,7 +46,19 @@ const engineResult = computed(() => {
     }
   }
 })
-const nodes = computed(() => engineResult.value?.nodes ?? rendered.value ?? [])
+const unavailable = computed(
+  () =>
+    !engine.value &&
+    (rendered.value === undefined || rendered.value.length === 0) &&
+    source.value !== '',
+)
+const nodes = computed(() => {
+  const renderedNodes = engineResult.value?.nodes ?? rendered.value ?? []
+  if (renderedNodes.length > 0) return renderedNodes
+  return unavailable.value
+    ? [{ kind: 'text' as const, key: 'math-source', value: source.value }]
+    : renderedNodes
+})
 
 function katexError(
   nodes: readonly MarkdownNode[] | undefined,
@@ -76,17 +89,32 @@ const error = computed(
 )
 const label = computed(() => resolveLabel(context.labels.math, { tex: source.value }))
 
+let reported = false
 function reportError(): void {
-  if (!error.value) return
-  context.onRenderError?.(
-    createDiagnostic('math-error', error.value, {
-      phase: 'render',
-    }),
-  )
+  if (reported) return
+  if (error.value) {
+    reported = true
+    context.onRenderError?.(
+      createDiagnostic('math-error', error.value, {
+        phase: 'render',
+      }),
+    )
+    return
+  }
+  if (unavailable.value) {
+    reported = true
+    context.onRenderError?.(
+      createDiagnostic(
+        'math-engine-unavailable',
+        'No math engine or pre-rendered math output is available. Provide `mathEngine`, `rendered`, or use `mathPlugin()`.',
+        { severity: 'warning', phase: 'render' },
+      ),
+    )
+  }
 }
 
 onMounted(reportError)
-watch(error, reportError)
+watch([error, unavailable], reportError)
 
 const MathContent = defineComponent({
   setup() {

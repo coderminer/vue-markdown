@@ -79,6 +79,11 @@ without breaking the block. Results are cached by adapter identity, source,
 language, theme, and options. `mode: 'block'` may be returned when an adapter
 supplies its own wrapper.
 
+When the lazy default adapter cannot be imported, `CodeBlock` and
+`VueSyntaxHighlighter` report `highlighter-unavailable` with an install hint and
+emit `error`; a failed `load()` or `loadLanguage()` reports `highlighter-load`.
+The source always stays readable.
+
 ## Server rendering
 
 On the server, `CodeBlock` renders plain source; highlighting starts after

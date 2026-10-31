@@ -47,24 +47,31 @@ import { shiki } from 'vue-markdown-suite/highlight/shiki'
 ## Enable math
 
 ```ts
+import { defaultPlugins } from 'vue-markdown-suite/plugins'
 import { mathPlugin } from 'vue-markdown-suite/math'
-import 'vue-markdown-suite/styles/math.css'
+import 'vue-markdown-suite/styles/math-full.css'
 
-const plugins = [mathPlugin()]
+const plugins = [...defaultPlugins, mathPlugin()]
 ```
 
 ## Add Mermaid
 
 ```vue
 <script setup lang="ts">
-import { MermaidBlock, MarkdownRenderer } from 'vue-markdown-suite'
+import { MarkdownRenderer } from 'vue-markdown-suite'
+import { defaultPlugins } from 'vue-markdown-suite/plugins'
+import { mermaidPlugin } from 'vue-markdown-suite/mermaid'
+
+const plugins = [...defaultPlugins, mermaidPlugin()]
 </script>
 
 <template>
-  <MarkdownRenderer :source="source" />
-  <MermaidBlock :source="diagram" />
+  <MarkdownRenderer :source="source" :plugins="plugins" />
 </template>
 ```
+
+Mermaid fences now render as diagrams. For a standalone diagram, import
+`MermaidBlock` from `vue-markdown-suite` and pass `source` directly.
 
 ## Supply a custom pipeline
 
@@ -80,16 +87,32 @@ const pipeline: MarkdownPipeline = {
 
 ## Decorate links
 
-```ts
-import { h } from 'vue'
-import type { MarkdownNodeRenderer } from 'vue-markdown-suite'
+```vue [DecoratedLink.vue]
+<script setup lang="ts">
+import type { MarkdownNode } from 'vue-markdown-suite'
 
-const decorate: MarkdownNodeRenderer = (ctx) =>
-  h('span', [ctx.defaultRender(), ' ↗'])
+defineOptions({ inheritAttrs: false })
+defineProps<{ node?: MarkdownNode }>()
+</script>
+
+<template>
+  <span class="decorated-link">
+    <a v-bind="$attrs"><slot /></a> ↗
+  </span>
+</template>
 ```
 
-```vue
-<MarkdownRenderer :source="source" :nodeComponents="{ a: decorate }" />
+```vue [App.vue]
+<script setup lang="ts">
+import { MarkdownRenderer } from 'vue-markdown-suite'
+import DecoratedLink from './DecoratedLink.vue'
+
+const nodeComponents = { a: DecoratedLink }
+</script>
+
+<template>
+  <MarkdownRenderer :source="source" :node-components="nodeComponents" />
+</template>
 ```
 
 ## Add a plugin

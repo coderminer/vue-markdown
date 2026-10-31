@@ -162,26 +162,43 @@ tokens, or documented CSS parts. The full guide with a live preview is in the
 
 ### Customize your own elements
 
-```vue
+```vue [BadgeLink.vue]
 <script setup lang="ts">
-import { defineComponent, h } from 'vue'
+import type { MarkdownNode } from 'vue-markdown-suite'
 
-const BadgeLink = defineComponent({
-  props: { href: String },
-  setup(props, { slots }) {
-    return () =>
-      h('a', { href: props.href, class: 'badge-link' }, [
-        h('span', { class: 'badge' }, 'link'),
-        slots.default?.(),
-      ])
-  },
-})
+defineProps<{
+  node?: MarkdownNode
+  href?: string
+}>()
+</script>
 
-const Callout = defineComponent({
-  setup(_, { slots }) {
-    return () => h('aside', { class: 'callout' }, slots.default?.())
-  },
-})
+<template>
+  <a :href="href" class="badge-link">
+    <span class="badge">link</span>
+    <slot />
+  </a>
+</template>
+```
+
+```vue [Callout.vue]
+<script setup lang="ts">
+import type { MarkdownNode } from 'vue-markdown-suite'
+
+defineProps<{ node?: MarkdownNode }>()
+</script>
+
+<template>
+  <aside class="callout">
+    <slot />
+  </aside>
+</template>
+```
+
+```vue [App.vue]
+<script setup lang="ts">
+import { MarkdownRenderer } from 'vue-markdown-suite'
+import BadgeLink from './BadgeLink.vue'
+import Callout from './Callout.vue'
 
 const components = {
   h1: 'h2',
@@ -190,12 +207,6 @@ const components = {
 
 const nodeComponents = {
   blockquote: Callout,
-  a: (ctx) =>
-    h(
-      'a',
-      { ...(ctx.node.kind === 'element' ? ctx.node.attrs : {}), class: 'article-link' },
-      ctx.defaultRender(),
-    ),
 }
 
 const regions = {
@@ -215,13 +226,17 @@ const regions = {
 ```
 
 `components` is the tag-keyed map. `nodeComponents` targets the semantic model
-(`code`, `math`, `mermaid`, `custom`, and element tags) and accepts function
+(`code`, `math`, `mermaid`, `custom`, and element tags) and also accepts function
 renderers. `regions` replaces structural areas such as the TOC, content, error,
 empty, and loading states. Named slots are the last layer and receive scoped data
 plus actions. For custom syntax, `customTagsPlugin({ tags: ['x-note'] })` turns
 selected elements into custom nodes that map to your own components. Fenced code
 always wraps through `components.pre`; its inner element resolves through
 `components.code` or `nodeComponents.code`.
+
+For a full component-based customization walkthrough, including a
+`CodeBlock`-powered custom element, see the
+[Rich components guide](docs/guide/rich-components.md#build-a-custom-code-block-with-codeblock).
 
 ### Customize the theme
 
@@ -315,12 +330,20 @@ export const docsPreset = composePresets(
 ```
 
 ```vue
-<MarkdownRenderer :source="source" :plugins="[docsPlugin]" :preset="docsPreset" toc />
+<script setup lang="ts">
+const plugins = [docsPlugin]
+</script>
+
+<template>
+  <MarkdownRenderer :source="source" :plugins="plugins" :preset="docsPreset" toc />
+</template>
 ```
 
 Order is `pre` → `normal` → `post`, then registration order. Duplicate names
-replace deterministically. A failing plugin is isolated and never corrupts the
-last good document.
+replace deterministically. Keep the plugin array stable: plugin identity is part
+of the parse memo key, so `:plugins="[docsPlugin]"` created inline in a template
+re-parses on every parent render. A failing plugin is isolated and never corrupts
+the last good document.
 
 ### Headless rendering
 
@@ -341,10 +364,12 @@ own markup.
 ```ts
 import { highlightjs } from 'vue-markdown-suite/highlight'
 import { shiki } from 'vue-markdown-suite/highlight/shiki'
+import { fullPlugins } from 'vue-markdown-suite/plugins'
 import { mathPlugin, katexEngine } from 'vue-markdown-suite/math'
-import { renderMermaid } from 'vue-markdown-suite/mermaid'
-import 'katex/dist/katex.min.css'
-import 'vue-markdown-suite/styles/math.css'
+import { mermaidPlugin, renderMermaid } from 'vue-markdown-suite/mermaid'
+import 'vue-markdown-suite/styles/math-full.css'
+
+const plugins = [...fullPlugins, mathPlugin(), mermaidPlugin()]
 ```
 
 ```vue
@@ -352,14 +377,17 @@ import 'vue-markdown-suite/styles/math.css'
   :source="source"
   :highlighter="shiki"
   :math-engine="katexEngine"
-  :plugins="[mathPlugin()]"
+  :plugins="plugins"
 />
 ```
 
 Each engine is a small adapter with an `id` and one method, so a host can provide
 its own highlighter, math renderer, or Mermaid renderer. See the
 [highlighting](docs/guide/highlighting.md), [math](docs/guide/math.md), and
-[Mermaid](docs/guide/mermaid.md) guides.
+[Mermaid](docs/guide/mermaid.md) guides, or the
+[rich components guide](docs/guide/rich-components.md) for standalone
+`CodeBlock`, `VueSyntaxHighlighter`, `MermaidBlock`, and `MermaidLiveEditor`
+usage.
 
 ### Server rendering and static export
 
@@ -423,7 +451,7 @@ component manifest, lives in the
 | `linkTarget` | `string` | `'_self'` | Applied to links. |
 | `externalLinkTarget` | `'_self' \| '_blank'` | `'_self'` | `_blank` adds `rel="noopener noreferrer"`. |
 | `baseUrl` | `string` | — | Resolves relative URLs before `urlTransform`. |
-| `idPrefix` | `string` | `''` | Prefixes generated heading IDs. |
+| `idPrefix` | `string` | `''` | Prefixes generated heading IDs. Use a unique prefix for multiple renderers on one page. |
 | `syncHash` | `boolean` | `false` | Updates the URL hash on heading activation. |
 | `skipHtml` | `boolean` | `false` | Removes raw HTML nodes. |
 | `toc` | `boolean` | `false` | Renders the TOC region. |
@@ -473,7 +501,8 @@ rendering. See the [customization guide](docs/guide/customization.md#slots).
 | `vue-markdown-suite/style.css` | Full stylesheet |
 | `vue-markdown-suite/styles/tokens.css` | Design tokens only |
 | `vue-markdown-suite/styles/components.css` | Part-based component styles |
-| `vue-markdown-suite/styles/math.css` | Optional math styles |
+| `vue-markdown-suite/styles/math.css` | Math container styles; import KaTeX CSS separately |
+| `vue-markdown-suite/styles/math-full.css` | KaTeX CSS plus math container styles |
 
 ## Security defaults
 
@@ -494,6 +523,7 @@ See [docs/guide/security.md](docs/guide/security.md) for the full policy.
 
 | Guide | What it covers |
 | --- | --- |
+| [Rich components](docs/guide/rich-components.md) | `CodeBlock`, `VueSyntaxHighlighter`, `MermaidBlock`, and `MermaidLiveEditor` usage |
 | [Styling and themes](docs/guide/styling.md) | Tokens, themes, parts, and unstyled mode |
 | [Customization](docs/guide/customization.md) | Precedence, regions, node components, slots, manifests |
 | [Cookbook](docs/guide/cookbook.md) | Copy-paste recipes for common tasks |

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
-import { h } from 'vue'
+import { Comment, h } from 'vue'
 import CodeBlock from '../../src/components/CodeBlock.vue'
 import VueSyntaxHighlighter from '../../src/components/VueSyntaxHighlighter.vue'
 import type { MarkdownHighlighter } from '../../src/core/types'
@@ -49,6 +49,24 @@ describe('CodeBlock', () => {
     expect(wrapper.find('.test-token').text()).toBe('const x = 1')
   })
 
+  it('applies a local theme override to the block and highlighter', async () => {
+    const themes: Array<string | undefined> = []
+    const themeHighlighter: MarkdownHighlighter = {
+      id: 'theme-highlighter',
+      highlight(code, language, options) {
+        themes.push(options.theme)
+        return {
+          language,
+          nodes: [{ kind: 'text', key: 'x', value: code }],
+        }
+      },
+    }
+    const wrapper = mountBlock({ theme: 'dark', highlighter: themeHighlighter })
+    await flushPromises()
+    expect(wrapper.attributes('data-vmd-theme')).toBe('dark')
+    expect(themes).toEqual(['dark'])
+  })
+
   it('falls back to plain text for an unknown language or invalid adapter', async () => {
     const unknown: MarkdownHighlighter = {
       id: 'unknown',
@@ -64,6 +82,30 @@ describe('CodeBlock', () => {
     const fallback = mountBlock({ highlighter: invalid })
     await flushPromises()
     expect(fallback.text()).toContain('const x = 1')
+  })
+
+  it('reports highlighter readiness failures with a diagnostic', async () => {
+    const broken: MarkdownHighlighter = {
+      id: 'broken',
+      async load() {
+        throw new Error('missing grammar')
+      },
+      highlight(code, language) {
+        return {
+          language,
+          nodes: [{ kind: 'text', key: 'x', value: code }],
+        }
+      },
+    }
+    const wrapper = mount(VueSyntaxHighlighter, {
+      props: { source: 'x', highlighter: broken },
+    })
+    await flushPromises()
+    const error = wrapper.emitted('error')?.[0]?.[0] as
+      | { code: string; message: string }
+      | undefined
+    expect(error?.code).toBe('highlighter-load')
+    expect(error?.message).toContain('missing grammar')
   })
 
   it('loads the default highlight.js adapter lazily', async () => {
@@ -101,6 +143,33 @@ describe('CodeBlock', () => {
     expect(wrapper.find('[data-custom-code]').text()).toBe('ts:const x = 1')
     expect(wrapper.find('[data-custom-actions]').text()).toBe('function')
   })
+
+  it('keeps custom actions when default actions are hidden', async () => {
+    const run = vi.fn()
+    const wrapper = mountBlock({
+      showActions: false,
+      actions: [{ key: 'log', label: 'Log', run }],
+    })
+    await flushPromises()
+    expect(wrapper.find('[data-action="copy"]').exists()).toBe(false)
+    const action = wrapper.find('[data-action="log"]')
+    expect(action.exists()).toBe(true)
+    await action.trigger('click')
+    expect(run).toHaveBeenCalledTimes(1)
+    expect(wrapper.emitted('action')?.[0]).toEqual(['log'])
+  })
+
+  it('treats a comment-only conditional slot as empty', async () => {
+    const wrapper = mountBlock(
+      {
+        showActions: false,
+        actions: [{ key: 'log', label: 'Log', run: vi.fn() }],
+      },
+      { 'code-actions': () => h(Comment) },
+    )
+    await flushPromises()
+    expect(wrapper.find('[data-action="log"]').exists()).toBe(true)
+  })
 })
 
 describe('VueSyntaxHighlighter', () => {
@@ -128,6 +197,23 @@ describe('VueSyntaxHighlighter', () => {
     const empty = mount(VueSyntaxHighlighter, { props: { source: '' } })
     await flushPromises()
     expect(empty.find('[data-vmd-part="highlighter-empty"]').exists()).toBe(true)
+  })
+
+  it('expands truncated output on request', async () => {
+    const wrapper = mount(VueSyntaxHighlighter, {
+      props: {
+        source: 'a\nb\nc\nd',
+        highlighter: customHighlighter,
+        maxLines: 2,
+      },
+    })
+    await flushPromises()
+    expect(wrapper.findAll('[data-vmd-part="highlighter-line"]')).toHaveLength(2)
+    await wrapper.find('[data-vmd-part="highlighter-toggle"]').trigger('click')
+    expect(wrapper.findAll('[data-vmd-part="highlighter-line"]')).toHaveLength(4)
+    expect(wrapper.find('[data-vmd-part="highlighter-toggle"]').text()).toBe(
+      'Show less',
+    )
   })
 
   it('truncates and supports a custom highlighter slot', async () => {

@@ -67,6 +67,7 @@ export default defineConfig({
         {
           text: 'Reference guides',
           items: [
+            { text: 'Rich components', link: '/guide/rich-components' },
             { text: 'Styling and themes', link: '/guide/styling' },
             { text: 'Plugins', link: '/guide/plugins' },
             { text: 'Headless rendering', link: '/guide/headless' },

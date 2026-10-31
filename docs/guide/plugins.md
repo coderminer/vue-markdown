@@ -54,6 +54,18 @@ export const search = defineMarkdownPlugin((options: { query: string }) => ({
 throws or returns a non-string keeps the previous source and reports
 `plugin-source`; `onError` receives the `source` phase.
 
+Create plugin instances once. The parse memo key includes plugin identity, so
+`:plugins="[mathPlugin()]"` inside a template re-creates the plugin on every
+parent render, re-parses the document, and may rerun `setup` and cleanup. Hoist
+the array to module scope or a `setup` constant:
+
+```ts
+const plugins = [mathPlugin(), mermaidPlugin()]
+```
+
+Duplicate names still resolve deterministically, but they do not make the
+instance identity stable.
+
 ## Ordering and duplicates
 
 Order is `pre` → `normal` → `post`, then registration order. A duplicate name

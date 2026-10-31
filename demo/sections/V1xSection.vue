@@ -33,6 +33,8 @@ const mermaidSource = `flowchart LR
 `
 
 const editorSource = ref(mermaidSource)
+const gfmPlugins = [gfmPlugin]
+const mathPlugins = [mathPlugin()]
 </script>
 
 <template>
@@ -57,10 +59,10 @@ const editorSource = ref(mermaidSource)
         <h3>GFM task items and footnotes</h3>
         <MarkdownRenderer
           :source="'- [x] shipped\n- [ ] next\n\nA note[^1].\n\n[^1]: Footnote body'"
-          :plugins="[gfmPlugin]"
+          :plugins="gfmPlugins"
         />
         <h3>Math</h3>
-        <MarkdownRenderer :source="mathSource" :plugins="[mathPlugin()]" />
+        <MarkdownRenderer :source="mathSource" :plugins="mathPlugins" />
       </div>
     </div>
 

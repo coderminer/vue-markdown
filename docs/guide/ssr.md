@@ -10,15 +10,25 @@ path when every plugin is synchronous.
 
 ## Server rendering
 
-```ts
-import { createSSRApp, h } from 'vue'
-import { renderToString } from '@vue/server-renderer'
+```vue [App.vue]
+<script setup lang="ts">
 import { MarkdownRenderer } from 'vue-markdown-suite'
+import 'vue-markdown-suite/style.css'
 
-const app = createSSRApp({
-  render: () => h(MarkdownRenderer, { source: '# Hello' }),
-})
+defineProps<{ source: string }>()
+</script>
 
+<template>
+  <MarkdownRenderer :source="source" />
+</template>
+```
+
+```ts [server.ts]
+import { createSSRApp } from 'vue'
+import { renderToString } from '@vue/server-renderer'
+import App from './App.vue'
+
+const app = createSSRApp(App, { source: '# Hello' })
 const html = await renderToString(app)
 ```
 

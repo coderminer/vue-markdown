@@ -14,9 +14,12 @@ import {
 import type {
   CodeBlockAction,
   HighlightResult,
+  MarkdownDiagnostic,
   MarkdownHighlighter,
   MarkdownNode,
+  MarkdownTheme,
 } from '../core/types'
+import { createDiagnostic, errorMessage } from '../core/diagnostics'
 import { resolveLabel } from '../core/labels'
 import { plaintextHighlight, runHighlighter } from '../highlight/shared'
 import { renderNodes } from './render'
@@ -28,6 +31,7 @@ const props = withDefaults(
     code?: string
     language?: string
     highlighter?: MarkdownHighlighter
+    theme?: MarkdownTheme
     actions?: CodeBlockAction[]
     showActions?: boolean
   }>(),
@@ -35,6 +39,7 @@ const props = withDefaults(
     code: undefined,
     language: undefined,
     highlighter: undefined,
+    theme: undefined,
     actions: () => [],
     showActions: true,
   },
@@ -44,11 +49,15 @@ const emit = defineEmits<{
   copy: [source: string]
   download: [source: string]
   action: [key: string]
+  error: [diagnostic: MarkdownDiagnostic]
 }>()
 
 const context = useRenderContext()
 const ownSlots = useSlots()
 const region = computed(() => context.regions?.codeBlock)
+const resolvedTheme = computed<MarkdownTheme>(
+  () => props.theme ?? context.theme ?? 'light',
+)
 const source = computed(() => {
   if (props.code !== undefined) return props.code
   return props.node?.kind === 'code' ? props.node.code : ''
@@ -76,9 +85,18 @@ function defaultHighlighter(): Promise<MarkdownHighlighter> {
   return defaultPromise
 }
 
+const reportedDiagnostics = new Set<string>()
+function reportDiagnostic(diagnostic: MarkdownDiagnostic): void {
+  const signature = `${diagnostic.code}\u001f${diagnostic.message}`
+  if (reportedDiagnostics.has(signature)) return
+  reportedDiagnostics.add(signature)
+  context.onRenderError?.(diagnostic)
+  emit('error', diagnostic)
+}
+
 function colorScheme(): 'light' | 'dark' {
-  if (context.theme === 'dark') return 'dark'
-  if (context.theme === 'auto' && typeof window !== 'undefined') {
+  if (resolvedTheme.value === 'dark') return 'dark'
+  if (resolvedTheme.value === 'auto' && typeof window !== 'undefined') {
     return window.matchMedia('(prefers-color-scheme: dark)').matches
       ? 'dark'
       : 'light'
@@ -94,7 +112,15 @@ async function refresh(): Promise<void> {
   if (!instance) {
     try {
       instance = await defaultHighlighter()
-    } catch {
+    } catch (error) {
+      reportDiagnostic(
+        createDiagnostic(
+          'highlighter-unavailable',
+          'The default highlight.js adapter could not be loaded. Install the optional `highlight.js` peer dependency to enable syntax highlighting.',
+          { severity: 'warning', phase: 'render' },
+        ),
+      )
+      if (import.meta.env.DEV) console.error('highlight.js failed to load', error)
       instance = undefined
     }
   }
@@ -106,11 +132,19 @@ async function refresh(): Promise<void> {
   try {
     await instance.load?.()
     if (language.value) await instance.loadLanguage?.(language.value)
-  } catch {
-    // Adapter readiness failures fall back to plain text.
+  } catch (error) {
+    // Adapter readiness failures fall back to plain text, but the host should
+    // be able to tell a missing peer or language grammar from a parsing error.
+    reportDiagnostic(
+      createDiagnostic(
+        'highlighter-load',
+        `The highlighter could not prepare this language: ${errorMessage(error)}`,
+        { severity: 'warning', phase: 'render' },
+      ),
+    )
   }
   result.value = runHighlighter(instance, source.value, language.value, {
-    theme: context.theme,
+    theme: resolvedTheme.value,
     colorScheme: colorScheme(),
   })
 }
@@ -156,13 +190,17 @@ async function download(): Promise<void> {
   const value = source.value
   if (typeof document === 'undefined' || typeof URL === 'undefined') return
   const blob = new Blob([value], { type: 'text/plain;charset=utf-8' })
-  downloadUrl = URL.createObjectURL(blob)
+  const url = URL.createObjectURL(blob)
+  downloadUrl = url
   const anchor = document.createElement('a')
-  anchor.href = downloadUrl
+  anchor.href = url
   anchor.download = `code.${language.value || 'txt'}`
   anchor.click()
-  URL.revokeObjectURL(downloadUrl)
-  downloadUrl = undefined
+  // Revoking synchronously can cancel the download in some browsers.
+  setTimeout(() => {
+    URL.revokeObjectURL(url)
+    if (downloadUrl === url) downloadUrl = undefined
+  }, 1000)
   emit('download', value)
 }
 
@@ -219,33 +257,36 @@ const ActionsContent = defineComponent({
             })
             if (!isEmptySlotContent(output)) return output
           }
-          if (!props.showActions) return null
-          const children: VNodeChild[] = [
-            h(
-              'button',
-              {
-                type: 'button',
-                class: 'vmd-code-action',
-                'data-vmd-part': 'code-action',
-                'data-action': 'copy',
-                onClick: copy,
-              },
-              copied.value
-                ? resolveLabel(context.labels.copied)
-                : resolveLabel(context.labels.copy),
-            ),
-            h(
-              'button',
-              {
-                type: 'button',
-                class: 'vmd-code-action',
-                'data-vmd-part': 'code-action',
-                'data-action': 'download',
-                onClick: download,
-              },
-              resolveLabel(context.labels.download),
-            ),
-          ]
+          if (!props.showActions && props.actions.length === 0) return null
+          const children: VNodeChild[] = []
+          if (props.showActions) {
+            children.push(
+              h(
+                'button',
+                {
+                  type: 'button',
+                  class: 'vmd-code-action',
+                  'data-vmd-part': 'code-action',
+                  'data-action': 'copy',
+                  onClick: copy,
+                },
+                copied.value
+                  ? resolveLabel(context.labels.copied)
+                  : resolveLabel(context.labels.copy),
+              ),
+              h(
+                'button',
+                {
+                  type: 'button',
+                  class: 'vmd-code-action',
+                  'data-vmd-part': 'code-action',
+                  'data-action': 'download',
+                  onClick: download,
+                },
+                resolveLabel(context.labels.download),
+              ),
+            )
+          }
           for (const action of props.actions) {
             children.push(
               h(
@@ -276,7 +317,7 @@ const ActionsContent = defineComponent({
 })
 
 watch(
-  () => [source.value, language.value, context.theme] as const,
+  () => [source.value, language.value, resolvedTheme.value] as const,
   () => void refresh(),
 )
 watch(
@@ -287,7 +328,11 @@ watch(region, (value) => {
   if (!value) void refresh()
 })
 
-defineExpose({ copy, download, highlighted: result })
+function getHighlighted(): HighlightResult {
+  return result.value
+}
+
+defineExpose({ copy, download, getHighlighted, highlighted: result })
 </script>
 
 <template>
@@ -297,6 +342,7 @@ defineExpose({ copy, download, highlighted: result })
     :node="node"
     :code="source"
     :language="language"
+    :theme="resolvedTheme"
   >
     <slot />
   </component>
@@ -304,6 +350,7 @@ defineExpose({ copy, download, highlighted: result })
     v-else
     data-vmd-part="code"
     class="vmd-code vmd-code-block"
+    :data-vmd-theme="resolvedTheme"
     :data-language="label"
     :data-highlighter="active?.id"
   >

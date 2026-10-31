@@ -258,6 +258,36 @@ describe('active heading tracking', () => {
     globalThis.IntersectionObserver = original
     document.body.innerHTML = ''
   })
+
+  it('scopes heading lookups to an optional root', async () => {
+    const observed: Element[] = []
+    class MockObserver {
+      observe = vi.fn((element: Element) => observed.push(element))
+      disconnect = vi.fn()
+      constructor(_callback: IntersectionObserverCallback) {}
+    }
+    const original = globalThis.IntersectionObserver
+    globalThis.IntersectionObserver = MockObserver as never
+    document.body.innerHTML =
+      '<div id="first"><h1 id="same">First</h1></div><div id="second"><h1 id="same">Second</h1></div>'
+    const root = document.getElementById('second')!
+
+    mount(
+      defineComponent({
+        setup() {
+          useActiveHeading(['same'], true, { root })
+          return () => h('div')
+        },
+      }),
+    )
+    await nextTick()
+    expect(observed).toHaveLength(1)
+    expect(observed[0]).toBe(root.querySelector('h1'))
+    expect(observed[0]).not.toBe(document.getElementById('same'))
+
+    globalThis.IntersectionObserver = original
+    document.body.innerHTML = ''
+  })
 })
 
 describe('plugin lifecycle and isolation', () => {

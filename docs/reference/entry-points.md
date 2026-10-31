@@ -18,13 +18,14 @@ out of bundles that do not use them.
 | `vue-markdown-suite/highlight` | highlight.js adapter and normalization helpers |
 | `vue-markdown-suite/highlight/shiki` | Optional Shiki adapter |
 | `vue-markdown-suite/math` | `mathPlugin`, `katexEngine`, math types |
-| `vue-markdown-suite/mermaid` | Lazy Mermaid runtime and SVG sanitizer |
+| `vue-markdown-suite/mermaid` | `mermaidPlugin`, lazy Mermaid runtime, and SVG sanitizer |
 | `vue-markdown-suite/editor` | Lazy CodeMirror integration |
 | `vue-markdown-suite/components/*` | One entry per public component |
 | `vue-markdown-suite/style.css` | Full optional stylesheet |
 | `vue-markdown-suite/styles/tokens.css` | Design tokens only |
 | `vue-markdown-suite/styles/components.css` | Part-based component styles |
-| `vue-markdown-suite/styles/math.css` | Optional math styles |
+| `vue-markdown-suite/styles/math.css` | Math container styles; import KaTeX CSS separately |
+| `vue-markdown-suite/styles/math-full.css` | KaTeX CSS plus the suite's math container styles |
 
 ## Examples
 
@@ -41,7 +42,7 @@ import { defineMarkdownPlugin, gfmPlugin } from 'vue-markdown-suite/plugins'
 // Optional engines
 import { shiki } from 'vue-markdown-suite/highlight/shiki'
 import { mathPlugin } from 'vue-markdown-suite/math'
-import { renderMermaid } from 'vue-markdown-suite/mermaid'
+import { mermaidPlugin, renderMermaid } from 'vue-markdown-suite/mermaid'
 ```
 
 ## Bundle boundaries

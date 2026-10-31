@@ -47,7 +47,10 @@ import {
 } from '../core/adapters'
 import { createDiagnostic } from '../core/diagnostics'
 import { useMarkdownDocument } from '../composables/useMarkdownDocument'
-import { useActiveHeading } from '../composables/useActiveHeading'
+import {
+  findElementById,
+  useActiveHeading,
+} from '../composables/useActiveHeading'
 import { useMarkdownConfig } from './config'
 import MarkdownChildren from './MarkdownChildren'
 import MarkdownContent from './MarkdownContent.vue'
@@ -156,6 +159,14 @@ const emit = defineEmits<{
 
 const slots = useSlots()
 const instance = getCurrentInstance()
+const rootRef = ref<HTMLElement>()
+
+function rootElement(): HTMLElement | undefined {
+  const direct = rootRef.value
+  if (direct && direct.nodeType === 1) return direct
+  const element = instance?.proxy?.$el
+  return element && element.nodeType === 1 ? (element as HTMLElement) : undefined
+}
 
 function vnodeText(node: VNodeChild): string {
   if (typeof node === 'string' || typeof node === 'number') return String(node)
@@ -446,6 +457,7 @@ provide(RENDER_CONTEXT, renderContext)
 const activeId = useActiveHeading(
   computed(() => tocItems.value.map((item) => item.id)),
   computed(() => props.toc),
+  { root: rootElement },
 )
 
 const contentSlotContext = computed(() => ({
@@ -489,7 +501,8 @@ function scrollToHeading(
   options?: ScrollIntoViewOptions,
 ): void {
   if (typeof document === 'undefined') return
-  const element = document.getElementById(id)
+  const root = rootElement()
+  const element = findElementById(root ?? document, id)
   if (!element) return
   element.scrollIntoView(
     options ?? { behavior: 'smooth', block: 'start' },
@@ -639,6 +652,7 @@ defineExpose({
   <component
     :is="regionRoot"
     v-else
+    ref="rootRef"
     :as="as"
     :tokens="mergedTokens"
     :theme="effectiveTheme"

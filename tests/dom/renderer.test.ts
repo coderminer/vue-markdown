@@ -286,6 +286,27 @@ describe('TOC and heading navigation', () => {
     wrapper.unmount()
   })
 
+  it('navigates within its own renderer when heading IDs collide', async () => {
+    const first = mount(MarkdownRenderer, {
+      props: { source: '# Same', toc: true },
+      attachTo: document.body,
+    })
+    const second = mount(MarkdownRenderer, {
+      props: { source: '# Same', toc: true },
+      attachTo: document.body,
+    })
+    const firstScroll = vi.fn()
+    const secondScroll = vi.fn()
+    first.find('h1').element.scrollIntoView = firstScroll
+    second.find('h1').element.scrollIntoView = secondScroll
+
+    await second.find('a[data-vmd-part="toc-item"]').trigger('click')
+    expect(secondScroll).toHaveBeenCalledTimes(1)
+    expect(firstScroll).not.toHaveBeenCalled()
+    first.unmount()
+    second.unmount()
+  })
+
   it('prefixes heading IDs', () => {
     const wrapper = renderer({ source: '# Title', idPrefix: 'doc-' })
     expect(wrapper.find('h1').attributes('id')).toBe('doc-title')

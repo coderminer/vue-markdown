@@ -82,37 +82,42 @@ type MarkdownNode =
 
 ## Render the model yourself
 
-```vue
+```vue [NodeView.vue]
 <script setup lang="ts">
-import { defineComponent, h } from 'vue'
-import { useMarkdownDocument, type MarkdownNode } from 'vue-markdown-suite/headless'
+import type { MarkdownNode } from 'vue-markdown-suite/headless'
+
+defineProps<{ node: MarkdownNode }>()
+</script>
+
+<template>
+  <template v-if="node.kind === 'text'">{{ node.value }}</template>
+  <pre v-else-if="node.kind === 'code'"><code>{{ node.code }}</code></pre>
+  <component
+    :is="node.tag"
+    v-else-if="node.kind === 'element'"
+    v-bind="node.attrs"
+  >
+    <NodeView v-for="child in node.children" :key="child.key" :node="child" />
+  </component>
+  <span v-else>{{ node.kind }}</span>
+</template>
+```
+
+```vue [App.vue]
+<script setup lang="ts">
+import { useMarkdownDocument } from 'vue-markdown-suite/headless'
+import NodeView from './NodeView.vue'
 
 const { document } = useMarkdownDocument(source)
-
-function render(node: MarkdownNode) {
-  if (node.kind === 'text') return node.value
-  if (node.kind === 'code') return h('pre', [h('code', node.code)])
-  if (node.kind === 'element') {
-    return h(
-      node.tag,
-      node.attrs,
-      node.children.map((child) => h(NodeView, { node: child, key: child.key })),
-    )
-  }
-  return h('span', { 'data-kind': node.kind }, node.kind)
-}
-
-const NodeView = defineComponent({
-  props: { node: { type: Object as () => MarkdownNode, required: true } },
-  setup(props) {
-    return () => render(props.node)
-  },
-})
 </script>
 
 <template>
   <article>
-    <NodeView v-for="node in document?.nodes ?? []" :key="node.key" :node="node" />
+    <NodeView
+      v-for="node in document?.nodes ?? []"
+      :key="node.key"
+      :node="node"
+    />
   </article>
 </template>
 ```
@@ -138,8 +143,14 @@ const activeId = useActiveHeading(
 )
 ```
 
-`useActiveHeading(ids, enabled?)` creates its observer on mount and disconnects
-on unmount. It is a no-op during SSR or when `enabled` is `false`.
+`useActiveHeading(ids, enabled?, options?)` creates its observer on mount and
+disconnects on unmount. It is a no-op during SSR or when `enabled` is `false`.
+Pass `{ root }` to scope lookups to one document root when multiple renderers
+share heading IDs:
+
+```ts
+const activeId = useActiveHeading(ids, true, { root: documentElement })
+```
 
 ## Status handling
 

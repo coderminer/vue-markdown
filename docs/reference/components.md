@@ -67,9 +67,22 @@ Optional engines stay in their own entries:
 import { highlightjs } from 'vue-markdown-suite/highlight'
 import { shiki } from 'vue-markdown-suite/highlight/shiki'
 import { mathPlugin, katexEngine } from 'vue-markdown-suite/math'
-import { renderMermaid, sanitizeSvg } from 'vue-markdown-suite/mermaid'
+import {
+  mermaidPlugin,
+  renderMermaid,
+  sanitizeSvg,
+} from 'vue-markdown-suite/mermaid'
 import { createMermaidEditor } from 'vue-markdown-suite/editor'
 ```
+
+`MarkdownMermaid` forwards `renderer`, `theme`, `showErrors`, `enableZoom`,
+`allowFullscreen`, and `compact` to `MermaidBlock`. `MarkdownMath` accepts a
+standalone `mathEngine` prop. `MarkdownRenderer` exposes the
+`MarkdownRendererInstance` type.
+
+See [Rich components](../guide/rich-components.md) for standalone usage of
+`CodeBlock`, `VueSyntaxHighlighter`, `MermaidBlock`, `MermaidLiveEditor`, and
+`MarkdownMath`.
 
 ## Parts, slots, and labels
 

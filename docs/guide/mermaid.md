@@ -8,11 +8,35 @@ Mermaid support is lazy and client-only. The runtime is requested only when a
 Mermaid block or the live editor renders.
 
 ```ts
-import { renderMermaid } from 'vue-markdown-suite/mermaid'
+import { mermaidPlugin, renderMermaid } from 'vue-markdown-suite/mermaid'
 ```
 
 `MermaidBlock` is exported from the package root. It renders a deterministic
 placeholder during SSR, then loads the runtime after mount.
+
+## Fenced diagrams
+
+Add `mermaidPlugin()` to the renderer plugin set to turn ` ```mermaid ` (and
+` ```mmd `) fences into Mermaid nodes:
+
+```vue
+<script setup lang="ts">
+import { MarkdownRenderer } from 'vue-markdown-suite'
+import { defaultPlugins } from 'vue-markdown-suite/plugins'
+import { mermaidPlugin } from 'vue-markdown-suite/mermaid'
+
+const plugins = [...defaultPlugins, mermaidPlugin()]
+</script>
+
+<template>
+  <MarkdownRenderer :source="source" :plugins="plugins" />
+</template>
+```
+
+The plugin is opt-in because Mermaid is an optional peer. Without it, a Mermaid
+fence stays a normal code block. Without the `mermaid` package or a custom
+renderer, the block keeps the source available and reports a
+`mermaid-unavailable` diagnostic instead of collapsing to an empty region.
 
 <script setup>
 import { MermaidBlock } from 'vue-markdown-suite'
@@ -58,22 +82,27 @@ during SSR. The sanitized SVG never goes through `v-html`.
 
 `MermaidBlock` provides preview/source tabs, pending state, last-good retention,
 opt-in error display, zoom, fullscreen, copy, SVG download, PNG export, and
-retry. It exposes `mermaid` and `mermaid-error` slots and the
-`mermaidRenderer` injection point. A custom renderer still has its SVG and
-node output sanitized, and invalid renderer output is reported while the last
-good preview is retained.
+retry. A failed first render always shows a lightweight fallback; `showErrors`
+expands the detailed diagnostic. `theme` overrides the Mermaid theme and the
+block's `data-vmd-theme`, and `compact` hides its toolbar for embedded previews.
+
+It exposes `mermaid` and `mermaid-error` slots and the `mermaidRenderer`
+injection point. A custom renderer still has its SVG and node output sanitized,
+and invalid renderer output is reported while the last good preview is retained.
 
 ```vue
-<MermaidBlock :source="diagram" @error="onDiagramError" />
+<MermaidBlock :source="diagram" theme="dark" show-errors @error="onDiagramError" />
 ```
 
 ## Live editor
 
 `MermaidLiveEditor` binds `v-model`, syncs external values, debounces previews
-(300 ms by default), and loads CodeMirror 6 only after mount.
+(300 ms by default), and loads CodeMirror 6 only after mount. Its `theme` applies
+to both CodeMirror and the `MermaidBlock` preview, and `compact` hides the
+preview block's duplicate toolbar.
 
 ```vue
-<MermaidLiveEditor v-model="source" :renderer="renderer" />
+<MermaidLiveEditor v-model="source" theme="dark" :renderer="renderer" compact />
 ```
 
 The split layout enforces minimum pane sizes, supports keyboard resizing

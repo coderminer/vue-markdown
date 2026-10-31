@@ -1,0 +1,3 @@
+/* Self-contained math styles: KaTeX layout plus the suite's math container. */
+@import 'katex/dist/katex.min.css';
+@import './math.css';

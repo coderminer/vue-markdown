@@ -35,7 +35,7 @@ const nodeComponents = {
   a: (ctx) =>
     h(
       'a',
-      { ...(ctx.node.kind === 'element' ? ctx.node.attrs : {}), class: 'article-link' },
+      { ...ctx.attrs, class: 'article-link' },
       ctx.defaultRender(),
     ),
 }

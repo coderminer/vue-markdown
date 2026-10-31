@@ -304,6 +304,9 @@ export function resolveKindComponent(
 
 interface NodeRendererContext {
   node: MarkdownNode
+  kind: MarkdownNode['kind']
+  tag?: string
+  attrs: Record<string, string>
   key: string
   children: () => VNodeChild
   defaultRender: () => VNodeChild
@@ -311,6 +314,16 @@ interface NodeRendererContext {
 }
 
 type NodeRenderer = (context: NodeRendererContext) => VNodeChild
+
+function rendererShape(node: MarkdownNode): Pick<
+  NodeRendererContext,
+  'kind' | 'tag' | 'attrs'
+> {
+  if (node.kind === 'element' || node.kind === 'custom') {
+    return { kind: node.kind, tag: node.tag, attrs: node.attrs }
+  }
+  return { kind: node.kind, attrs: {} }
+}
 
 function childrenRenderer(
   node: MarkdownElementNode | MarkdownCustomTagNode,
@@ -362,6 +375,7 @@ function renderCodeElement(
     const renderer = semantic as unknown as NodeRenderer
     return renderer({
       node,
+      ...rendererShape(node),
       key,
       children: () => [node.code],
       defaultRender: () => renderCodeElement(node, ctx, true),
@@ -594,6 +608,7 @@ export function renderNode(node: MarkdownNode, ctx: RenderContext): VNodeChild {
           : undefined
       return call({
         node,
+        ...rendererShape(node),
         key: node.key,
         children: () => (childSource ? childSource() : []),
         defaultRender: () => renderNodeDefault(node, ctx),

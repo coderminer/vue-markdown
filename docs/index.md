@@ -188,5 +188,9 @@ const source = ref('# Hello\n\nA **bold** paragraph with a [link](https://exampl
       <h3>Complete example →</h3>
       <p>A full docs portal built with the public API only.</p>
     </a>
+    <a class="home-card" href="./guide/rich-components.html">
+      <h3>Rich components →</h3>
+      <p>CodeBlock, VueSyntaxHighlighter, Mermaid, and the live editor.</p>
+    </a>
   </div>
 </div>

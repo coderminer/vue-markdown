@@ -12,6 +12,7 @@ import {
 } from 'vue'
 import type {
   MarkdownNode,
+  MarkdownTheme,
   MermaidRenderResult,
   MermaidRenderer,
 } from '../core/types'
@@ -28,17 +29,21 @@ const props = withDefaults(
     node?: MarkdownNode
     source?: string
     renderer?: MermaidRenderer
+    theme?: MarkdownTheme
     showErrors?: boolean
     enableZoom?: boolean
     allowFullscreen?: boolean
+    compact?: boolean
   }>(),
   {
     node: undefined,
     source: undefined,
     renderer: undefined,
+    theme: undefined,
     showErrors: false,
     enableZoom: true,
     allowFullscreen: true,
+    compact: false,
   },
 )
 
@@ -54,6 +59,9 @@ const context = useRenderContext()
 const ownSlots = useSlots()
 const source = computed(
   () => props.source ?? (props.node?.kind === 'mermaid' ? props.node.code : ''),
+)
+const resolvedTheme = computed<MarkdownTheme>(
+  () => props.theme ?? context.theme ?? 'light',
 )
 const status = ref<'idle' | 'pending' | 'ready' | 'error'>('idle')
 const result = shallowRef<MermaidRenderResult>()
@@ -115,7 +123,7 @@ async function render(): Promise<void> {
   if (active && isValidMermaidRenderer(active)) {
     try {
       next = prepareResult(
-        await active.render(source.value, { theme: context.theme, id }),
+        await active.render(source.value, { theme: resolvedTheme.value, id }),
       )
     } catch (exception) {
       next = {
@@ -126,7 +134,7 @@ async function render(): Promise<void> {
   } else {
     // The default runtime already returns sanitized nodes.
     const rendered = await renderMermaid(source.value, {
-      theme: context.theme,
+      theme: resolvedTheme.value,
       id,
     })
     next =
@@ -142,8 +150,14 @@ async function render(): Promise<void> {
     status.value = 'error'
     error.value = next.error
     emit('error', next.error)
+    const unavailable =
+      next.error.indexOf('Mermaid is not available') !== -1
     context.onRenderError?.(
-      createDiagnostic('mermaid-error', next.error, { phase: 'render' }),
+      createDiagnostic(
+        unavailable ? 'mermaid-unavailable' : 'mermaid-error',
+        next.error,
+        { phase: 'render' },
+      ),
     )
   } else {
     status.value = 'ready'
@@ -163,7 +177,7 @@ onUnmounted(() => {
   }
 })
 watch(
-  () => [source.value, renderer.value, context.theme] as const,
+  () => [source.value, renderer.value, resolvedTheme.value] as const,
   () => {
     if (mounted) void render()
   },
@@ -192,7 +206,8 @@ function download(blob: Blob, name: string): void {
   anchor.href = url
   anchor.download = name
   anchor.click()
-  URL.revokeObjectURL(url)
+  // Revoking synchronously can cancel the download in some browsers.
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
 async function exportPng(): Promise<void> {
@@ -307,17 +322,29 @@ const PreviewContent = defineComponent({
           }
           if (!lastGood.value) {
             if (status.value === 'error') {
-              return props.showErrors
-                ? h(
-                    'div',
-                    {
-                      'data-vmd-part': 'mermaid-error',
-                      class: 'vmd-mermaid-error',
-                      role: 'status',
-                    },
-                    error.value,
-                  )
-                : null
+              if (props.showErrors) {
+                return h(
+                  'div',
+                  {
+                    'data-vmd-part': 'mermaid-error',
+                    class: 'vmd-mermaid-error',
+                    role: 'status',
+                  },
+                  error.value,
+                )
+              }
+              // A failed first render should not leave an empty block. Keep the
+              // detailed diagnostic behind `showErrors`, but always expose a
+              // lightweight failure state and the source tab.
+              return h(
+                'div',
+                {
+                  'data-vmd-part': 'mermaid-fallback',
+                  class: 'vmd-mermaid-fallback',
+                  role: 'status',
+                },
+                resolveLabel(context.labels.mermaidFallback),
+              )
             }
             return h(
               'div',
@@ -390,9 +417,11 @@ defineExpose({ render, copy, exportPng, downloadSvg, toggleFullscreen })
     ref="root"
     data-vmd-part="mermaid"
     class="vmd-mermaid"
+    :data-vmd-theme="resolvedTheme"
     :data-status="status"
     :data-renderer="rendererId"
     :data-fullscreen="fullscreen ? 'true' : undefined"
+    :data-compact="compact ? 'true' : undefined"
     :data-view="view"
     role="figure"
     :aria-label="label"
@@ -416,7 +445,11 @@ defineExpose({ render, copy, exportPng, downloadSvg, toggleFullscreen })
           @click="view = 'source'"
         >{{ resolveLabel(context.labels.source) }}</button>
       </div>
-      <div data-vmd-part="mermaid-actions" class="vmd-mermaid-actions">
+      <div
+        v-if="!compact"
+        data-vmd-part="mermaid-actions"
+        class="vmd-mermaid-actions"
+      >
         <button
           v-if="enableZoom"
           type="button"

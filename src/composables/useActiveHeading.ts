@@ -7,10 +7,37 @@ import {
   type MaybeRefOrGetter,
 } from 'vue'
 
+export interface UseActiveHeadingOptions {
+  /**
+   * Scope heading lookups to one rendered document root. Pass this when a
+   * page contains multiple renderers that may generate the same heading IDs.
+   */
+  root?: MaybeRefOrGetter<Element | Document | null | undefined>
+}
+
+/** Find an element by id inside a document or a scoped root element. */
+export function findElementById(
+  scope: Element | Document,
+  id: string,
+): HTMLElement | null {
+  const byId = (scope as Document).getElementById
+  if (typeof byId === 'function') {
+    return byId.call(scope, id)
+  }
+  // Avoid CSS selector escaping for generated ids with punctuation.
+  const candidates = (scope as Element).querySelectorAll('[id]')
+  for (let index = 0; index < candidates.length; index += 1) {
+    const element = candidates[index] as HTMLElement
+    if (element.getAttribute('id') === id) return element
+  }
+  return null
+}
+
 /** Tracks the heading currently in view without touching the DOM before mount. */
 export function useActiveHeading(
   ids: MaybeRefOrGetter<string[]>,
   enabled: MaybeRefOrGetter<boolean> = true,
+  options: UseActiveHeadingOptions = {},
 ) {
   const activeId = ref<string>()
   let observer: IntersectionObserver | undefined
@@ -27,8 +54,9 @@ export function useActiveHeading(
       return
     }
 
+    const scope = toValue(options.root) ?? window.document
     const elements = toValue(ids)
-      .map((id) => window.document.getElementById(id))
+      .map((id) => findElementById(scope, id))
       .filter((element): element is HTMLElement => element !== null)
 
     if (elements.length === 0) return
@@ -49,6 +77,7 @@ export function useActiveHeading(
   onMounted(connect)
   watch(() => toValue(ids).join('\u001f'), connect)
   watch(() => toValue(enabled), connect)
+  if (options.root) watch(() => toValue(options.root), connect)
   onBeforeUnmount(disconnect)
 
   return activeId

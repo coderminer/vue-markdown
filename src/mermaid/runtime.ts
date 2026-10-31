@@ -15,8 +15,16 @@ let initializedTheme: MarkdownTheme | null | undefined = null
 let queue: Promise<unknown> = Promise.resolve()
 let counter = 0
 
+function prefersDark(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-color-scheme: dark)').matches
+  )
+}
+
 function themeName(theme: MarkdownTheme | undefined): string {
-  if (theme === 'dark') return 'dark'
+  if (theme === 'dark' || (theme === 'auto' && prefersDark())) return 'dark'
   if (theme === 'custom') return 'neutral'
   return 'default'
 }
@@ -43,10 +51,23 @@ async function initialize(api: MermaidApi, theme: MarkdownTheme | undefined): Pr
   initializedTheme = theme
 }
 
-function classify(error: unknown): string {
-  if (error instanceof Error) return error.message
-  if (typeof error === 'string') return error
-  return 'Mermaid rendering failed.'
+function missingMermaid(message: string): boolean {
+  return /(cannot find module|failed to resolve module|failed to fetch dynamically imported module|err_module_not_found|not installed)/i.test(
+    message,
+  ) && /mermaid/i.test(message)
+}
+
+/** Report the actual failure, adding an install hint for a missing peer. */
+export function classifyMermaidError(error: unknown): string {
+  const message = error instanceof Error
+    ? error.message
+    : typeof error === 'string'
+      ? error
+      : 'Mermaid rendering failed.'
+  if (missingMermaid(message)) {
+    return 'Mermaid is not available. Install the optional `mermaid` peer dependency to render diagrams.'
+  }
+  return message
 }
 
 /** Create a unique DOM-safe identifier for one Mermaid render. */
@@ -77,7 +98,7 @@ export async function renderMermaid(
       const { svg } = await api.render(id, source)
       return { svg, nodes: sanitizeSvg(svg) }
     } catch (error) {
-      return { nodes: [], error: classify(error) }
+      return { nodes: [], error: classifyMermaidError(error) }
     }
   }
 

@@ -157,7 +157,7 @@ const nodeComponents: VueMarkdownNodeComponents = {
     h(
       'a',
       {
-        ...(ctx.node.kind === 'element' ? ctx.node.attrs : {}),
+        ...ctx.attrs,
         class: 'vmd-article-link',
       },
       [ctx.defaultRender()],

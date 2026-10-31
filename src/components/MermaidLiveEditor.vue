@@ -14,6 +14,7 @@ import {
 import type {
   DiagnosticFormatter,
   MarkdownDiagnostic,
+  MarkdownTheme,
   MermaidRenderer,
 } from '../core/types'
 import { createDiagnostic } from '../core/diagnostics'
@@ -53,6 +54,9 @@ const emit = defineEmits<{
 
 const context = useRenderContext()
 const ownSlots = useSlots()
+const resolvedTheme = computed<MarkdownTheme>(
+  () => props.theme ?? context.theme ?? 'light',
+)
 const value = ref(props.modelValue)
 const previewSource = ref(props.modelValue)
 const ratio = ref(props.initialRatio)
@@ -211,7 +215,7 @@ onMounted(async () => {
   try {
     handle = await createMermaidEditor(editorHost.value, {
       value: value.value,
-      theme: props.theme ?? context.theme,
+      theme: resolvedTheme.value,
       onChange: updateValue,
     })
   } catch (error) {
@@ -227,6 +231,24 @@ onUnmounted(() => {
   if (typeof document !== 'undefined') {
     document.removeEventListener('keydown', onKeydown)
   }
+})
+
+function focus(): void {
+  handle?.focus()
+}
+
+/** Apply the current editor value to the preview without waiting for debounce. */
+function refreshPreview(): void {
+  if (previewTimer) clearTimeout(previewTimer)
+  previewSource.value = value.value
+  emit('preview', value.value)
+}
+
+defineExpose({
+  focus,
+  refreshPreview,
+  toggleFullscreen,
+  getDiagnostics: (): MarkdownDiagnostic[] => diagnostics.value,
 })
 
 const EditorSlot = defineComponent({
@@ -323,6 +345,7 @@ const DiagnosticsContent = defineComponent({
     ref="root"
     data-vmd-part="editor"
     class="vmd-editor"
+    :data-vmd-theme="resolvedTheme"
     :data-fullscreen="fullscreen ? 'true' : undefined"
     :data-compact="compact ? 'true' : undefined"
     tabindex="-1"
@@ -361,7 +384,9 @@ const DiagnosticsContent = defineComponent({
         <MermaidBlock
           :source="previewSource"
           :renderer="renderer"
+          :theme="resolvedTheme"
           :show-errors="true"
+          :compact="compact"
           @error="onError"
           @rendered="onRendered"
         />

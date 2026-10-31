@@ -76,24 +76,47 @@ const plugins = computed(() => [
 
 ## Node components
 
-```ts
+```vue [Callout.vue]
+<script setup lang="ts">
+import type { MarkdownNode } from 'vue-markdown-suite'
+
+defineProps<{ node?: MarkdownNode }>()
+</script>
+
+<template>
+  <aside class="callout">
+    <slot />
+  </aside>
+</template>
+```
+
+```vue [ArticleLink.vue]
+<script setup lang="ts">
+import type { MarkdownNode } from 'vue-markdown-suite'
+
+defineProps<{ node?: MarkdownNode }>()
+</script>
+
+<template>
+  <a class="article-link">
+    <slot />
+  </a>
+</template>
+```
+
+```ts [App.vue]
+import ArticleLink from './ArticleLink.vue'
+import Callout from './Callout.vue'
+
 const nodeComponents = {
-  blockquote: (ctx) =>
-    h(Callout, null, { default: () => ctx.defaultRender() }),
-  a: (ctx) =>
-    h(
-      'a',
-      {
-        ...(ctx.node.kind === 'element' ? ctx.node.attrs : {}),
-        class: 'article-link',
-      },
-      ctx.defaultRender(),
-    ),
+  blockquote: Callout,
+  a: ArticleLink,
 }
 ```
 
-`defaultRender()` keeps the built-in safety, heading IDs, and TOC behavior while
-letting the host wrap the result.
+`defaultRender()` remains available to function renderers, but component
+overrides keep the example template-first. Declaring `node` stops it from being
+forwarded as a DOM attribute; `href` and other safe attributes fall through.
 
 ## Search and TOC
 

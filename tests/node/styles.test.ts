@@ -149,6 +149,12 @@ describe('stylesheet compatibility fallbacks', () => {
     expect(components).toContain('@media (forced-colors: active)')
   })
 
+  it('ships a self-contained math stylesheet', () => {
+    const full = readStyle('math-full.css')
+    expect(full).toContain('katex/dist/katex.min.css')
+    expect(full).toContain('./math.css')
+  })
+
   it('keeps the heading anchor :focus fallback before :focus-visible', () => {
     const components = readStyle('components.css')
     const focus = components.search(

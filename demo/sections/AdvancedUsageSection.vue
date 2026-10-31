@@ -145,7 +145,7 @@ const nodeComponents = computed(() =>
           h(
             'a',
             {
-              ...(ctx.node.kind === 'element' ? ctx.node.attrs : {}),
+              ...ctx.attrs,
               class: 'demo-advanced-link',
             },
             [ctx.defaultRender()],

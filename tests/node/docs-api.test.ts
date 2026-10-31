@@ -11,7 +11,7 @@ import {
 import { highlightjs } from '../../src/highlight'
 import { shiki } from '../../src/highlight/shiki'
 import { mathPlugin, katexEngine } from '../../src/math'
-import { renderMermaid, sanitizeSvg } from '../../src/mermaid'
+import { mermaidPlugin, renderMermaid, sanitizeSvg } from '../../src/mermaid'
 import { createMermaidEditor } from '../../src/editor'
 
 describe('documented public APIs', () => {
@@ -21,6 +21,7 @@ describe('documented public APIs', () => {
     expect(typeof mathPlugin).toBe('function')
     expect(katexEngine.id).toBe('katex')
     expect(typeof renderMermaid).toBe('function')
+    expect(typeof mermaidPlugin).toBe('function')
     expect(typeof sanitizeSvg).toBe('function')
     expect(typeof createMermaidEditor).toBe('function')
     expect(CodeBlock).toBeTruthy()

@@ -13,9 +13,11 @@ import {
 } from 'vue'
 import type {
   HighlightResult,
+  MarkdownDiagnostic,
   MarkdownHighlighter,
   MarkdownTheme,
 } from '../core/types'
+import { createDiagnostic, errorMessage } from '../core/diagnostics'
 import { resolveLabel } from '../core/labels'
 import {
   plaintextHighlight,
@@ -36,6 +38,7 @@ const props = withDefaults(
     maxLines?: number
     virtual?: boolean
     virtualThreshold?: number
+    lineHeight?: number
     delay?: number
   }>(),
   {
@@ -47,11 +50,15 @@ const props = withDefaults(
     maxLines: 0,
     virtual: false,
     virtualThreshold: 200,
+    lineHeight: 20,
     delay: 0,
   },
 )
 
-const emit = defineEmits<{ copy: [source: string] }>()
+const emit = defineEmits<{
+  copy: [source: string]
+  error: [diagnostic: MarkdownDiagnostic]
+}>()
 const context = useRenderContext()
 const ownSlots = useSlots()
 const result = shallowRef<HighlightResult>(
@@ -60,7 +67,10 @@ const result = shallowRef<HighlightResult>(
 const scrollTop = ref(0)
 const viewportHeight = ref(0)
 const scrollRef = ref<HTMLElement>()
-const lineHeight = 20
+const resolvedTheme = computed<MarkdownTheme>(
+  () => props.theme ?? context.theme ?? 'light',
+)
+const expanded = ref(false)
 const overscan = 4
 const copied = ref(false)
 let timer: ReturnType<typeof setTimeout> | undefined
@@ -76,10 +86,25 @@ function defaultHighlighter(): Promise<MarkdownHighlighter> {
   return defaultPromise
 }
 
+const reportedDiagnostics = new Set<string>()
+function reportDiagnostic(diagnostic: MarkdownDiagnostic): void {
+  const signature = `${diagnostic.code}\u001f${diagnostic.message}`
+  if (reportedDiagnostics.has(signature)) return
+  reportedDiagnostics.add(signature)
+  context.onRenderError?.(diagnostic)
+  emit('error', diagnostic)
+}
+
 const lines = computed(() => props.source.split('\n'))
 const highlightedLines = computed(() => splitHighlightLines(result.value.nodes))
+const truncatable = computed(
+  () => props.maxLines > 0 && lines.value.length > props.maxLines,
+)
+const limited = computed(
+  () => truncatable.value && !expanded.value,
+)
 const totalLines = computed(() =>
-  props.maxLines > 0
+  limited.value
     ? Math.min(lines.value.length, props.maxLines)
     : lines.value.length,
 )
@@ -89,15 +114,19 @@ const virtualActive = computed(
 )
 const startLine = computed(() =>
   virtualActive.value
-    ? Math.max(0, Math.floor(scrollTop.value / lineHeight) - overscan)
+    ? Math.max(
+        0,
+        Math.floor(scrollTop.value / props.lineHeight) - overscan,
+      )
     : 0,
 )
 const endLine = computed(() =>
   virtualActive.value
     ? Math.min(
         totalLines.value,
-        Math.ceil((scrollTop.value + viewportHeight.value) / lineHeight) +
-          overscan,
+        Math.ceil(
+          (scrollTop.value + viewportHeight.value) / props.lineHeight,
+        ) + overscan,
       )
     : totalLines.value,
 )
@@ -114,7 +143,7 @@ const visibleLines = computed(() => {
 })
 
 function colorScheme(): 'light' | 'dark' {
-  const theme = props.theme ?? context.theme
+  const theme = resolvedTheme.value
   if (theme === 'dark') return 'dark'
   if (theme === 'auto' && typeof window !== 'undefined') {
     return window.matchMedia('(prefers-color-scheme: dark)').matches
@@ -131,7 +160,17 @@ function refresh(): void {
     if (!instance) {
       try {
         instance = await defaultHighlighter()
-      } catch {
+      } catch (error) {
+        reportDiagnostic(
+          createDiagnostic(
+            'highlighter-unavailable',
+            'The default highlight.js adapter could not be loaded. Install the optional `highlight.js` peer dependency to enable syntax highlighting.',
+            { severity: 'warning', phase: 'render' },
+          ),
+        )
+        if (import.meta.env.DEV) {
+          console.error('highlight.js failed to load', error)
+        }
         instance = undefined
       }
     }
@@ -142,11 +181,17 @@ function refresh(): void {
     try {
       await instance.load?.()
       if (props.language) await instance.loadLanguage?.(props.language)
-    } catch {
-      // Fall back to plain text below.
+    } catch (error) {
+      reportDiagnostic(
+        createDiagnostic(
+          'highlighter-load',
+          `The highlighter could not prepare this language: ${errorMessage(error)}`,
+          { severity: 'warning', phase: 'render' },
+        ),
+      )
     }
     result.value = runHighlighter(instance, props.source, props.language, {
-      theme: props.theme ?? context.theme,
+      theme: resolvedTheme.value,
       colorScheme: colorScheme(),
     })
   }
@@ -173,8 +218,11 @@ onUnmounted(() => {
   if (copiedTimer) clearTimeout(copiedTimer)
 })
 watch(
-  () => [props.source, props.language, props.theme, props.highlighter, context.theme] as const,
-  () => refresh(),
+  () => [props.source, props.language, props.highlighter, resolvedTheme.value] as const,
+  ([source], previous) => {
+    if (!previous || source !== previous[0]) expanded.value = false
+    refresh()
+  },
 )
 
 async function copy(): Promise<void> {
@@ -192,6 +240,8 @@ async function copy(): Promise<void> {
     copied.value = false
   }
 }
+
+defineExpose({ copy, highlighted: result })
 
 const Body = defineComponent({
   setup() {
@@ -232,7 +282,7 @@ const Body = defineComponent({
             children.push(
               h('div', {
                 'aria-hidden': 'true',
-                style: { height: `${startLine.value * lineHeight}px` },
+                style: { height: `${startLine.value * props.lineHeight}px` },
               }),
             )
           }
@@ -269,9 +319,27 @@ const Body = defineComponent({
               h('div', {
                 'aria-hidden': 'true',
                 style: {
-                  height: `${(totalLines.value - endLine.value) * lineHeight}px`,
+                  height: `${(totalLines.value - endLine.value) * props.lineHeight}px`,
                 },
               }),
+            )
+          }
+          if (truncatable.value) {
+            children.push(
+              h(
+                'button',
+                {
+                  type: 'button',
+                  class: 'vmd-highlighter-toggle',
+                  'data-vmd-part': 'highlighter-toggle',
+                  onClick: () => {
+                    expanded.value = !expanded.value
+                  },
+                },
+                expanded.value
+                  ? resolveLabel(context.labels.showLess)
+                  : resolveLabel(context.labels.showAll),
+              ),
             )
           }
           return children
@@ -286,6 +354,7 @@ const Body = defineComponent({
     ref="scrollRef"
     data-vmd-part="highlighter"
     class="vmd-highlighter"
+    :data-vmd-theme="resolvedTheme"
     :data-language="language || 'text'"
     :data-virtual="virtualActive ? 'true' : undefined"
     :style="virtualActive ? { maxHeight: `${lineHeight * 20}px`, overflow: 'auto' } : undefined"

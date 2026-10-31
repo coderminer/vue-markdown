@@ -22,23 +22,47 @@ There are four stable seams for replacing output.
 
 ### Tag components
 
-`components` maps an HTML tag to another tag name or a Vue component:
+`components` maps an HTML tag to another tag name or a Vue component. Keep each
+replacement in its own `.vue` file and pass the component reference.
 
-```vue
+```vue [BadgeLink.vue]
 <script setup lang="ts">
-import { defineComponent, h } from 'vue'
-import { MarkdownRenderer } from 'vue-markdown-suite'
+import type { MarkdownNode } from 'vue-markdown-suite'
 
-const BadgeLink = defineComponent({
-  props: { href: String },
-  setup(props, { slots }) {
-    return () =>
-      h('a', { href: props.href, class: 'badge-link' }, [
-        h('span', { class: 'badge' }, 'link'),
-        slots.default?.(),
-      ])
-  },
-})
+defineProps<{
+  node?: MarkdownNode
+  href?: string
+}>()
+</script>
+
+<template>
+  <a :href="href" class="badge-link">
+    <span class="badge">link</span>
+    <slot />
+  </a>
+</template>
+```
+
+```vue [CodeFrame.vue]
+<script setup lang="ts">
+import type { MarkdownCodeNode } from 'vue-markdown-suite'
+
+defineProps<{ node?: MarkdownCodeNode }>()
+</script>
+
+<template>
+  <figure class="code-frame">
+    <figcaption>{{ node?.language || 'text' }}</figcaption>
+    <pre><code><slot /></code></pre>
+  </figure>
+</template>
+```
+
+```vue [App.vue]
+<script setup lang="ts">
+import { MarkdownRenderer } from 'vue-markdown-suite'
+import BadgeLink from './BadgeLink.vue'
+import CodeFrame from './CodeFrame.vue'
 
 const components = {
   h1: 'h2',
@@ -56,35 +80,60 @@ A component receives the normalized node as `node` and renders children through
 the default slot. Fenced code always wraps through `components.pre`; its inner
 element resolves through `components.code` or `nodeComponents.code`.
 
-### Node components and function renderers
+### Node components
 
 `nodeComponents` targets semantic nodes (`code`, `math`, `mermaid`, `custom`, and
-element tags). A function renderer is the most powerful option:
+element tags). A component is the clearest form:
 
-```ts
-import { h } from 'vue'
-import type { MarkdownNodeRenderer } from 'vue-markdown-suite'
+```vue [Callout.vue]
+<script setup lang="ts">
+import type { MarkdownNode } from 'vue-markdown-suite'
 
-const Callout = (ctx) =>
-  h('aside', { class: 'callout' }, ctx.defaultRender())
+defineProps<{ node?: MarkdownNode }>()
+</script>
 
-const decorateLink: MarkdownNodeRenderer = (ctx) =>
-  h(
-    'a',
-    {
-      ...(ctx.node.kind === 'element' ? ctx.node.attrs : {}),
-      class: 'article-link',
-    },
-    ctx.defaultRender(),
-  )
+<template>
+  <aside class="callout">
+    <slot />
+  </aside>
+</template>
+```
+
+```vue [ArticleLink.vue]
+<script setup lang="ts">
+import type { MarkdownNode } from 'vue-markdown-suite'
+
+defineProps<{ node?: MarkdownNode }>()
+</script>
+
+<template>
+  <a class="article-link">
+    <slot />
+  </a>
+</template>
+```
+
+```vue [App.vue]
+<script setup lang="ts">
+import { MarkdownRenderer } from 'vue-markdown-suite'
+import ArticleLink from './ArticleLink.vue'
+import Callout from './Callout.vue'
 
 const nodeComponents = {
   blockquote: Callout,
-  a: decorateLink,
+  a: ArticleLink,
 }
+</script>
+
+<template>
+  <MarkdownRenderer :source="source" :node-components="nodeComponents" />
+</template>
 ```
 
-A function renderer receives `{ node, key, children, defaultRender, context }`.
+`node` is declared so it is not forwarded as a DOM attribute; every other safe
+attribute, such as `href`, falls through to the root element. Function renderers
+remain available for advanced cases and receive
+`{ node, kind, tag, attrs, key, children, defaultRender, context }`.
 `defaultRender()` keeps built-in safety, heading IDs, and TOC behavior.
 
 ### Regions
@@ -142,6 +191,12 @@ import { customTagsPlugin } from 'vue-markdown-suite/plugins'
 
 const plugins = [customTagsPlugin({ tags: ['x-note'] })]
 ```
+
+::: tip Rich components
+The same component-first pattern applies to rich components. See
+[Build a custom code block](./rich-components.md#build-a-custom-code-block-with-codeblock)
+for a `CodeBlock`-powered element that exercises every public feature.
+:::
 
 ### Override precedence
 

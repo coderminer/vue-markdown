@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { h } from 'vue'
 import MermaidBlock from '../../src/components/MermaidBlock.vue'
+import MarkdownMermaid from '../../src/components/MarkdownMermaid.vue'
 import type { MermaidRenderer, MermaidRenderOptions, MermaidRenderResult } from '../../src/core/types'
 
 const safeSvg = '<svg viewBox="0 0 10 10"><text>Hello diagram</text></svg>'
@@ -39,6 +40,8 @@ describe('MermaidBlock', () => {
       expect(hidden.attributes('data-status')).toBe('error')
     })
     expect(hidden.find('[data-vmd-part="mermaid-error"]').exists()).toBe(false)
+    expect(hidden.find('[data-vmd-part="mermaid-fallback"]').exists()).toBe(true)
+    expect(hidden.text()).toContain('Diagram could not be rendered.')
     expect(hidden.text()).not.toContain('bad syntax')
 
     const shown = mountBlock({
@@ -71,6 +74,25 @@ describe('MermaidBlock', () => {
     })
     expect(ids).toHaveLength(1)
     expect(ids[0]).toMatch(/^vmd-mermaid-\d+$/)
+  })
+
+  it('uses a local theme override and exposes it on the root', async () => {
+    const themes: Array<string | undefined> = []
+    const wrapper = mountBlock({
+      theme: 'dark',
+      renderer: renderer({
+        render: (_source: string, options: MermaidRenderOptions) => {
+          themes.push(options.theme)
+          return { svg: safeSvg, nodes: [] }
+        },
+      }),
+    })
+    await flushPromises()
+    await vi.waitFor(() => {
+      expect(wrapper.attributes('data-status')).toBe('ready')
+    })
+    expect(themes).toEqual(['dark'])
+    expect(wrapper.attributes('data-vmd-theme')).toBe('dark')
   })
 
   it('renders sanitized SVG nodes and exposes the renderer identity', async () => {
@@ -265,6 +287,24 @@ describe('MermaidBlock', () => {
 
     await byText('Fullscreen').trigger('click')
     expect(wrapper.attributes('data-fullscreen')).toBe('true')
+  })
+
+  it('forwards display props through MarkdownMermaid', async () => {
+    const wrapper = mount(MarkdownMermaid, {
+      props: {
+        code: 'graph TD; broken',
+        showErrors: true,
+        theme: 'dark',
+        renderer: renderer({ render: () => ({ nodes: [], error: 'bad syntax' }) }),
+      },
+    })
+    await vi.waitFor(() => {
+      expect(wrapper.attributes('data-status')).toBe('error')
+    })
+    expect(wrapper.attributes('data-vmd-theme')).toBe('dark')
+    expect(wrapper.find('[data-vmd-part="mermaid-error"]').text()).toContain(
+      'bad syntax',
+    )
   })
 
   it('uses the mermaid and mermaid-error slots', async () => {

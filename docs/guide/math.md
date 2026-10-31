@@ -7,15 +7,20 @@ description: mathPlugin, KaTeX, delimiters, macros, and graceful fallbacks.
 Math ships as an optional entry so KaTeX is not part of the core bundle.
 
 ```ts
+import { defaultPlugins } from 'vue-markdown-suite/plugins'
 import { mathPlugin, katexEngine } from 'vue-markdown-suite/math'
-import 'katex/dist/katex.min.css'
-import 'vue-markdown-suite/styles/math.css'
+import 'vue-markdown-suite/styles/math-full.css'
 
-const plugins = [mathPlugin()]
+const plugins = [...defaultPlugins, mathPlugin()]
 ```
 
-Import KaTeX's stylesheet once in your app. The package's `styles/math.css`
-only adds container and display styles; KaTeX owns the formula layout.
+`styles/math-full.css` imports `katex/dist/katex.min.css` and
+`styles/math.css`, so display math is complete with one import. If you already
+load KaTeX's stylesheet, import `vue-markdown-suite/styles/math.css` instead.
+Without KaTeX CSS, the MathML fallback can appear twice.
+
+Keep the plugin instance stable. Create it once in module scope or in `setup`,
+not inline in a reactive render.
 
 `mathPlugin` composes `remark-math` and `rehype-katex`. Inline `$...$` and
 display `$$...$$` are enabled by default. The plugin keeps the exact TeX source
@@ -54,8 +59,11 @@ const engine: MathEngine = {
 ```
 
 Pass an engine through `mathEngine` locally or from `MarkdownConfigProvider`.
-`MarkdownMath` exposes `math` and `math-error` slots. The optional stylesheet
-keeps display math readable; without it, TeX still renders as accessible text.
+A standalone `MarkdownMath` also accepts its own `mathEngine` prop. It exposes
+`math` and `math-error` slots. With neither an engine nor pre-rendered nodes it
+keeps the TeX visible and reports `math-engine-unavailable`; the optional
+stylesheet keeps display math readable, and without it TeX still renders as
+accessible text.
 
 ## Server rendering
 

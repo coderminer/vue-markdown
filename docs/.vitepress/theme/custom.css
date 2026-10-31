@@ -812,3 +812,196 @@ a.home-card:hover {
   width: 24px;
   height: 24px;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Live component frames                                                      */
+/* -------------------------------------------------------------------------- */
+
+.vmd-demo-frame {
+  margin: 18px 0 24px;
+  overflow: hidden;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 14px;
+  background: var(--vp-c-bg-soft);
+}
+
+.vmd-demo-frame figcaption {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--vp-c-divider);
+  background: var(--vp-c-bg-alt);
+}
+
+.vmd-demo-frame-title {
+  color: var(--vp-c-text-2);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.vmd-demo-frame-note {
+  color: var(--vp-c-text-3);
+  font-size: 0.72rem;
+}
+
+.vmd-demo-frame-badge {
+  margin-left: auto;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--vp-c-brand-soft);
+  color: var(--vp-c-brand-1);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.vmd-demo-frame-body {
+  padding: 16px;
+  background: var(--vp-c-bg);
+}
+
+.vmd-demo-frame-body .vmd-code,
+.vmd-demo-frame-body .vmd-highlighter,
+.vmd-demo-frame-body .vmd-mermaid,
+.vmd-demo-frame-body .vmd-editor {
+  margin: 0;
+}
+
+.vmd-demo-frame-body .vmd-root {
+  padding: 0;
+}
+
+.vmd-demo-frame-body .vmd-toc {
+  margin-bottom: 1rem;
+  padding: 10px 12px;
+  border: 1px dashed var(--vp-c-divider);
+  border-radius: 10px;
+}
+
+/* -------------------------------------------------------------------------- */
+/* CodeBlock feature lab                                                      */
+/* -------------------------------------------------------------------------- */
+
+.vmd-code-lab {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 18px;
+  margin: 24px 0;
+  padding: 18px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 16px;
+  background: var(--vp-c-bg-soft);
+}
+
+.vmd-code-lab-controls {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.vmd-code-lab-kicker {
+  margin: 0;
+  color: var(--vp-c-brand-1);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.vmd-code-lab-controls label {
+  display: grid;
+  gap: 4px;
+  color: var(--vp-c-text-2);
+  font-size: 0.8rem;
+}
+
+.vmd-code-lab-controls select {
+  width: 100%;
+  padding: 5px 8px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 7px;
+  background: var(--vp-c-bg);
+  color: var(--vp-c-text-1);
+  font: inherit;
+  font-size: 0.8rem;
+}
+
+.vmd-code-lab-check {
+  display: flex !important;
+  flex-direction: row;
+  gap: 8px !important;
+  align-items: center;
+}
+
+.vmd-code-lab-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-block: 4px;
+}
+
+.vmd-code-lab-button,
+.vmd-review-action {
+  padding: 4px 8px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 6px;
+  background: var(--vp-c-bg);
+  color: var(--vp-c-text-2);
+  font: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.vmd-code-lab-button:hover,
+.vmd-review-action:hover {
+  border-color: var(--vp-c-brand-1);
+  color: var(--vp-c-brand-1);
+}
+
+.vmd-code-lab-note {
+  margin: 0;
+  color: var(--vp-c-text-3);
+  font-size: 0.75rem;
+  line-height: 1.55;
+}
+
+.vmd-code-lab-preview {
+  min-width: 0;
+}
+
+.vmd-code-lab-preview .vmd-code {
+  margin: 0;
+}
+
+.vmd-code-lab-events {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid var(--vp-c-divider);
+}
+
+.vmd-code-lab-events code {
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: var(--vp-c-bg);
+  color: var(--vp-c-text-2);
+  font-size: 0.72rem;
+}
+
+.vmd-review-plain {
+  white-space: pre;
+}
+
+@media (max-width: 760px) {
+  .vmd-code-lab {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
