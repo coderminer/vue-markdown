@@ -212,7 +212,8 @@ export function propertiesToAttrs(
   const attrs: Record<string, string> = {}
   if (!properties) return attrs
 
-  for (const [key, raw] of Object.entries(properties)) {
+  for (const key of Object.keys(properties)) {
+    const raw = properties[key]
     if (raw === null || raw === undefined || raw === false) continue
     const name = toAttributeName(key)
     if (!isAllowedAttribute(tag, name)) continue

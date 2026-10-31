@@ -94,11 +94,15 @@ The root and headless entries SHALL be importable in a Node.js server environmen
 
 ### Requirement: Compatibility
 
-The library SHALL support Vue 3.5 and later, Vite 7 and later for development, Node 20 and later for building and SSR, and evergreen browsers: Chrome/Edge 87+, Firefox 78+, Safari 14.1+, and iOS 14.5+. Runtime code SHALL stay within ES2020 and SHALL NOT depend on Node.js built-in modules or server-only APIs. CSS SHALL avoid features outside that baseline, including `:has()`, container queries, CSS nesting, `color-mix()`, `oklch()`, `dvh`, and `text-wrap: balance`. The package SHALL declare its supported Vue, Vite, Node, and browser ranges, and the build SHALL pin syntax and CSS targets to the baseline.
+The library SHALL support Vue 3.5 and later, Vite 7 and later for development, Node 20 and later for building and SSR, and the same runtime baseline as Vue 3: native ES2016, no IE11, with an effective floor of Chrome 54+, Edge 15+, Firefox 52+, Safari 10.1+, and iOS 10.3+. Chrome 54 rather than 52 is required because a bundled dependency uses `Object.entries` during module initialization. Runtime code SHALL stay within ES2016 and SHALL NOT depend on Node.js built-in modules or server-only APIs. The optional stylesheet SHALL currently require Chrome/Edge 87+, Firefox 78+, Safari 14.1+, and iOS 14.5+ because it uses logical properties, `gap`, and `:where()`; unstyled and headless usage SHALL follow the runtime baseline. The package SHALL declare its supported Vue, Vite, Node, and browser ranges, the build SHALL pin the JavaScript target to ES2016, and the CSS target SHALL remain pinned to the stylesheet baseline until the dedicated CSS pass.
 
 #### Scenario: Browser runtime
-- **WHEN** the built library is loaded in a current evergreen browser
+- **WHEN** the built library is loaded in a browser with native ES2016 support at or above the effective floor
 - **THEN** all components initialize without Node.js polyfills
+
+#### Scenario: Stylesheet baseline
+- **WHEN** a host imports the bundled stylesheet in Chrome/Edge 87+, Firefox 78+, Safari 14.1+, or iOS 14.5+
+- **THEN** layout and theming render as documented
 
 #### Scenario: Supported toolchain
 - **WHEN** a consumer uses Vue 3.5+, Vite 7+, and Node 20+

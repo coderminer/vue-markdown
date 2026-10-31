@@ -8,11 +8,11 @@
     "node": ">=20"
   },
   "browserslist": [
-    "chrome >= 87",
-    "edge >= 88",
-    "firefox >= 78",
-    "safari >= 14.1",
-    "ios_saf >= 14.5"
+    "chrome >= 54",
+    "edge >= 15",
+    "firefox >= 52",
+    "safari >= 10.1",
+    "ios_saf >= 10.3"
   ],
   "files": [
     "dist"

@@ -79,7 +79,7 @@ describe('renderer events and actions', () => {
     expect(ready.toc.map((item) => item.id)).toEqual(['one', 'two'])
 
     const tocEvents = wrapper.emitted('toc-change') ?? []
-    expect(tocEvents.at(-1)?.[0]).toEqual([
+    expect(tocEvents[tocEvents.length - 1]?.[0]).toEqual([
       { id: 'one', text: 'One', level: 1 },
       { id: 'two', text: 'Two', level: 2 },
     ])

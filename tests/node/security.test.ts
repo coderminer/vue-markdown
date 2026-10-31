@@ -168,7 +168,7 @@ describe('sanitization and raw HTML', () => {
       urlTransform: (url, key) => {
         seen.push([key, url])
         if (key === 'cite') return 'javascript:alert(1)'
-        return url.replaceAll('example.com', 'example.org')
+        return url.split('example.com').join('example.org')
       },
     })
 

@@ -35,9 +35,12 @@ export default defineConfig({
     conditions: ['node', 'import', 'module', 'default'],
   },
   build: {
-    // Keep the published syntax within the documented browser baseline. This
-    // does not polyfill runtime APIs; source code must stay ES2020-compatible.
-    target: ['chrome87', 'edge88', 'firefox78', 'safari14.1', 'ios14.5'],
+    // Runtime JavaScript follows Vue 3's baseline: native ES2016, no IE11.
+    // This does not polyfill runtime APIs; source code must stay ES2016-compatible.
+    target: 'es2016',
+    // The bundled stylesheet still uses logical properties and `gap`, so its
+    // own baseline stays at Chrome/Edge 87+, Firefox 78+, Safari 14.1+ until
+    // the CSS compatibility pass.
     cssTarget: ['chrome87', 'edge88', 'firefox78', 'safari14.1', 'ios14.5'],
     lib: {
       entry: {

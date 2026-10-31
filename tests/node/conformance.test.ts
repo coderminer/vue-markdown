@@ -47,7 +47,7 @@ function sortProperties(node: RootContent): void {
  * spelling, attribute order, and the document wrapper that a parser adds.
  */
 export function canonicalHtml(html: string): string {
-  const root = fromHtml(html.replaceAll(TAB, '\t'), { fragment: true })
+  const root = fromHtml(html.split(TAB).join('\t'), { fragment: true })
   for (const child of root.children) sortProperties(child)
   return toHtml(root).trim()
 }
@@ -73,7 +73,7 @@ export function runCommonMark(): ConformanceResult {
   }
 
   for (const test of spec.tests) {
-    const expected = test.html.replaceAll(TAB, '\t')
+    const expected = test.html.split(TAB).join('\t')
     // The suite intentionally drops active content, inline styles, raw HTML,
     // comments, and processing instructions. Spec examples that depend on
     // those are outside the render contract.
@@ -87,7 +87,7 @@ export function runCommonMark(): ConformanceResult {
       continue
     }
 
-    const actual = exportMarkdownHtmlSync(test.markdown.replaceAll(TAB, '\t'))
+    const actual = exportMarkdownHtmlSync(test.markdown.split(TAB).join('\t'))
 
     if (canonicalHtml(withoutHeadingIds(actual)) === canonicalHtml(expected)) {
       result.passed += 1

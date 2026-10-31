@@ -136,5 +136,9 @@ export function partClass(part: MarkdownPart, extra?: string): string {
     : `${VMD_CLASS_PREFIX}${part}`
 }
 
-export const PART_NAMES: readonly MarkdownPart[] = Object.values(PARTS)
-export const TOKEN_NAMES: readonly MarkdownToken[] = Object.values(TOKENS)
+export const PART_NAMES: readonly MarkdownPart[] = Object.keys(PARTS).map(
+  (key) => PARTS[key as keyof typeof PARTS],
+)
+export const TOKEN_NAMES: readonly MarkdownToken[] = Object.keys(TOKENS).map(
+  (key) => TOKENS[key as keyof typeof TOKENS],
+)

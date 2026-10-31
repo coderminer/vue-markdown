@@ -113,7 +113,8 @@ function mergeComponents(
   source: Record<string, unknown> | undefined,
 ): void {
   if (!source) return
-  for (const [key, value] of Object.entries(source)) {
+  for (const key of Object.keys(source)) {
+    const value = source[key]
     if (value !== undefined) target[key] = value
   }
 }

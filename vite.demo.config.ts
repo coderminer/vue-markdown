@@ -41,8 +41,9 @@ export default defineConfig({
     ],
   },
   build: {
-    // Match the library baseline: Chrome/Edge 87+, Firefox 78+, Safari 14.1+.
-    target: ['chrome87', 'edge88', 'firefox78', 'safari14.1', 'ios14.5'],
+    // Match the library runtime baseline. The demo's stylesheet still uses the
+    // current CSS baseline until the CSS compatibility pass.
+    target: 'es2016',
     cssTarget: ['chrome87', 'edge88', 'firefox78', 'safari14.1', 'ios14.5'],
     outDir: '../dist-demo',
     emptyOutDir: true,

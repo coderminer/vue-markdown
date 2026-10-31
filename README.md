@@ -50,12 +50,18 @@ The stylesheet is optional. Every component is semantic and works unstyled.
 
 ## Browser support
 
-The library targets evergreen browsers: Chrome/Edge 87+, Firefox 78+, Safari
-14.1+, and iOS 14.5+. Runtime code stays within ES2020, and CSS avoids newer
-features such as `:has()`, container queries, CSS nesting, `color-mix()`,
-`oklch()`, `dvh`, and `text-wrap: balance`. The Vite configs pin the build and
-CSS targets to this baseline; browser-only APIs are guarded and degrade
-gracefully during SSR.
+Runtime JavaScript follows Vue 3's baseline: native ES2016, no IE11. The
+built library supports Chrome 54+, Edge 15+, Firefox 52+, Safari 10.1+, and
+iOS 10.3+; Chrome 54 rather than 52 is required because a bundled dependency
+uses `Object.entries` during module initialization. The library targets
+`es2016`, runtime APIs stay within ES2016, and browser-only APIs are guarded
+and degrade gracefully during SSR.
+
+The optional stylesheet currently uses logical properties and `gap`, so styled
+usage requires Chrome/Edge 87+, Firefox 78+, Safari 14.1+, and iOS 14.5+.
+Unstyled and headless usage follows the runtime baseline. The CSS baseline will
+be widened during the dedicated CSS compatibility pass; until then the Vite
+`cssTarget` stays pinned to it.
 
 ## Entry points
 

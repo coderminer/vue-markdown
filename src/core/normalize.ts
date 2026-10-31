@@ -228,9 +228,9 @@ function convertElement(
     return collapseCodeBlock(element, path, source)
   }
 
-  for (const [key, value] of Object.entries(attrs)) {
+  for (const key of Object.keys(attrs)) {
     if (!URL_ATTRIBUTES.has(key)) continue
-    const transformed = normalizeUrlAttribute(value, key, element.tagName, attrs, state)
+    const transformed = normalizeUrlAttribute(attrs[key], key, element.tagName, attrs, state)
     if (transformed === undefined) delete attrs[key]
     else attrs[key] = transformed
   }

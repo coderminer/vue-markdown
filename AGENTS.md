@@ -101,14 +101,22 @@ speculatively. Bundle size is a sanity check, not a primary design constraint.
 
 ## Compatibility rules
 
-- Target Chrome/Edge 87+, Firefox 78+, Safari 14.1+, and iOS 14.5+.
-- Keep `src/` runtime JavaScript at ES2020 or older. Do not add APIs such as
-  `Object.hasOwn`, `Array.prototype.at`, `structuredClone`,
-  `crypto.randomUUID`, `String.prototype.replaceAll`, or `Promise.any`.
-- Keep CSS within the same baseline. Do not add `:has()`, container queries,
-  CSS nesting, `color-mix()`, `oklch()`, `dvh`, or `text-wrap: balance`.
-- The Vite configs pin `build.target` and `cssTarget` to this baseline. They
-  transpile syntax but do not polyfill runtime APIs.
+- Runtime JavaScript follows Vue 3's baseline: native ES2016, no IE11. The
+  built library supports Chrome 54+, Edge 15+, Firefox 52+, Safari 10.1+, and
+  iOS 10.3+. Chrome 54 rather than 52 is required because a bundled dependency
+  uses `Object.entries` during module initialization.
+- Keep `src/` runtime JavaScript at ES2016 or older. Do not add APIs such as
+  `Object.entries`, `Object.values`, `Object.fromEntries`, `Object.hasOwn`,
+  `Array.prototype.at`, `structuredClone`, `crypto.randomUUID`,
+  `String.prototype.replaceAll`, or `Promise.any`.
+- The optional stylesheet currently requires Chrome/Edge 87+, Firefox 78+,
+  Safari 14.1+, and iOS 14.5+ because it uses logical properties, `gap`, and
+  `:where()`. Unstyled and headless usage follows the runtime baseline. Do not
+  widen or narrow the CSS claim until the dedicated CSS pass; avoid `:has()`,
+  container queries, CSS nesting, `color-mix()`, `oklch()`, `dvh`, and
+  `text-wrap: balance`.
+- The Vite configs pin `build.target` to `es2016` and `cssTarget` to the
+  stylesheet baseline. They transpile syntax but do not polyfill runtime APIs.
 - Prefer progressive enhancement: guard browser-only APIs and keep server
   output usable when they are unavailable.
 
