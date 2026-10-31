@@ -1,30 +1,32 @@
 # vue-markdown-suite
 
-A general-purpose, customizable, plugin-driven Vue 3 Markdown component suite.
+[![npm version](https://img.shields.io/npm/v/vue-markdown-suite.svg)](https://www.npmjs.com/package/vue-markdown-suite)
+[![CI](https://github.com/coderminer/vue-markdown/actions/workflows/ci.yml/badge.svg)](https://github.com/coderminer/vue-markdown/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Docs](https://img.shields.io/badge/docs-live-8250df)](https://coderminer.github.io/vue-markdown/)
 
-`vue-markdown-suite` is a Vue-native Markdown renderer built on the official
-`unified` pipeline (`remark-parse` + `remark-rehype`). It renders Markdown
-directly into Vue VNodes — there is no HTML string round-trip — and exposes a
-serializable, DOM-free document model so the same parse can drive a styled
-renderer, a headless host, or static HTML export.
+A general-purpose, customizable, plugin-driven **Vue 3 Markdown component suite**.
+
+`vue-markdown-suite` renders Markdown directly into Vue VNodes with the official
+`unified` pipeline (`remark-parse` + `remark-rehype`). There is no HTML string
+round-trip and no `v-html`. The parsed document is a serializable, DOM-free model,
+so the same run can drive the styled renderer, a headless host, or static HTML
+export.
 
 - **Vue-native** — `shallowRef` documents, stable keys, a text fast path, and
   parse memoization keep re-renders cheap.
-- **Customizable** — every Markdown tag can be replaced with another tag name or
-  a Vue component. Visual parts are addressable through `data-vmd-part` and
-  stable `vmd-*` classes.
-- **Plugin-driven** — plugins contribute remark/rehype plugins, document
-  transforms, components, labels, tokens, and lifecycle hooks.
+- **Customizable** — replace any tag, address every visual part through
+  `data-vmd-part` and stable `vmd-*` classes, and theme with `--vmd-*` tokens.
+- **Plugin-driven** — plugins contribute remark/rehype plugins, source and
+  document transforms, components, labels, tokens, and lifecycle hooks.
 - **Safe by default** — raw HTML is dropped, URLs are validated, and the
   sanitizer runs immediately after `rehype-raw` when the host opts in.
-- **SSR-ready** — deterministic heading IDs, a synchronous path, and a static
-  HTML export helper that applies the same sanitization, filtering, URL policy,
-  and document transforms as rendering.
+- **SSR-ready** — deterministic heading IDs, a synchronous path, and static HTML
+  export that applies the same sanitization, filtering, and URL policy.
+- **Optional engines** — highlight.js, Shiki, KaTeX, Mermaid, and CodeMirror
+  stay behind their own entries and lazy chunks.
 
-## Requirements
-
-- Node 20+
-- Vue 3.5+
+**Live documentation:** <https://coderminer.github.io/vue-markdown/>
 
 ## Install
 
@@ -32,74 +34,380 @@ renderer, a headless host, or static HTML export.
 npm install vue-markdown-suite
 ```
 
+Requires Node 20+ and Vue 3.5+.
+
+Optional engines are peer dependencies. Install only the ones you use:
+
+```bash
+# Syntax highlighting
+npm install highlight.js
+# or
+npm install shiki
+
+# Math
+npm install katex
+
+# Diagrams
+npm install mermaid
+
+# Mermaid live editor
+npm install @codemirror/state @codemirror/view @codemirror/language @codemirror/commands
+```
+
 ## Quick start
 
 ```vue
 <script setup lang="ts">
+import { ref } from 'vue'
 import { MarkdownRenderer } from 'vue-markdown-suite'
 import 'vue-markdown-suite/style.css'
 
-const source = '# Hello\n\nA **bold** paragraph with a [link](https://example.com).'
+const source = ref(`
+# Hello, Markdown
+
+A **bold** paragraph with a [link](https://example.com).
+
+- Vue components
+- Safe by default
+- SSR ready
+`)
 </script>
 
 <template>
-  <MarkdownRenderer :source="source" toc />
+  <MarkdownRenderer v-model:source="source" toc />
 </template>
 ```
 
 The stylesheet is optional. Every component is semantic and works unstyled.
 
-## Browser support
+## Basic usage
 
-Runtime JavaScript follows Vue 3's baseline: native ES2016, no IE11. The
-built library supports Chrome 54+, Edge 15+, Firefox 52+, Safari 10.1+, and
-iOS 10.3+; Chrome 54 rather than 52 is required because a bundled dependency
-uses `Object.entries` during module initialization. Source may use newer syntax
-such as optional chaining, nullish coalescing, class fields, and async/await:
-Vite downlevels it to `es2016` at build time. Runtime APIs must stay within
-ES2016 because the build does not polyfill them. Browser-only APIs are guarded
-and degrade gracefully during SSR.
+### Input
 
-The optional stylesheet targets the same browser baseline. It keeps logical
-properties, `:focus-visible`, `position: sticky`, and `text-align: start` as
-progressive enhancement while shipping physical-property, `:focus`,
-`-webkit-sticky`, and `text-align: left` fallbacks. `prefers-color-scheme`,
-`text-underline-offset`, and `forced-colors` remain enhancements in browsers
-that support them. Unstyled and headless usage follows the runtime baseline, and
-the demo stylesheet is not part of the published support claim.
+Pass Markdown through `source`, bind it with `v-model:source`, or use the default
+slot:
 
-## Entry points
+```vue
+<MarkdownRenderer source="# From the prop" />
+<MarkdownRenderer v-model:source="source" />
+<MarkdownRenderer># From the slot</MarkdownRenderer>
+```
 
-| Entry | Contents |
-| --- | --- |
-| `vue-markdown-suite` | Renderer, preset components, composables, core helpers |
-| `vue-markdown-suite/headless` | Types, model helpers, composables; no preset components or CSS |
-| `vue-markdown-suite/pipeline` | Official pipeline, custom pipeline validation, identity |
-| `vue-markdown-suite/plugins` | `defineMarkdownPlugin`, registry, built-in plugins |
-| `vue-markdown-suite/presets` | `defineMarkdownPreset`, `composePresets`, configuration types |
-| `vue-markdown-suite/node-components` | The node component catalog only |
-| `vue-markdown-suite/components/*` | One entry per public component |
-| `vue-markdown-suite/style.css` | Full stylesheet |
-| `vue-markdown-suite/styles/tokens.css` | Design tokens only |
-| `vue-markdown-suite/styles/components.css` | Part-based component styles |
+`source` is controlled and wins over the slot. The slot is text-only and is
+re-read when its text content changes. A non-string `source` reports a diagnostic
+and renders the empty state instead of throwing.
 
-## Renderer API (v1.0)
+### Styling
 
-### Props
+```ts
+import 'vue-markdown-suite/style.css'
+// or import the pieces separately
+import 'vue-markdown-suite/styles/tokens.css'
+import 'vue-markdown-suite/styles/components.css'
+```
+
+Override tokens on any ancestor or through the `tokens` prop:
+
+```vue
+<MarkdownRenderer
+  :source="source"
+  theme="auto"
+  :tokens="{ '--vmd-color-accent': '#8250df' }"
+/>
+```
+
+Every visual part exposes both a stable class and a `data-vmd-part` attribute:
+
+```css
+[data-vmd-part='heading'] {
+  letter-spacing: -0.01em;
+}
+
+[data-vmd-part='code'] {
+  --vmd-code-bg: #0d1117;
+  color: #e6edf3;
+}
+```
+
+### Events and actions
+
+```vue
+<script setup lang="ts">
+const renderer = ref<InstanceType<typeof MarkdownRenderer>>()
+
+function onToc(toc) {
+  console.log(toc)
+}
+</script>
+
+<template>
+  <MarkdownRenderer
+    ref="renderer"
+    :source="source"
+    @toc-change="onToc"
+    @link-click="onLink"
+    @render-error="onError"
+  />
+</template>
+```
+
+Exposed actions: `scrollToHeading(id)`, `getDocument()`, `getToc()`, `refresh()`,
+and `updateSource(source)`.
+
+## Customization
+
+Customization is layered and stable: target tags, semantic nodes, regions, design
+tokens, or documented CSS parts. The full guide with a live preview is in the
+[live customization section](https://coderminer.github.io/vue-markdown/#customization).
+
+### Customize your own elements
+
+```vue
+<script setup lang="ts">
+import { defineComponent, h } from 'vue'
+
+const BadgeLink = defineComponent({
+  props: { href: String },
+  setup(props, { slots }) {
+    return () =>
+      h('a', { href: props.href, class: 'badge-link' }, [
+        h('span', { class: 'badge' }, 'link'),
+        slots.default?.(),
+      ])
+  },
+})
+
+const Callout = defineComponent({
+  setup(_, { slots }) {
+    return () => h('aside', { class: 'callout' }, slots.default?.())
+  },
+})
+
+const components = {
+  h1: 'h2',
+  a: BadgeLink,
+}
+
+const nodeComponents = {
+  blockquote: Callout,
+  a: (ctx) =>
+    h(
+      'a',
+      { ...(ctx.node.kind === 'element' ? ctx.node.attrs : {}), class: 'article-link' },
+      ctx.defaultRender(),
+    ),
+}
+
+const regions = {
+  toc: MyToc,
+  empty: MyEmpty,
+}
+</script>
+
+<template>
+  <MarkdownRenderer
+    :source="source"
+    :components="components"
+    :node-components="nodeComponents"
+    :regions="regions"
+  />
+</template>
+```
+
+`components` is the tag-keyed map. `nodeComponents` targets the semantic model
+(`code`, `math`, `mermaid`, `custom`, and element tags) and accepts function
+renderers. `regions` replaces structural areas such as the TOC, content, error,
+empty, and loading states. Named slots are the last layer and receive scoped data
+plus actions. For custom syntax, `customTagsPlugin({ tags: ['x-note'] })` turns
+selected elements into custom nodes that map to your own components. Fenced code
+always wraps through `components.pre`; its inner element resolves through
+`components.code` or `nodeComponents.code`.
+
+### Customize the theme
+
+```vue
+<!-- Preset: light | dark | auto | custom -->
+<MarkdownRenderer theme="auto" :source="source" toc />
+
+<!-- Per-instance tokens -->
+<MarkdownRenderer
+  theme="auto"
+  :source="source"
+  :tokens="{
+    '--vmd-color-accent': '#8250df',
+    '--vmd-radius-md': '12px',
+  }"
+/>
+
+<!-- App-wide defaults -->
+<MarkdownConfigProvider theme="auto" :tokens="brandTokens">
+  <MarkdownRenderer :source="source" toc />
+</MarkdownConfigProvider>
+```
+
+The renderer writes `data-vmd-theme` on its own root and never touches the host
+page. `auto` follows `prefers-color-scheme`, while `custom` applies no preset
+colors so your token overrides win unchanged. Tokens cascade from any ancestor,
+so a scoped theme is just a class with `--vmd-*` properties.
+
+### Customize CSS
+
+```ts
+import 'vue-markdown-suite/style.css'
+```
+
+```css
+.my-docs {
+  --vmd-font-size: 1.0625rem;
+  --vmd-line-height: 1.8;
+  --vmd-color-accent: #8250df;
+}
+
+[data-vmd-part='heading'] {
+  letter-spacing: -0.01em;
+}
+
+[data-vmd-part='code'] {
+  --vmd-code-bg: #0d1117;
+  color: #e6edf3;
+}
+```
+
+The stylesheet is optional and split into `styles/tokens.css` and
+`styles/components.css`. Target the documented `data-vmd-part` / `vmd-*` parts
+and `--vmd-*` tokens, never internal DOM structure, because a host may replace
+any tag component. Unstyled usage keeps the same behavior and accessibility.
+
+See [Styled usage](docs/styled.md) and
+[Customization](docs/customization.md) for the full contract.
+
+## Advanced usage
+
+### Plugins and presets
+
+```ts
+import { defineMarkdownPlugin } from 'vue-markdown-suite/plugins'
+import { defineMarkdownPreset, composePresets } from 'vue-markdown-suite/presets'
+
+export const docsPlugin = defineMarkdownPlugin({
+  name: 'docs',
+  phase: 'normal',
+  remarkPlugins: [],
+  rehypePlugins: [],
+  components: { h2: 'h3' },
+  labels: { toc: 'On this page' },
+  tokens: { '--vmd-color-accent': '#8250df' },
+  transformDocument(document) {
+    return { ...document, frontmatter: { ...document.frontmatter, docs: true } }
+  },
+  setup() {
+    // Runs once per resolved plugin set inside an effectScope.
+    return () => {
+      // Cleanup on reconfiguration and unmount.
+    }
+  },
+})
+
+export const docsPreset = composePresets(
+  defineMarkdownPreset({ name: 'base', theme: 'auto' }),
+  defineMarkdownPreset({ name: 'docs', tokens: { '--vmd-radius-md': '10px' } }),
+)
+```
+
+```vue
+<MarkdownRenderer :source="source" :plugins="[docsPlugin]" :preset="docsPreset" toc />
+```
+
+Order is `pre` → `normal` → `post`, then registration order. Duplicate names
+replace deterministically. A failing plugin is isolated and never corrupts the
+last good document.
+
+### Headless rendering
+
+```ts
+import { useMarkdownDocument } from 'vue-markdown-suite/headless'
+
+const { document, toc, status, diagnostics, refresh } = useMarkdownDocument(source, {
+  plugins: [docsPlugin],
+})
+```
+
+The composable owns parsing, memoization, plugin lifecycle, status, and
+diagnostics. It renders nothing, so a host can map the serializable model to its
+own markup.
+
+### Syntax highlighting, math, and diagrams
+
+```ts
+import { highlightjs } from 'vue-markdown-suite/highlight'
+import { shiki } from 'vue-markdown-suite/highlight/shiki'
+import { mathPlugin, katexEngine } from 'vue-markdown-suite/math'
+import { renderMermaid } from 'vue-markdown-suite/mermaid'
+import 'vue-markdown-suite/styles/math.css'
+```
+
+```vue
+<MarkdownRenderer
+  :source="source"
+  :highlighter="shiki"
+  :math-engine="katexEngine"
+  :plugins="[mathPlugin()]"
+/>
+```
+
+Each engine is a small adapter with an `id` and one method, so a host can provide
+its own highlighter, math renderer, or Mermaid renderer. See the
+[highlighting](docs/highlighting.md), [math](docs/math.md), and
+[Mermaid](docs/mermaid.md) guides.
+
+### Server rendering and static export
+
+```ts
+import { exportMarkdownHtml, exportMarkdownHtmlSync } from 'vue-markdown-suite'
+
+const html = exportMarkdownHtmlSync(source)
+const asyncHtml = await exportMarkdownHtml(source, { plugins: [docsPlugin] })
+```
+
+Export uses the same pipeline, plugins, sanitizer, URL policy, transforms, and
+heading IDs as rendering. `exportMarkdownHtmlSync` requires a synchronous
+pipeline; the official pipeline supports both paths.
+
+## Complete example
+
+The live docs include a complete docs-portal example that combines:
+
+- frontmatter, GFM, search, and TOC
+- presets, plugins, and custom blockquote/link node components
+- KaTeX math and a lazy Mermaid diagram
+- theme switching and static HTML export
+- the same public API used by the rest of the documentation
+
+Open the [complete example](https://coderminer.github.io/vue-markdown/#complete-example),
+or browse [`demo/sections/CompleteExampleSection.vue`](demo/sections/CompleteExampleSection.vue)
+in the repository.
+
+## API reference
+
+The full reference, including every slot, region, adapter contract, and
+component manifest, lives in the
+[live API reference](https://coderminer.github.io/vue-markdown/#api).
+
+### `MarkdownRenderer` props
 
 | Prop | Type | Default | Notes |
 | --- | --- | --- | --- |
 | `source` | `string` | `''` | Controlled Markdown input. Wins over the default slot. Supports `v-model:source`. |
 | `components` | `Record<string, Component \| string>` | `{}` | Tag-keyed overrides. |
-| `regions` | `Partial<Record<string, Component \| string>>` | `{}` | Root, content, TOC, TOC item, error, empty, and loading region overrides. |
-| `nodeComponents` | `Partial<Record<string, Component \| string \| MarkdownNodeRenderer>>` | `{}` | Semantic node overrides and function renderers. |
+| `regions` | `Partial<Record<string, Component \| string>>` | `{}` | Root, content, TOC, TOC item, code block, Mermaid block, error, empty, and loading region overrides. |
+| `nodeComponents` | `Record<string, Component \| string \| NodeRenderer>` | `{}` | Semantic node overrides and function renderers. |
 | `labels` | `Partial<MarkdownLabels>` | `{}` | String or function labels for built-in text. |
 | `preset` | `MarkdownPreset \| MarkdownPreset[]` | — | Applies one or more presets. |
 | `plugins` | `PluginInput[]` | `defaultPlugins` | Replaces the default plugin set when provided. |
 | `disablePlugins` | `string[]` | `[]` | Removes named plugins from the resolved set. |
 | `remarkPlugins` | `PluggableList` | `[]` | Runs after library remark plugins. |
 | `rehypePlugins` | `PluggableList` | `[]` | Runs after library rehype plugins. Adding `rehype-raw` enables raw HTML. |
-| `remarkRehypeOptions` | `Record<string, unknown>` | `{ allowDangerousHtml: true }` | Merged into the conversion step. |
+| `remarkRehypeOptions` | `Record<string, unknown>` | `{}` | Merged into the conversion step. |
 | `pipeline` | `MarkdownPipeline` | official | Advanced escape hatch; must return hast. |
 | `slugger` | `MarkdownSlugger` | `github-slugger` | Heading ID generator. |
 | `highlighter` | `MarkdownHighlighter` | — | Syntax highlighting adapter. |
@@ -108,7 +416,7 @@ the demo stylesheet is not part of the published support claim.
 | `diagnosticsFormatter` | `DiagnosticFormatter` | — | Formats render errors. |
 | `allowedElements` | `string[]` | — | Mutually exclusive with `disallowedElements`; wins on conflict. |
 | `disallowedElements` | `string[]` | — | Deny list. |
-| `unwrapDisallowed` | `boolean` | `false` | Keep the children of a removed element. |
+| `unwrapDisallowed` | `boolean` | `false` | Keeps the children of removed elements. |
 | `allowElement` | `(node, index, parent) => boolean \| null \| undefined` | — | Runs after the allow/deny lists; any falsy result rejects the element. |
 | `urlTransform` | `(url, key, node) => string \| null \| undefined` | `defaultUrlTransform` | Applies to every URL-bearing attribute; `null` removes it and the result is revalidated. |
 | `linkTarget` | `string` | `'_self'` | Applied to links. |
@@ -123,9 +431,6 @@ the demo stylesheet is not part of the published support claim.
 | `theme` | `'light' \| 'dark' \| 'auto' \| 'custom'` | `'light'` | Sets `data-vmd-theme` on the root. |
 | `as` | `string \| Component` | `'div'` | Root element or component. |
 
-A non-string `source` reports a diagnostic and renders the empty state instead
-of throwing.
-
 ### Events
 
 | Event | Payload |
@@ -134,119 +439,40 @@ of throwing.
 | `toc-change` | `toc: TocItem[]` |
 | `link-click` | `{ url, target, node, event }` |
 | `custom-tag-click` | `{ tag, props, node, event }` |
+| `task-change` | `{ checked, node }` |
 | `render-error` | `MarkdownDiagnostic` |
 | `ready` | `MarkdownDocument` |
 
 `toc-change` is signature-gated: it only fires when the serialized TOC changes.
 `ready` fires once for the first successful document.
 
-### Exposed actions
-
-| Action | Signature |
-| --- | --- |
-| `scrollToHeading` | `(id: string, options?: ScrollIntoViewOptions) => void` |
-| `getDocument` | `() => MarkdownDocument \| undefined` |
-| `getToc` | `() => TocItem[]` |
-| `refresh` | `() => Promise<void>` |
-
 ### Slots
 
-The `default` slot is raw Markdown text. Its text content is re-read when it
-changes, so a reactive slot updates the rendered document. `source` is the
-controlled prop: when a non-empty `source` is bound it wins over the slot, and
-the slot is ignored. The slot is text-only; use `source` or `v-model:source` for
-richer input.
+The `default` slot is raw Markdown text. Named region slots fully replace their
+default region and receive scoped context: `root`, `toc`, `toc-item`, `content`,
+`error`, `empty`, and `loading`. An absent or empty slot keeps the default
+rendering. See the [customization guide](docs/customization.md#slots).
 
-Named region slots fully replace their default region and receive scoped
-context: `root`, `toc`, `toc-item`, `content`, `error`, `empty`, and `loading`.
-See [Customization](docs/customization.md#slots).
+### Entry points
 
-### Heading anchors
-
-Every heading rendered through the built-in heading component gets a
-deterministic ID plus an anchor link. The link uses `data-vmd-part="heading-anchor"`
-and `class="vmd-heading-anchor"`, targets `#<id>`, and takes its accessible name
-from the `headingAnchor` label (`Link to this heading` by default). Anchors are
-keyboard-focusable, appear on heading hover or anchor focus, and are hidden in
-print. A heading without an ID renders no anchor, and replacing `h1`–`h6`
-through `components` makes the replacement own its anchor behavior.
-
-### Raw HTML and `MarkdownHtml`
-
-Raw HTML is dropped by default. Adding `rehype-raw` to `rehypePlugins` parses it
-into normal element nodes, which render through the element components
-(`components.b`, a plugin `nodeComponents.b`, and so on). `MarkdownHtml` is a
-standalone component for host use: mount it directly with a `value` and it
-renders escaped text in the `html` part without parsing Markdown. It is not the
-raw-HTML render path, and the renderer never creates `html` nodes.
-
-## Overriding components
-
-```vue
-<script setup lang="ts">
-import { defineComponent, h } from 'vue'
-import { MarkdownRenderer } from 'vue-markdown-suite'
-
-const BadgeLink = defineComponent({
-  props: { href: String },
-  setup(props, { slots }) {
-    return () => h('a', { href: props.href, class: 'badge-link' }, slots.default?.())
-  },
-})
-
-const components = {
-  h1: 'h2',
-  a: BadgeLink,
-}
-</script>
-
-<template>
-  <MarkdownRenderer :source="source" :components="components" />
-</template>
-```
-
-Fenced code renders as `pre` wrapping `code`. `components.pre` replaces the
-wrapper and receives the code element as its child; `components.code` applies to
-both inline and fenced code and receives a `language-*` class for fenced blocks.
-
-## Plugins
-
-```ts
-import { defineMarkdownPlugin } from 'vue-markdown-suite/plugins'
-
-export const highlightPlugin = defineMarkdownPlugin({
-  name: 'highlight',
-  components: { h2: 'h3' },
-  labels: { toc: 'Contents' },
-  tokens: { '--vmd-color-accent': 'rgb(130, 80, 223)' },
-  setup() {
-    // Runs once per resolved plugin set inside an effectScope.
-    return () => {
-      // Cleanup on reconfiguration and unmount.
-    }
-  },
-})
-```
-
-Order is `pre` → `normal` → `post`, then registration order. Duplicate names
-replace deterministically and report a diagnostic. A failing plugin is isolated
-and never corrupts the last good document.
-
-Built-in exports: `defaultPlugins`, `fullPlugins`, `tocPlugin`, `codePlugin`,
-`linkPlugin`, `searchPlugin`, `customTagsPlugin`, `gfmPlugin`,
-`frontmatterPlugin`.
-
-## Headless usage
-
-```ts
-import { useMarkdownDocument } from 'vue-markdown-suite/headless'
-
-const { document, toc, status, diagnostics, refresh } =
-  useMarkdownDocument(source)
-```
-
-The composable owns parsing, memoization, plugin lifecycle, and status. It does
-not render anything, so a host can map the model to its own markup.
+| Entry | Contents |
+| --- | --- |
+| `vue-markdown-suite` | Renderer, preset components, composables, core helpers |
+| `vue-markdown-suite/headless` | Types, model helpers, composables; no preset components or CSS |
+| `vue-markdown-suite/pipeline` | Official pipeline, custom pipeline validation, identity |
+| `vue-markdown-suite/plugins` | `defineMarkdownPlugin`, registry, built-in plugins |
+| `vue-markdown-suite/presets` | `defineMarkdownPreset`, `composePresets`, configuration types |
+| `vue-markdown-suite/highlight` | highlight.js adapter and normalization helpers |
+| `vue-markdown-suite/highlight/shiki` | Optional Shiki adapter |
+| `vue-markdown-suite/math` | `mathPlugin`, `katexEngine`, math types |
+| `vue-markdown-suite/mermaid` | Lazy Mermaid runtime and SVG sanitizer |
+| `vue-markdown-suite/editor` | Lazy CodeMirror integration |
+| `vue-markdown-suite/node-components` | The node component catalog only |
+| `vue-markdown-suite/components/*` | One entry per public component |
+| `vue-markdown-suite/style.css` | Full stylesheet |
+| `vue-markdown-suite/styles/tokens.css` | Design tokens only |
+| `vue-markdown-suite/styles/components.css` | Part-based component styles |
+| `vue-markdown-suite/styles/math.css` | Optional math styles |
 
 ## Security defaults
 
@@ -257,35 +483,38 @@ not render anything, so a host can map the model to its own markup.
 - Image `data:` URLs are raster-only; `data:image/svg+xml` is rejected.
 - Event handler attributes and `style` are stripped from raw HTML and custom
   tags.
+- The render path uses no `v-html`, no `eval`, and no inline script.
+- Mermaid is rendered with strict security and its SVG is sanitized before it
+  becomes nodes.
 
 See [docs/security.md](docs/security.md) for the full policy.
 
-## Guides
+## Documentation
 
-- [Styled usage](docs/styled.md)
-- [Customization](docs/customization.md)
-- [Customization cookbook](docs/cookbook.md)
-- [Headless usage](docs/headless.md)
-- [The official pipeline](docs/pipeline.md)
-- [Authoring a custom pipeline](docs/custom-pipeline.md)
-- [Plugins and remark/rehype integration](docs/plugins.md)
-- [CommonMark and GFM](docs/commonmark-gfm.md)
-- [Raw HTML and security](docs/security.md)
-- [Syntax highlighting](docs/highlighting.md)
-- [Math](docs/math.md)
-- [Mermaid](docs/mermaid.md)
-- [Accessibility and compatibility audits](docs/audits.md)
-- [Manual demo checklist](docs/manual-checklist.md)
-- [SSR and static export](docs/ssr.md)
-- [Migrating from react-markdown](docs/migration.md)
+| Guide | What it covers |
+| --- | --- |
+| [Styled usage](docs/styled.md) | Tokens, themes, parts, and unstyled mode |
+| [Customization](docs/customization.md) | Precedence, regions, node components, slots, manifests |
+| [Cookbook](docs/cookbook.md) | Copy-paste recipes for common tasks |
+| [Headless usage](docs/headless.md) | `useMarkdownDocument`, the model, and helper APIs |
+| [Pipeline](docs/pipeline.md) | The official unified pipeline and stage order |
+| [Custom pipeline](docs/custom-pipeline.md) | Authoring and validating a replacement pipeline |
+| [Plugins](docs/plugins.md) | Plugin contracts, ordering, lifecycle, and remark/rehype |
+| [CommonMark and GFM](docs/commonmark-gfm.md) | Syntax coverage and conformance |
+| [Raw HTML and security](docs/security.md) | Sanitization, URL policy, CSP, and custom tags |
+| [Syntax highlighting](docs/highlighting.md) | Adapters, Shiki, caching, and server rendering |
+| [Math](docs/math.md) | `mathPlugin`, delimiters, engines, and fallbacks |
+| [Mermaid](docs/mermaid.md) | Lazy runtime, sanitizer, block states, and editor |
+| [SSR and static export](docs/ssr.md) | Server rendering and static HTML helpers |
+| [Audits](docs/audits.md) | Accessibility, reduced motion, RTL, and cleanup |
 
 ## Development
 
 ```bash
 npm install
-npm run dev          # demo
+npm run dev          # documentation site
 npm run build:lib    # library, declarations, styles
-npm run build:demo   # static demo
+npm run build:demo   # static documentation site
 npm test             # node + happy-dom projects
 npm run typecheck
 npm run lint
@@ -293,9 +522,11 @@ npm run size         # bundle entry guard
 npm run bench        # parse/render budget gate
 ```
 
-`AGENTS.md` documents the layered architecture and the rules that keep the core
-DOM-free and the dependency direction one-way.
+The documentation site is deployed to GitHub Pages by
+`.github/workflows/pages.yml`. The repository also contains `AGENTS.md`, which
+documents the layered architecture and the rules that keep the core DOM-free and
+the dependency direction one-way.
 
 ## License
 
-MIT
+[MIT](LICENSE) © CoderMiner

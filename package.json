@@ -2,18 +2,33 @@
   "name": "vue-markdown-suite",
   "version": "0.1.0",
   "description": "A general-purpose, customizable, plugin-driven Vue 3 Markdown component suite.",
+  "keywords": [
+    "vue",
+    "vue3",
+    "markdown",
+    "markdown-renderer",
+    "unified",
+    "remark",
+    "rehype",
+    "syntax-highlighting",
+    "katex",
+    "mermaid",
+    "ssr"
+  ],
+  "homepage": "https://coderminer.github.io/vue-markdown/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/coderminer/vue-markdown.git"
+  },
+  "bugs": {
+    "url": "https://github.com/coderminer/vue-markdown/issues"
+  },
+  "author": "CoderMiner",
   "type": "module",
   "license": "MIT",
   "engines": {
     "node": ">=20"
   },
-  "browserslist": [
-    "chrome >= 54",
-    "edge >= 15",
-    "firefox >= 52",
-    "safari >= 10.1",
-    "ios_saf >= 10.3"
-  ],
   "files": [
     "dist"
   ],
@@ -87,7 +102,11 @@
     "typecheck": "vue-tsc --noEmit -p tsconfig.json",
     "lint": "eslint .",
     "size": "node scripts/size-guard.mjs",
-    "bench": "node bench/index.mjs"
+    "bench": "node bench/index.mjs",
+    "prepublishOnly": "npm run build:lib"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "peerDependencies": {
     "vue": "^3.5.0",

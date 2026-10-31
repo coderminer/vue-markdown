@@ -137,6 +137,40 @@ default region:
 A slot receives the same data and functional actions as the default region. An
 absent slot, or a slot that renders no meaningful output, keeps the default.
 
+## CSS and parts
+
+The stylesheet is optional. `style.css` includes tokens and component styles;
+`styles/tokens.css` contains only variables; `styles/components.css` contains
+part-based rules. Target documented parts and tokens rather than element
+selectors, because any tag component may be replaced:
+
+```ts
+import 'vue-markdown-suite/style.css'
+```
+
+```css
+.my-docs {
+  --vmd-font-size: 1.0625rem;
+  --vmd-line-height: 1.8;
+  --vmd-color-accent: #8250df;
+  --vmd-radius-md: 12px;
+}
+
+[data-vmd-part='heading'] {
+  letter-spacing: -0.01em;
+}
+
+[data-vmd-part='code'] {
+  --vmd-code-bg: #0d1117;
+  color: #e6edf3;
+}
+```
+
+Every visual part exposes both `class="vmd-<part>"` and
+`data-vmd-part="<part>"`. Tokens use the `--vmd-*` prefix and inherit from any
+ancestor, so a scoped theme is a class with token overrides. Unstyled usage keeps
+the same behavior, accessibility, and semantic markup.
+
 ## Presets
 
 Presets bundle configuration under a name. They are declarative but not

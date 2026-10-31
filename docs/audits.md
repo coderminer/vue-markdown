@@ -1,4 +1,4 @@
-# Accessibility, compatibility, and cleanup audits
+# Accessibility and cleanup audits
 
 ## Semantics and keyboard paths
 

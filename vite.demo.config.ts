@@ -6,6 +6,8 @@ const resolveSrc = (path: string) =>
   fileURLToPath(new URL(path, import.meta.url))
 
 export default defineConfig({
+  // Project pages are served from /<repository>/; local dev uses the root.
+  base: process.env.DOCS_BASE || '/',
   root: 'demo',
   plugins: [vue()],
   resolve: {

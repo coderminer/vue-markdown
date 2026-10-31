@@ -98,7 +98,7 @@ const manifests = Object.values(COMPONENT_MANIFESTS)
 
 <template>
   <SectionShell
-    id="customization"
+    id="customization-inspector"
     title="Customization inspector"
     description="Every control below maps to a public customization layer and updates the preview live."
   >

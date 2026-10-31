@@ -6,7 +6,7 @@ are not customizable away without an explicit trusted option.
 ## Raw HTML
 
 Raw HTML is **dropped** by default. Inline HTML text between tags is kept as
-text, matching react-markdown.
+text.
 
 ```vue
 <!-- <b>bold</b> renders as bold text, not a <b> element -->
@@ -42,7 +42,7 @@ plugin that runs later cannot inject handlers or unsafe URLs.
 
 ## URL policy
 
-`defaultUrlTransform` is react-markdown-compatible:
+`defaultUrlTransform` implements the package URL policy:
 
 - Allowed protocols: `http`, `https`, `irc`, `ircs`, `mailto`, `xmpp`.
 - Relative URLs, fragments, and queries pass through.
@@ -116,4 +116,4 @@ good document is retained.
 ## Next
 
 - [SSR and static export](ssr.md)
-- [Migrating from react-markdown](migration.md)
+- [The official pipeline](pipeline.md)

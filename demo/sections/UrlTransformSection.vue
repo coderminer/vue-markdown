@@ -30,7 +30,7 @@ const urlTransform = computed<MarkdownUrlTransform | undefined>(() => {
   <SectionShell
     id="url-transform"
     title="URL transform"
-    description="defaultUrlTransform keeps the react-markdown protocol set; a custom transform may replace or remove URLs."
+    description="defaultUrlTransform applies the package URL policy; a custom transform may replace or remove URLs."
   >
     <div class="demo-controls">
       <label v-for="option in modes" :key="option">

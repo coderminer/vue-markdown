@@ -33,7 +33,7 @@ Source: `openspec/changes/finish-v1-0-closeout/tasks.md`.
       raw-slot reader in `onUpdated`, guarded by an equality check.
 - [x] Keep `source` controlled: a bound `source` always wins over slot text.
 - [x] Add tests for changed slot text, unchanged slot text, and `source` + slot.
-- [x] Update `README.md` and `docs/migration.md`.
+- [x] Update `README.md` and the customization guide.
 
 ### T-02 Heading anchors
 
@@ -51,7 +51,7 @@ Source: `openspec/changes/finish-v1-0-closeout/tasks.md`.
       part.
 - [x] Test that standalone `MarkdownHtml` renders escaped text in the `html`
       part.
-- [x] Align README, migration, and node-catalog docs.
+- [x] Align README and node-catalog docs.
 
 ### T-04 CSS compatibility pass
 

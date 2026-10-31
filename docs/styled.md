@@ -23,17 +23,6 @@ your own overrides. `components.css` targets `vmd-*` classes and
 `data-vmd-part` attributes. The content region additionally resets the first and
 last child margins; no other element selectors are used.
 
-## Browser support
-
-The stylesheet targets the runtime baseline: Chrome 54+, Edge 15+, Firefox 52+,
-Safari 10.1+, and iOS 10.3+. Logical properties, `:focus-visible`,
-`position: sticky`, and `text-align: start` remain progressive enhancement, and
-physical-property, `:focus`, `-webkit-sticky`, and `text-align: left` fallbacks
-keep layout and focus behavior usable in older engines.
-`prefers-color-scheme`, `text-underline-offset`, and `forced-colors` are
-enhancements in browsers that support them. The demo stylesheet is not part of
-this support claim.
-
 ## Customize with tokens
 
 Tokens use the `--vmd-*` prefix. Override them on any ancestor:
