@@ -107,6 +107,23 @@ describe('standalone shell components', () => {
     expect(toc.emitted('navigate')?.[0]).toEqual(['one'])
   })
 
+  it('filters TOC entries by tocDepth', () => {
+    const toc = mount(MarkdownToc, {
+      props: {
+        items: [
+          { id: 'one', text: 'One', level: 1 },
+          { id: 'two', text: 'Two', level: 2 },
+          { id: 'three', text: 'Three', level: 3 },
+          { id: 'four', text: 'Four', level: 4 },
+        ],
+        tocDepth: 2,
+      },
+    })
+    expect(
+      toc.findAll('a[data-vmd-part="toc-item"]').map((link) => link.text()),
+    ).toEqual(['One', 'Two'])
+  })
+
   it('uses a provided tocItem component for every entry', () => {
     const Item = defineComponent({
       props: { item: Object, active: Boolean },

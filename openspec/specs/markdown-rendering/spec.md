@@ -203,14 +203,14 @@ The renderer SHALL support a `baseUrl` option that resolves relative link and im
 
 ### Requirement: Heading anchors and table of contents
 
-Every heading whose level is included in the configured TOC levels SHALL receive a stable, unique identifier derived from its text content. Duplicate heading text SHALL produce suffixed identifiers. The renderer SHALL build a table of contents in document order, nest entries by heading level, and emit `toc-change` only when the effective TOC changes. TOC placement SHALL support left, right, and hidden, and the entry for the section currently in view SHALL be marked active. Identifier generation SHALL be replaceable through behavior injection.
+Every heading SHALL receive a stable, unique identifier derived from its text content. Duplicate heading text SHALL produce suffixed identifiers. The renderer SHALL build a table of contents in document order, nest entries by heading level, and support `tocDepth` to include headings up to a maximum level (`0` means every level). The filtered TOC SHALL drive `toc-change`, `getToc()`, slot contexts, and active-heading tracking. `toc-change` SHALL be emitted only when the effective, filtered TOC changes. TOC placement SHALL support left, right, and hidden, and the entry for the section currently in view SHALL be marked active. Identifier generation SHALL be replaceable through behavior injection.
 
 #### Scenario: Duplicate headings receive unique identifiers
 - **WHEN** a document contains two headings with the same text
 - **THEN** the rendered headings receive different identifiers and both TOC entries link to the correct section
 
-#### Scenario: TOC respects configured levels
-- **WHEN** TOC levels are configured to include only levels 1 and 2
+#### Scenario: TOC respects tocDepth
+- **WHEN** `tocDepth` is `2`
 - **THEN** level 3 headings appear in the content but not in the table of contents
 
 #### Scenario: TOC emission is signature gated

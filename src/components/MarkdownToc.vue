@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { MarkdownComponentValue, TocItem } from '../core/types'
+import { filterTocByDepth } from '../core/normalize'
 import MarkdownTocItem from './MarkdownTocItem.vue'
 
 const props = withDefaults(
@@ -9,12 +10,19 @@ const props = withDefaults(
     activeId?: string
     label?: string
     tocItem?: MarkdownComponentValue
+    /** Maximum heading level to show. `0` or omitted means every level. */
+    tocDepth?: number
   }>(),
   {
     activeId: undefined,
     label: 'Table of contents',
     tocItem: undefined,
+    tocDepth: 0,
   },
+)
+
+const visibleItems = computed(() =>
+  filterTocByDepth(props.items, props.tocDepth),
 )
 
 const emit = defineEmits<{ navigate: [id: string] }>()
@@ -29,7 +37,7 @@ const itemComponent = computed(() => props.tocItem ?? MarkdownTocItem)
 <template>
   <nav data-vmd-part="toc" class="vmd-toc" :aria-label="label">
     <ol data-vmd-part="toc-nav" class="vmd-toc-nav">
-      <template v-for="item in items" :key="item.id">
+      <template v-for="item in visibleItems" :key="item.id">
         <slot
           name="toc-item"
           :item="item"

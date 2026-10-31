@@ -286,6 +286,58 @@ describe('TOC and heading navigation', () => {
     wrapper.unmount()
   })
 
+  it('limits the TOC to tocDepth', async () => {
+    const wrapper = mount(MarkdownRenderer, {
+      props: {
+        source: '# One\n\n## Two\n\n### Three\n\n#### Four',
+        toc: true,
+        tocDepth: 2,
+      },
+    })
+    await nextTick()
+
+    expect(
+      wrapper
+        .findAll('a[data-vmd-part="toc-item"]')
+        .map((link) => link.text()),
+    ).toEqual(['One', 'Two'])
+    const instance = wrapper.vm as unknown as {
+      getToc(): Array<{ text: string }>
+    }
+    expect(instance.getToc().map((item) => item.text)).toEqual(['One', 'Two'])
+    const events = wrapper.emitted('toc-change') ?? []
+    expect(
+      (events[events.length - 1]?.[0] as Array<{ text: string }>).map(
+        (item) => item.text,
+      ),
+    ).toEqual(['One', 'Two'])
+
+    await wrapper.setProps({ tocDepth: 3 })
+    await nextTick()
+    expect(
+      wrapper
+        .findAll('a[data-vmd-part="toc-item"]')
+        .map((link) => link.text()),
+    ).toEqual(['One', 'Two', 'Three'])
+    expect(instance.getToc().map((item) => item.text)).toEqual([
+      'One',
+      'Two',
+      'Three',
+    ])
+  })
+
+  it('treats a zero tocDepth as unlimited', async () => {
+    const wrapper = mount(MarkdownRenderer, {
+      props: {
+        source: '# One\n\n## Two\n\n### Three',
+        toc: true,
+        tocDepth: 0,
+      },
+    })
+    await nextTick()
+    expect(wrapper.findAll('a[data-vmd-part="toc-item"]')).toHaveLength(3)
+  })
+
   it('navigates within its own renderer when heading IDs collide', async () => {
     const first = mount(MarkdownRenderer, {
       props: { source: '# Same', toc: true },

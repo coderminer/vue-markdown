@@ -409,6 +409,21 @@ export function normalizeHast(root: Root, options: NormalizeOptions): NormalizeR
   }
 }
 
+/**
+ * Keep headings up to `depth`. A missing, zero, negative, or non-finite depth
+ * means all available levels. Values above six are also effectively unlimited.
+ */
+export function filterTocByDepth(
+  toc: readonly TocItem[],
+  depth: number | undefined,
+): TocItem[] {
+  if (depth === undefined || !Number.isFinite(depth) || depth <= 0 || depth >= 6) {
+    return [...toc]
+  }
+  const maxLevel = Math.min(6, Math.max(1, Math.floor(depth)))
+  return toc.filter((item) => item.level <= maxLevel)
+}
+
 export function extractToc(nodes: readonly MarkdownNode[]): TocItem[] {
   const toc: TocItem[] = []
 

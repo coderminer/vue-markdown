@@ -52,6 +52,7 @@ import 'vue-markdown-suite/style.css'
 | `syncHash` | `boolean` | Default `false`. Updates the URL hash on heading activation. |
 | `skipHtml` | `boolean` | Default `false`. Removes raw HTML nodes. |
 | `toc` | `boolean` | Default `false`. Renders the TOC region. |
+| `tocDepth` | `number` | Default `0` (all levels). Maximum heading level to include, from `1` to `6`. |
 | `showError` | `boolean` | Default `false`. Renders the error region on failure. |
 | `tokens` | `Record<string, string>` | Default `{}`. Inline `--vmd-*` custom properties on the root. |
 | `theme` | `'light' \| 'dark' \| 'auto' \| 'custom'` | Default `'light'`. Sets `data-vmd-theme` on the root. |
@@ -113,7 +114,7 @@ default region and receive scoped data and actions.
 | Slot | Context |
 | --- | --- |
 | `root` | `{ document, toc, status, diagnostics, tokens, theme, actions }` |
-| `toc` | `{ items, activeId, label, navigate }` |
+| `toc` | `{ items, activeId, label, tocDepth, navigate }` |
 | `toc-item` | `{ item, active, navigate }` |
 | `content` | `{ nodes, document }` |
 | `error` | `{ diagnostics, label, retry }` |
@@ -143,11 +144,18 @@ An absent or empty slot keeps the default rendering.
 
 ## TOC
 
-The TOC is opt-in with `toc`. Use `#toc` to replace the whole navigation,
+The TOC is opt-in with `toc`. Use `tocDepth` to include headings up to a
+maximum level (`0` means every level), `#toc` to replace the whole navigation,
 `#toc-item` to replace one entry, `labels.toc` for the accessible label, and
-`getToc()` / `scrollToHeading(id)` for an external TOC. Custom region components
-receive `items`, `activeId`, `label`, and optional `tocItem`; item components
-receive `item` and `active` and emit `navigate`.
+`getToc()` / `scrollToHeading(id)` for an external TOC. `getToc()`, `toc-change`,
+the slot contexts, the default TOC, and the active-heading tracker all use the
+filtered list. Custom region components receive `items`, `activeId`, `label`,
+`tocDepth`, and optional `tocItem`; item components receive `item` and `active`
+and emit `navigate`.
+
+```vue
+<MarkdownRenderer :source="source" toc :toc-depth="3" />
+```
 
 See [Public API § TOC](./api.md#toc) for the complete API and examples.
 

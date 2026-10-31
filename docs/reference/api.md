@@ -89,6 +89,7 @@ renders the normalized document.
 | `syncHash` | `boolean` | Updates the URL hash on heading navigation. |
 | `skipHtml` | `boolean` | Removes raw HTML nodes. |
 | `toc` | `boolean` | Renders the TOC region. |
+| `tocDepth` | `number` | Maximum heading level in the TOC. `0` means every level. |
 | `showError` | `boolean` | Renders the error region on failure. |
 | `tokens` | `Record<string, string>` | Inline `--vmd-*` custom properties. |
 | `theme` | `'light' \| 'dark' \| 'auto' \| 'custom'` | Sets `data-vmd-theme`. |
@@ -134,7 +135,7 @@ renderer.value?.updateSource('# New source')
 | Slot | Context |
 | --- | --- |
 | `root` | `{ document, toc, status, diagnostics, tokens, theme, actions }` |
-| `toc` | `{ items, activeId, label, navigate }` |
+| `toc` | `{ items, activeId, label, tocDepth, navigate }` |
 | `toc-item` | `{ item, active, navigate }` |
 | `content` | `{ nodes, document }` |
 | `error` | `{ diagnostics, label, retry }` |
@@ -163,7 +164,7 @@ props as the default component.
 | --- | --- | --- |
 | `root` | `as`, `tokens`, `theme` | — |
 | `content` | `nodes` | — |
-| `toc` | `items`, `activeId`, `label`, `tocItem` | `navigate` |
+| `toc` | `items`, `activeId`, `label`, `tocItem`, `tocDepth` | `navigate` |
 | `tocItem` | `item`, `active` | `navigate` |
 | `codeBlock` | `CodeBlock` props plus region actions | — |
 | `mermaidBlock` | `MermaidBlock` props | — |
@@ -214,7 +215,12 @@ interface TocItem {
 ### Enable and read it
 
 ```vue
-<MarkdownRenderer :source="source" toc @toc-change="onTocChange" />
+<MarkdownRenderer
+  :source="source"
+  toc
+  :toc-depth="3"
+  @toc-change="onTocChange"
+/>
 ```
 
 ```ts
@@ -233,10 +239,14 @@ function goTo(id: string) {
 }
 ```
 
+`tocDepth` is a maximum level, not a count. `3` includes `h1`–`h3` and excludes
+`h4`–`h6`. `0` or an omitted value includes every level.
+
 | API | Purpose |
 | --- | --- |
 | `toc` | Shows the TOC region. |
-| `toc-change` | Emits the current `TocItem[]` when its signature changes. |
+| `tocDepth` | Includes headings up to this level; `0` means every level. |
+| `toc-change` | Emits the filtered `TocItem[]` when its signature changes. |
 | `getToc()` | Reads the current TOC imperatively. |
 | `scrollToHeading(id, options?)` | Scrolls to a heading inside the renderer root. |
 | `syncHash` | Writes the navigated heading ID to the URL hash. |
@@ -323,7 +333,7 @@ function navigate(id: string) {
 
 | Component | Props | Events | Slots |
 | --- | --- | --- | --- |
-| `MarkdownToc` | `items`, `activeId`, `label`, `tocItem` | `navigate` | `toc-item` |
+| `MarkdownToc` | `items`, `activeId`, `label`, `tocItem`, `tocDepth` | `navigate` | `toc-item` |
 | `MarkdownTocItem` | `item`, `active` | `navigate` | — |
 
 ### Track the active heading outside the renderer
@@ -631,7 +641,7 @@ const {
 | Group | Exports |
 | --- | --- |
 | Model | `buildDocument`, `withDerivedDocument` |
-| Normalization | `normalizeHast`, `extractToc`, `collectCustomTags`, `walkNodes` |
+| Normalization | `normalizeHast`, `extractToc`, `filterTocByDepth`, `collectCustomTags`, `walkNodes` |
 | Search | `searchDocument`, `segmentSearch`, `countSearchMatches` |
 | URL | `defaultUrlTransform`, `isExternalUrl`, `resolveUrl` |
 | Diagnostics | `createDiagnostic`, `errorMessage` |

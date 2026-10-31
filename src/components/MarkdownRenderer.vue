@@ -46,6 +46,7 @@ import {
   isValidUrlTransform,
 } from '../core/adapters'
 import { createDiagnostic } from '../core/diagnostics'
+import { filterTocByDepth } from '../core/normalize'
 import { useMarkdownDocument } from '../composables/useMarkdownDocument'
 import {
   findElementById,
@@ -105,6 +106,7 @@ const props = withDefaults(
     syncHash?: boolean
     skipHtml?: boolean
     toc?: boolean
+    tocDepth?: number
     showError?: boolean
     tokens?: Record<string, string>
     theme?: MarkdownTheme
@@ -140,6 +142,7 @@ const props = withDefaults(
     syncHash: false,
     skipHtml: false,
     toc: false,
+    tocDepth: 0,
     showError: false,
     tokens: undefined,
     theme: undefined,
@@ -312,6 +315,10 @@ const {
   resolvedTokens,
 } = useMarkdownDocument(effectiveSource, parseOptions)
 
+const visibleToc = computed(() =>
+  filterTocByDepth(tocItems.value, props.tocDepth),
+)
+
 const effectiveLabels = computed<MarkdownLabels>(() => ({
   ...DEFAULT_LABELS,
   ...resolvedLabels.value,
@@ -455,7 +462,7 @@ watch(
 provide(RENDER_CONTEXT, renderContext)
 
 const activeId = useActiveHeading(
-  computed(() => tocItems.value.map((item) => item.id)),
+  computed(() => visibleToc.value.map((item) => item.id)),
   computed(() => props.toc),
   { root: rootElement },
 )
@@ -466,9 +473,10 @@ const contentSlotContext = computed(() => ({
 }))
 
 const tocSlotContext = computed(() => ({
-  items: tocItems.value,
+  items: visibleToc.value,
   activeId: activeId.value,
   label: tocLabel.value,
+  tocDepth: props.tocDepth,
   navigate: scrollToHeading,
 }))
 
@@ -483,7 +491,7 @@ const loadingSlotContext = computed(() => ({ label: loadingLabel.value }))
 
 const rootSlotContext = computed(() => ({
   document: markdownDocument.value,
-  toc: tocItems.value,
+  toc: visibleToc.value,
   status: status.value,
   diagnostics: diagnostics.value,
   tokens: mergedTokens.value,
@@ -491,7 +499,7 @@ const rootSlotContext = computed(() => ({
   actions: {
     scrollToHeading,
     getDocument: () => markdownDocument.value,
-    getToc: () => tocItems.value,
+    getToc: () => visibleToc.value,
     refresh,
   },
 }))
@@ -525,7 +533,7 @@ watch(
 
 let lastTocSignature = ''
 watch(
-  tocItems,
+  visibleToc,
   (value) => {
     const signature = JSON.stringify(value)
     if (signature === lastTocSignature) return
@@ -641,7 +649,7 @@ watch(
 defineExpose({
   scrollToHeading,
   getDocument: (): MarkdownDocument | undefined => markdownDocument.value,
-  getToc: (): TocItem[] => tocItems.value,
+  getToc: (): TocItem[] => visibleToc.value,
   refresh,
   updateSource: (source: string): void => emit('update:source', source),
 })
@@ -657,15 +665,16 @@ defineExpose({
     :tokens="mergedTokens"
     :theme="effectiveTheme"
   >
-    <template v-if="toc && tocItems && tocItems.length > 0">
+    <template v-if="toc && visibleToc && visibleToc.length > 0">
       <slot v-if="$slots.toc" name="toc" v-bind="tocSlotContext" />
       <component
         :is="regionToc"
         v-else
-        :items="tocItems"
+        :items="visibleToc"
         :active-id="activeId"
         :label="tocLabel"
         :toc-item="mergedRegions.tocItem"
+        :toc-depth="tocDepth"
         @navigate="scrollToHeading"
       >
         <template v-if="$slots['toc-item']" #toc-item="itemContext">

@@ -301,7 +301,17 @@ Customize it at four layers:
 | Whole TOC | `#toc` slot or `regions.toc` |
 | One item | `#toc-item` slot or `regions.tocItem` |
 | Label | `labels.toc` |
+| Depth | `tocDepth` (`0` = all levels, `1`–`6` = maximum level) |
 | Behaviour | `toc`, `syncHash`, `idPrefix`, `getToc()`, `scrollToHeading(id)` |
+
+Limit the default TOC to `h1`–`h3`:
+
+```vue
+<MarkdownRenderer :source="source" toc :toc-depth="3" />
+```
+
+`tocDepth` also filters the `items` passed to `#toc` / `#toc-item`, the list
+returned by `getToc()`, and the payload of `toc-change`.
 
 Replace the whole TOC:
 
