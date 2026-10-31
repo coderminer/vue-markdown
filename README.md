@@ -53,8 +53,10 @@ The stylesheet is optional. Every component is semantic and works unstyled.
 Runtime JavaScript follows Vue 3's baseline: native ES2016, no IE11. The
 built library supports Chrome 54+, Edge 15+, Firefox 52+, Safari 10.1+, and
 iOS 10.3+; Chrome 54 rather than 52 is required because a bundled dependency
-uses `Object.entries` during module initialization. The library targets
-`es2016`, runtime APIs stay within ES2016, and browser-only APIs are guarded
+uses `Object.entries` during module initialization. Source may use newer syntax
+such as optional chaining, nullish coalescing, class fields, and async/await:
+Vite downlevels it to `es2016` at build time. Runtime APIs must stay within
+ES2016 because the build does not polyfill them. Browser-only APIs are guarded
 and degrade gracefully during SSR.
 
 The optional stylesheet currently uses logical properties and `gap`, so styled

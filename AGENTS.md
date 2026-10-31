@@ -105,10 +105,15 @@ speculatively. Bundle size is a sanity check, not a primary design constraint.
   built library supports Chrome 54+, Edge 15+, Firefox 52+, Safari 10.1+, and
   iOS 10.3+. Chrome 54 rather than 52 is required because a bundled dependency
   uses `Object.entries` during module initialization.
-- Keep `src/` runtime JavaScript at ES2016 or older. Do not add APIs such as
+- Runtime **APIs** in `src/` must stay within ES2016. Do not add APIs such as
   `Object.entries`, `Object.values`, `Object.fromEntries`, `Object.hasOwn`,
   `Array.prototype.at`, `structuredClone`, `crypto.randomUUID`,
-  `String.prototype.replaceAll`, or `Promise.any`.
+  `String.prototype.replaceAll`, or `Promise.any`. The `lib` setting stays at
+  ES2016 so type checking catches them.
+- Source **syntax** may use newer TypeScript/JavaScript (optional chaining,
+  nullish coalescing, class fields, async/await) because Vite downlevels it to
+  `es2016` at build time. `tsconfig` targets ES2022 for authoring; the published
+  syntax target is `build.target`.
 - The optional stylesheet currently requires Chrome/Edge 87+, Firefox 78+,
   Safari 14.1+, and iOS 14.5+ because it uses logical properties, `gap`, and
   `:where()`. Unstyled and headless usage follows the runtime baseline. Do not
