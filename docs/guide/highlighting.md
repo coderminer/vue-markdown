@@ -1,3 +1,7 @@
+---
+description: highlight.js and Shiki adapters, caching, and server rendering.
+---
+
 # Highlighting
 
 Code fences render through `CodeBlock` by default. `VueSyntaxHighlighter` uses

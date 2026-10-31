@@ -1,3 +1,7 @@
+---
+description: Server rendering and deterministic static HTML export.
+---
+
 # SSR and static export
 
 `vue-markdown-suite` is SSR-safe: no browser globals are touched at module

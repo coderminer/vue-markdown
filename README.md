@@ -158,7 +158,7 @@ and `updateSource(source)`.
 
 Customization is layered and stable: target tags, semantic nodes, regions, design
 tokens, or documented CSS parts. The full guide with a live preview is in the
-[live customization section](https://coderminer.github.io/vue-markdown/#customization).
+[live customization section](https://coderminer.github.io/vue-markdown/guide/customization.html).
 
 ### Customize your own elements
 
@@ -278,8 +278,8 @@ The stylesheet is optional and split into `styles/tokens.css` and
 and `--vmd-*` tokens, never internal DOM structure, because a host may replace
 any tag component. Unstyled usage keeps the same behavior and accessibility.
 
-See [Styled usage](docs/styled.md) and
-[Customization](docs/customization.md) for the full contract.
+See [Styled usage](docs/guide/styling.md) and
+[Customization](docs/guide/customization.md) for the full contract.
 
 ## Advanced usage
 
@@ -343,6 +343,7 @@ import { highlightjs } from 'vue-markdown-suite/highlight'
 import { shiki } from 'vue-markdown-suite/highlight/shiki'
 import { mathPlugin, katexEngine } from 'vue-markdown-suite/math'
 import { renderMermaid } from 'vue-markdown-suite/mermaid'
+import 'katex/dist/katex.min.css'
 import 'vue-markdown-suite/styles/math.css'
 ```
 
@@ -357,8 +358,8 @@ import 'vue-markdown-suite/styles/math.css'
 
 Each engine is a small adapter with an `id` and one method, so a host can provide
 its own highlighter, math renderer, or Mermaid renderer. See the
-[highlighting](docs/highlighting.md), [math](docs/math.md), and
-[Mermaid](docs/mermaid.md) guides.
+[highlighting](docs/guide/highlighting.md), [math](docs/guide/math.md), and
+[Mermaid](docs/guide/mermaid.md) guides.
 
 ### Server rendering and static export
 
@@ -383,15 +384,15 @@ The live docs include a complete docs-portal example that combines:
 - theme switching and static HTML export
 - the same public API used by the rest of the documentation
 
-Open the [complete example](https://coderminer.github.io/vue-markdown/#complete-example),
-or browse [`demo/sections/CompleteExampleSection.vue`](demo/sections/CompleteExampleSection.vue)
+Open the [complete example](https://coderminer.github.io/vue-markdown/guide/complete-example.html),
+or browse [`docs/.vitepress/theme/components/CompleteExample.vue`](docs/.vitepress/theme/components/CompleteExample.vue)
 in the repository.
 
 ## API reference
 
 The full reference, including every slot, region, adapter contract, and
 component manifest, lives in the
-[live API reference](https://coderminer.github.io/vue-markdown/#api).
+[live API reference](https://coderminer.github.io/vue-markdown/reference/renderer.html).
 
 ### `MarkdownRenderer` props
 
@@ -451,7 +452,7 @@ component manifest, lives in the
 The `default` slot is raw Markdown text. Named region slots fully replace their
 default region and receive scoped context: `root`, `toc`, `toc-item`, `content`,
 `error`, `empty`, and `loading`. An absent or empty slot keeps the default
-rendering. See the [customization guide](docs/customization.md#slots).
+rendering. See the [customization guide](docs/guide/customization.md#slots).
 
 ### Entry points
 
@@ -487,34 +488,35 @@ rendering. See the [customization guide](docs/customization.md#slots).
 - Mermaid is rendered with strict security and its SVG is sanitized before it
   becomes nodes.
 
-See [docs/security.md](docs/security.md) for the full policy.
+See [docs/guide/security.md](docs/guide/security.md) for the full policy.
 
 ## Documentation
 
 | Guide | What it covers |
 | --- | --- |
-| [Styled usage](docs/styled.md) | Tokens, themes, parts, and unstyled mode |
-| [Customization](docs/customization.md) | Precedence, regions, node components, slots, manifests |
-| [Cookbook](docs/cookbook.md) | Copy-paste recipes for common tasks |
-| [Headless usage](docs/headless.md) | `useMarkdownDocument`, the model, and helper APIs |
-| [Pipeline](docs/pipeline.md) | The official unified pipeline and stage order |
-| [Custom pipeline](docs/custom-pipeline.md) | Authoring and validating a replacement pipeline |
-| [Plugins](docs/plugins.md) | Plugin contracts, ordering, lifecycle, and remark/rehype |
-| [CommonMark and GFM](docs/commonmark-gfm.md) | Syntax coverage and conformance |
-| [Raw HTML and security](docs/security.md) | Sanitization, URL policy, CSP, and custom tags |
-| [Syntax highlighting](docs/highlighting.md) | Adapters, Shiki, caching, and server rendering |
-| [Math](docs/math.md) | `mathPlugin`, delimiters, engines, and fallbacks |
-| [Mermaid](docs/mermaid.md) | Lazy runtime, sanitizer, block states, and editor |
-| [SSR and static export](docs/ssr.md) | Server rendering and static HTML helpers |
-| [Audits](docs/audits.md) | Accessibility, reduced motion, RTL, and cleanup |
+| [Styling and themes](docs/guide/styling.md) | Tokens, themes, parts, and unstyled mode |
+| [Customization](docs/guide/customization.md) | Precedence, regions, node components, slots, manifests |
+| [Cookbook](docs/guide/cookbook.md) | Copy-paste recipes for common tasks |
+| [Headless usage](docs/guide/headless.md) | `useMarkdownDocument`, the model, and helper APIs |
+| [Pipeline](docs/guide/pipeline.md) | The official unified pipeline and stage order |
+| [Custom pipeline](docs/guide/custom-pipeline.md) | Authoring and validating a replacement pipeline |
+| [Plugins](docs/guide/plugins.md) | Plugin contracts, ordering, lifecycle, and remark/rehype |
+| [CommonMark and GFM](docs/guide/commonmark-gfm.md) | Syntax coverage and conformance |
+| [Raw HTML and security](docs/guide/security.md) | Sanitization, URL policy, CSP, and custom tags |
+| [Syntax highlighting](docs/guide/highlighting.md) | Adapters, Shiki, caching, and server rendering |
+| [Math](docs/guide/math.md) | `mathPlugin`, delimiters, engines, and fallbacks |
+| [Mermaid](docs/guide/mermaid.md) | Lazy runtime, sanitizer, block states, and editor |
+| [SSR and static export](docs/guide/ssr.md) | Server rendering and static HTML helpers |
+| [Audits](docs/guide/audits.md) | Accessibility, reduced motion, RTL, and cleanup |
 
 ## Development
 
 ```bash
 npm install
-npm run dev          # documentation site
+npm run docs:dev     # documentation site (VitePress)
+npm run docs:build   # static documentation site
+npm run dev          # interactive demo
 npm run build:lib    # library, declarations, styles
-npm run build:demo   # static documentation site
 npm test             # node + happy-dom projects
 npm run typecheck
 npm run lint

@@ -1,3 +1,7 @@
+---
+description: Use useMarkdownDocument, the serializable model, and custom markup.
+---
+
 # Headless usage
 
 The headless entry exposes the document model and composables without preset

@@ -1,3 +1,7 @@
+---
+description: Accessibility, reduced motion, RTL, and resource cleanup audits.
+---
+
 # Accessibility and cleanup audits
 
 ## Semantics and keyboard paths

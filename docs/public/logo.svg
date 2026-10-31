@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Vue Markdown Suite">
+  <defs>
+    <linearGradient id="vmd-gradient" x1="16" y1="12" x2="112" y2="116" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#a78bfa" />
+      <stop offset="0.55" stop-color="#7c3aed" />
+      <stop offset="1" stop-color="#4f46e5" />
+    </linearGradient>
+    <linearGradient id="vmd-shine" x1="30" y1="20" x2="96" y2="108" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffffff" stop-opacity="0.32" />
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="120" height="120" rx="30" fill="url(#vmd-gradient)" />
+  <rect x="4" y="4" width="120" height="120" rx="30" fill="url(#vmd-shine)" />
+  <path d="M30 88V40h13.5L64 66.5 84.5 40H98v48H84V61.2L64 87 44 61.2V88Z" fill="#fff" />
+  <path d="M98 88V40h-5.5l-.5 28.5L98 88Z" fill="#fff" opacity="0.28" />
+  <circle cx="98" cy="30" r="7" fill="#67e8f9" />
+</svg>

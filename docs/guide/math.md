@@ -1,13 +1,21 @@
+---
+description: mathPlugin, KaTeX, delimiters, macros, and graceful fallbacks.
+---
+
 # Math
 
 Math ships as an optional entry so KaTeX is not part of the core bundle.
 
 ```ts
 import { mathPlugin, katexEngine } from 'vue-markdown-suite/math'
+import 'katex/dist/katex.min.css'
 import 'vue-markdown-suite/styles/math.css'
 
 const plugins = [mathPlugin()]
 ```
+
+Import KaTeX's stylesheet once in your app. The package's `styles/math.css`
+only adds container and display styles; KaTeX owns the formula layout.
 
 `mathPlugin` composes `remark-math` and `rehype-katex`. Inline `$...$` and
 display `$$...$$` are enabled by default. The plugin keeps the exact TeX source

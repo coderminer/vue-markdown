@@ -1,3 +1,7 @@
+---
+description: Authoring and validating a replacement Markdown pipeline.
+---
+
 # Authoring a custom pipeline
 
 A custom pipeline replaces the official parse path. It must return a hast root;

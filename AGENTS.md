@@ -39,6 +39,8 @@ of other presets.
 - `src/editor/` — lazy CodeMirror integration for the Mermaid editor.
 - `src/styles/` — tokens and part-based CSS.
 - `demo/` — public-entry-only demonstration app; no business logic.
+- `docs/` — VitePress documentation site; public-entry-only examples with
+  local aliases to the source tree.
 
 ## Commands
 
@@ -47,6 +49,8 @@ npm install
 npm run dev          # demo
 npm run build:lib    # library, declarations, styles
 npm run build:demo   # static demo
+npm run docs:dev     # documentation site (VitePress)
+npm run docs:build   # static documentation site
 npm test             # node + happy-dom projects
 npm run typecheck
 npm run lint

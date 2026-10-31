@@ -1,3 +1,7 @@
+---
+description: Copy-paste recipes for common Markdown rendering tasks.
+---
+
 # Customization cookbook
 
 Each recipe uses a published entry.

@@ -1,3 +1,7 @@
+---
+description: CommonMark and GFM syntax coverage and conformance.
+---
+
 # CommonMark and GFM
 
 The official pipeline parses CommonMark by default. GFM is opt-in through

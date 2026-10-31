@@ -7,6 +7,8 @@ export default tseslint.config(
     ignores: [
       'dist/**',
       'dist-demo/**',
+      'docs/.vitepress/dist/**',
+      'docs/.vitepress/cache/**',
       'node_modules/**',
       'coverage/**',
       'openspec/**',
@@ -24,7 +26,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['tests/**/*.{ts,vue}', 'demo/**/*.vue'],
+    files: ['tests/**/*.{ts,vue}', 'demo/**/*.vue', 'docs/**/*.vue'],
     rules: {
       // Test fixtures and demo sections intentionally declare several small
       // components in one module.

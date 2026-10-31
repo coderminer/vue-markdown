@@ -34,6 +34,8 @@
     "src/**/*.vue",
     "demo/**/*.ts",
     "demo/**/*.vue",
+    "docs/**/*.ts",
+    "docs/**/*.vue",
     "tests/**/*.ts",
     "env.d.ts"
   ],

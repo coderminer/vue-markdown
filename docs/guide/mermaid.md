@@ -1,3 +1,7 @@
+---
+description: Lazy Mermaid rendering, SVG sanitization, block states, and the live editor.
+---
+
 # Mermaid
 
 Mermaid support is lazy and client-only. The runtime is requested only when a
@@ -9,6 +13,21 @@ import { renderMermaid } from 'vue-markdown-suite/mermaid'
 
 `MermaidBlock` is exported from the package root. It renders a deterministic
 placeholder during SSR, then loads the runtime after mount.
+
+<script setup>
+import { MermaidBlock } from 'vue-markdown-suite'
+
+const diagram = `flowchart LR
+  Markdown --> Pipeline
+  Pipeline --> Model
+  Model --> Vue
+  Model --> Search
+  Model --> Export`
+</script>
+
+<ClientOnly>
+  <MermaidBlock :source="diagram" />
+</ClientOnly>
 
 ## Security and CSP
 

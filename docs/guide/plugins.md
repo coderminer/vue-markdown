@@ -1,3 +1,7 @@
+---
+description: Plugin contracts, ordering, lifecycle, and remark/rehype integration.
+---
+
 # Plugins and remark/rehype integration
 
 Plugins are the primary behavioral extension seam outside the core parsing,

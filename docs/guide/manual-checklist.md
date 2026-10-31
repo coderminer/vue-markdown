@@ -1,3 +1,7 @@
+---
+description: Manual verification checklist for the interactive demo.
+---
+
 # Manual demo checklist
 
 The demo imports the library through public entries. Run `npm run dev` and walk

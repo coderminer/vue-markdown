@@ -1,3 +1,7 @@
+---
+description: Raw HTML, sanitization, URL policy, custom tags, CSP, and Trusted Types.
+---
+
 # Raw HTML and security
 
 The default configuration is safe for untrusted Markdown. Security invariants

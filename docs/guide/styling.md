@@ -1,4 +1,8 @@
-# Styled usage
+---
+description: Design tokens, themes, stable parts, and unstyled usage.
+---
+
+# Styling and themes
 
 `vue-markdown-suite` ships semantic, unstyled components. The optional
 stylesheet adds layout, spacing, and color through design tokens and stable

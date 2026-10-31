@@ -25,13 +25,13 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Build documentation
-        run: npm run build:demo
+        run: npm run docs:build
         env:
           DOCS_BASE: /${{ github.event.repository.name }}/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist-demo
+          path: docs/.vitepress/dist
 
   deploy:
     needs: build

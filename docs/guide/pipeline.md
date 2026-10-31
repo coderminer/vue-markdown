@@ -1,3 +1,7 @@
+---
+description: The official unified pipeline, stage order, and plugin hand-off.
+---
+
 # The official pipeline
 
 The official pipeline is `unified` + `remark-parse` + `remark-rehype`. It parses

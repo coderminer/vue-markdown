@@ -103,21 +103,24 @@
     "lint": "eslint .",
     "size": "node scripts/size-guard.mjs",
     "bench": "node bench/index.mjs",
-    "prepublishOnly": "npm run build:lib"
+    "prepublishOnly": "npm run build:lib",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "publishConfig": {
     "access": "public"
   },
   "peerDependencies": {
-    "vue": "^3.5.0",
-    "highlight.js": "^11.0.0",
-    "katex": ">=0.16 <1",
-    "shiki": "^4.0.0",
-    "mermaid": "^12.0.0",
+    "@codemirror/commands": "^6.0.0",
+    "@codemirror/language": "^6.0.0",
     "@codemirror/state": "^6.0.0",
     "@codemirror/view": "^6.0.0",
-    "@codemirror/language": "^6.0.0",
-    "@codemirror/commands": "^6.0.0"
+    "highlight.js": "^11.0.0",
+    "katex": ">=0.16 <1",
+    "mermaid": "^12.0.0",
+    "shiki": "^4.0.0",
+    "vue": "^3.5.0"
   },
   "peerDependenciesMeta": {
     "highlight.js": {
@@ -149,13 +152,13 @@
     "github-slugger": "^2.0.0",
     "hast-util-from-html": "^2.0.3",
     "hast-util-sanitize": "^5.0.2",
+    "rehype-katex": "^7.0.1",
     "rehype-sanitize": "^6.0.0",
     "rehype-stringify": "^10.0.1",
     "remark-frontmatter": "^5.0.0",
     "remark-gfm": "^4.0.1",
     "remark-math": "^6.0.0",
     "remark-parse": "^11.0.0",
-    "rehype-katex": "^7.0.1",
     "remark-rehype": "^11.1.2",
     "unified": "^11.0.5",
     "unist-util-visit": "^5.1.0",
@@ -189,6 +192,7 @@
     "typescript-eslint": "^8.72.0",
     "vite": "^8.3.5",
     "vite-plugin-dts": "^5.1.2",
+    "vitepress": "^1.6.4",
     "vitest": "^5.0.5",
     "vue": "^3.5.44",
     "vue-eslint-parser": "^10.4.1",
