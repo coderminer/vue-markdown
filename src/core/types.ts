@@ -181,6 +181,19 @@ export interface MarkdownLabels {
   copy: MarkdownLabelValue
   copied: MarkdownLabelValue
   download: MarkdownLabelValue
+  footnoteReference: MarkdownLabelValue
+  footnotes: MarkdownLabelValue
+  math: MarkdownLabelValue
+  mermaid: MarkdownLabelValue
+  preview: MarkdownLabelValue
+  source: MarkdownLabelValue
+  retry: MarkdownLabelValue
+  exportPng: MarkdownLabelValue
+  fullscreen: MarkdownLabelValue
+  exitFullscreen: MarkdownLabelValue
+  zoomIn: MarkdownLabelValue
+  zoomOut: MarkdownLabelValue
+  reset: MarkdownLabelValue
 }
 
 export type MarkdownTheme = 'light' | 'dark' | 'auto' | 'custom'
@@ -196,6 +209,17 @@ export interface HighlightResult {
   nodes: MarkdownNode[]
   mode?: 'content' | 'block'
   className?: string
+}
+
+export interface CodeBlockAction {
+  key: string
+  label: MarkdownLabelValue
+  run(context: {
+    code: string
+    language: string
+    copy(): Promise<void>
+    download(): Promise<void>
+  }): void | Promise<void>
 }
 
 export interface MarkdownHighlighter {

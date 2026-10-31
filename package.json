@@ -47,6 +47,26 @@
       "types": "./dist/node-components.d.ts",
       "import": "./dist/node-components.js"
     },
+    "./highlight": {
+      "types": "./dist/highlight/index.d.ts",
+      "import": "./dist/highlight/index.js"
+    },
+    "./highlight/shiki": {
+      "types": "./dist/highlight/shiki.d.ts",
+      "import": "./dist/highlight/shiki.js"
+    },
+    "./math": {
+      "types": "./dist/math/index.d.ts",
+      "import": "./dist/math/index.js"
+    },
+    "./mermaid": {
+      "types": "./dist/mermaid/index.d.ts",
+      "import": "./dist/mermaid/index.js"
+    },
+    "./editor": {
+      "types": "./dist/editor/index.d.ts",
+      "import": "./dist/editor/index.js"
+    },
     "./components/*": {
       "types": "./dist/components/*.d.ts",
       "import": "./dist/components/*.js"
@@ -70,7 +90,15 @@
     "bench": "node bench/index.mjs"
   },
   "peerDependencies": {
-    "vue": "^3.5.0"
+    "vue": "^3.5.0",
+    "highlight.js": "^11.0.0",
+    "katex": ">=0.16 <1",
+    "shiki": "^4.0.0",
+    "mermaid": "^12.0.0",
+    "@codemirror/state": "^6.0.0",
+    "@codemirror/view": "^6.0.0",
+    "@codemirror/language": "^6.0.0",
+    "@codemirror/commands": "^6.0.0"
   },
   "peerDependenciesMeta": {
     "highlight.js": {
@@ -100,12 +128,15 @@
   },
   "dependencies": {
     "github-slugger": "^2.0.0",
+    "hast-util-from-html": "^2.0.3",
     "hast-util-sanitize": "^5.0.2",
     "rehype-sanitize": "^6.0.0",
     "rehype-stringify": "^10.0.1",
     "remark-frontmatter": "^5.0.0",
     "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0",
     "remark-parse": "^11.0.0",
+    "rehype-katex": "^7.0.1",
     "remark-rehype": "^11.1.2",
     "unified": "^11.0.5",
     "unist-util-visit": "^5.1.0",
@@ -126,17 +157,14 @@
     "eslint": "^9.39.5",
     "eslint-plugin-vue": "^10.11.1",
     "happy-dom": "^21.0.4",
-    "hast-util-from-html": "^2.0.3",
     "hast-util-to-html": "^9.0.5",
     "highlight.js": "^11.12.0",
     "katex": "^0.19.1",
     "mermaid": "^12.2.0",
     "rehype-highlight": "^7.0.2",
-    "rehype-katex": "^7.0.1",
     "rehype-raw": "^7.0.0",
     "remark-frontmatter": "^5.0.0",
     "remark-gfm": "^4.0.1",
-    "remark-math": "^6.0.0",
     "shiki": "^4.5.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.72.0",

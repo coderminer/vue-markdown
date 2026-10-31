@@ -35,6 +35,26 @@ export default defineConfig({
         replacement: resolveSrc('./src/plugins.ts'),
       },
       {
+        find: 'vue-markdown-suite/math',
+        replacement: resolveSrc('./src/math/index.ts'),
+      },
+      {
+        find: 'vue-markdown-suite/highlight/shiki',
+        replacement: resolveSrc('./src/highlight/shiki.ts'),
+      },
+      {
+        find: 'vue-markdown-suite/highlight',
+        replacement: resolveSrc('./src/highlight/index.ts'),
+      },
+      {
+        find: 'vue-markdown-suite/mermaid',
+        replacement: resolveSrc('./src/mermaid/index.ts'),
+      },
+      {
+        find: 'vue-markdown-suite/editor',
+        replacement: resolveSrc('./src/editor/index.ts'),
+      },
+      {
         find: 'vue-markdown-suite',
         replacement: resolveSrc('./src/index.ts'),
       },
@@ -47,5 +67,7 @@ export default defineConfig({
     cssTarget: ['chrome87', 'edge88', 'firefox78', 'safari14.1', 'ios14.5'],
     outDir: '../dist-demo',
     emptyOutDir: true,
+    // Mermaid's diagram grammars are intentionally lazy demo chunks.
+    chunkSizeWarningLimit: 2000,
   },
 })

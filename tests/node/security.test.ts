@@ -268,7 +268,7 @@ describe('malformed input corpus', () => {
           for (const [name, value] of Object.entries(node.attrs)) {
             expect(name.startsWith('on')).toBe(false)
             expect(name).not.toBe('style')
-            if (name === 'href' || name === 'src') {
+            if ((name === 'href' || name === 'src') && value !== '') {
               expect(defaultUrlTransform(value, name)).not.toBe('')
             }
           }

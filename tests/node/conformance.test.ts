@@ -7,6 +7,7 @@ import remarkParse from 'remark-parse'
 import { visit } from 'unist-util-visit'
 import type { Properties, RootContent } from 'hast'
 import { exportMarkdownHtmlSync } from '../../src/export'
+import { defaultUrlTransform } from '../../src/core/url'
 import { gfmPlugin } from '../../src/plugins/builtin'
 import { gfmFixtures } from '../fixtures/gfm-conformance'
 
@@ -17,8 +18,17 @@ const DANGEROUS = /<(script|style|iframe|object|embed|form|textarea|select|optio
 const ACTIVE_ATTRIBUTE = /\son[a-z]+\s*=|\sstyle\s*=/i
 /** Comments and processing instructions are dropped with raw HTML. */
 const RAW_SPECIAL = /<!--|<\?|<![A-Za-z[]/
-
 const parser = unified().use(remarkParse)
+
+/** True when the spec example relies on a URL the library deliberately rejects. */
+function hasUnsupportedUrl(html: string): boolean {
+  for (const match of html.matchAll(/(href|src)="([^"]*)"/g)) {
+    const key = match[1] ?? ''
+    const value = match[2] ?? ''
+    if (value !== '' && defaultUrlTransform(value, key) === '') return true
+  }
+  return false
+}
 
 /** True when the Markdown contains a raw HTML block or inline tag. */
 function hasRawHtml(markdown: string): boolean {
@@ -81,6 +91,7 @@ export function runCommonMark(): ConformanceResult {
       DANGEROUS.test(expected) ||
       ACTIVE_ATTRIBUTE.test(expected) ||
       RAW_SPECIAL.test(expected) ||
+      hasUnsupportedUrl(expected) ||
       hasRawHtml(test.markdown)
     ) {
       result.skipped += 1

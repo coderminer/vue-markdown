@@ -18,7 +18,8 @@ renderer, a headless host, or static HTML export.
 - **Safe by default** — raw HTML is dropped, URLs are validated, and the
   sanitizer runs immediately after `rehype-raw` when the host opts in.
 - **SSR-ready** — deterministic heading IDs, a synchronous path, and a static
-  HTML export helper.
+  HTML export helper that applies the same sanitization, filtering, URL policy,
+  and document transforms as rendering.
 
 ## Requirements
 
@@ -263,12 +264,18 @@ See [docs/security.md](docs/security.md) for the full policy.
 
 - [Styled usage](docs/styled.md)
 - [Customization](docs/customization.md)
+- [Customization cookbook](docs/cookbook.md)
 - [Headless usage](docs/headless.md)
 - [The official pipeline](docs/pipeline.md)
 - [Authoring a custom pipeline](docs/custom-pipeline.md)
 - [Plugins and remark/rehype integration](docs/plugins.md)
 - [CommonMark and GFM](docs/commonmark-gfm.md)
 - [Raw HTML and security](docs/security.md)
+- [Syntax highlighting](docs/highlighting.md)
+- [Math](docs/math.md)
+- [Mermaid](docs/mermaid.md)
+- [Accessibility and compatibility audits](docs/audits.md)
+- [Manual demo checklist](docs/manual-checklist.md)
 - [SSR and static export](docs/ssr.md)
 - [Migrating from react-markdown](docs/migration.md)
 

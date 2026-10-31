@@ -23,6 +23,7 @@ import type {
   MarkdownDocumentOptions,
   MarkdownHighlighter,
   MarkdownLabels,
+  MarkdownNode,
   MarkdownPipeline,
   MarkdownPreset,
   MarkdownSlugger,
@@ -57,6 +58,7 @@ import MarkdownRoot from './MarkdownRoot.vue'
 import MarkdownToc from './MarkdownToc.vue'
 import {
   RENDER_CONTEXT,
+  isEmptySlotContent,
   type CustomTagClickPayload,
   type LinkClickPayload,
   type RenderContext,
@@ -147,6 +149,7 @@ const emit = defineEmits<{
   'toc-change': [toc: TocItem[]]
   'link-click': [payload: LinkClickPayload]
   'custom-tag-click': [payload: CustomTagClickPayload]
+  'task-change': [payload: { checked: boolean; node: MarkdownNode }]
   'render-error': [diagnostic: MarkdownDiagnostic]
   ready: [document: MarkdownDocument]
 }>()
@@ -360,6 +363,9 @@ const errorLabel = computed(() =>
 const renderContext = shallowReactive<RenderContext>({
   components: mergedComponents.value,
   nodeComponents: mergedNodeComponents.value,
+  regions: mergedRegions.value,
+  document: markdownDocument.value,
+  theme: effectiveTheme.value,
   labels: effectiveLabels.value,
   linkTarget: props.linkTarget,
   externalLinkTarget: props.externalLinkTarget,
@@ -367,11 +373,24 @@ const renderContext = shallowReactive<RenderContext>({
   mathEngine: validMathEngine.value,
   mermaidRenderer: validMermaidRenderer.value,
   diagnosticsFormatter: validDiagnosticsFormatter.value,
+  slots,
+  renderHostSlot(name, slotProps, fallback) {
+    const slot = slots[name]
+    if (!slot) return fallback()
+    const result = slot(slotProps)
+    return isEmptySlotContent(result) ? fallback() : result
+  },
   onLinkClick(payload) {
     emit('link-click', payload)
   },
   onCustomTagClick(payload) {
     emit('custom-tag-click', payload)
+  },
+  onTaskChange(payload) {
+    emit('task-change', payload)
+  },
+  onRenderError(diagnostic) {
+    emit('render-error', diagnostic)
   },
 })
 
@@ -381,6 +400,18 @@ watch(mergedComponents, (value) => {
 
 watch(mergedNodeComponents, (value) => {
   renderContext.nodeComponents = value
+})
+
+watch(mergedRegions, (value) => {
+  renderContext.regions = value
+})
+
+watch(markdownDocument, (value) => {
+  renderContext.document = value
+})
+
+watch(effectiveTheme, (value) => {
+  renderContext.theme = value
 })
 
 watch(effectiveLabels, (value) => {

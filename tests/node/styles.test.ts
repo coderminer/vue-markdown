@@ -122,6 +122,33 @@ describe('stylesheet compatibility fallbacks', () => {
     expectPhysicalFallbacks(readStyle('math.css'), 'math.css')
   })
 
+  it('styles every v1.x part and keeps fullscreen fallbacks', () => {
+    const components = readStyle('components.css')
+    for (const part of [
+      'task-item',
+      'task-checkbox',
+      'footnote-reference',
+      'footnotes',
+      'code-header',
+      'code-toolbar',
+      'highlighter',
+      'math',
+      'mermaid',
+      'mermaid-preview',
+      'editor',
+      'editor-divider',
+      'editor-diagnostics',
+    ]) {
+      expect(components, `${part} must have a style hook`).toContain(
+        `[data-vmd-part='${part}']`,
+      )
+    }
+    expect(components).toContain('top: 0;')
+    expect(components).toContain('inset: 0;')
+    expect(components).toContain('@media print')
+    expect(components).toContain('@media (forced-colors: active)')
+  })
+
   it('keeps the heading anchor :focus fallback before :focus-visible', () => {
     const components = readStyle('components.css')
     const focus = components.search(

@@ -48,6 +48,14 @@ export default defineConfig({
         test: {
           name: 'dom',
           environment: 'happy-dom',
+          environmentOptions: {
+            happyDOM: {
+              settings: {
+                disableJavaScriptEvaluation: true,
+                disableJavaScriptFileLoading: true,
+              },
+            },
+          },
           include: ['tests/dom/**/*.test.ts'],
           setupFiles: ['tests/setup.ts'],
         },

@@ -1,4 +1,8 @@
-import type { MarkdownDiagnostic, DiagnosticPhase } from './types'
+import type {
+  MarkdownDiagnostic,
+  DiagnosticPhase,
+  SourceRange,
+} from './types'
 
 export function createDiagnostic(
   code: string,
@@ -7,6 +11,7 @@ export function createDiagnostic(
     severity?: MarkdownDiagnostic['severity']
     phase?: DiagnosticPhase
     plugin?: string
+    source?: SourceRange
   } = {},
 ): MarkdownDiagnostic {
   return {
@@ -15,6 +20,7 @@ export function createDiagnostic(
     severity: options.severity ?? 'error',
     phase: options.phase,
     plugin: options.plugin,
+    source: options.source,
   }
 }
 

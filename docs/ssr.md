@@ -40,9 +40,11 @@ const html = await exportMarkdownHtml('# Hello')
 const sync = exportMarkdownHtmlSync('# Hello')
 ```
 
-Both helpers run the same pipeline and then stringify the hast root with
-`rehype-stringify`. The render path never calls `rehype-stringify`; export is an
-explicit, separate helper.
+Both helpers run the same pipeline and finalization as the renderer, then
+stringify the normalized document with `rehype-stringify`. Export therefore
+applies the same sanitization, element filtering, URL policy, `baseUrl`,
+`skipHtml`, heading IDs, and plugin document transforms as rendering. The render
+path never calls `rehype-stringify`; export is an explicit, separate helper.
 
 Options are the same parse-affecting options as the renderer:
 

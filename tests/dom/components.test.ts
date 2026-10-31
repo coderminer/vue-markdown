@@ -52,8 +52,10 @@ function renderContext(overrides: Partial<RenderContext> = {}): RenderContext {
     labels: DEFAULT_LABELS,
     linkTarget: '_self',
     externalLinkTarget: '_self',
+    renderHostSlot: (_name, _props, fallback) => fallback(),
     onLinkClick: vi.fn(),
     onCustomTagClick: vi.fn(),
+    onTaskChange: vi.fn(),
     ...overrides,
   }
 }

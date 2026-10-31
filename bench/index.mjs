@@ -22,6 +22,31 @@ const large = Array.from({ length: 200 }, (_, index) =>
   `## Section ${index}\n\nParagraph ${index} with **bold** text and a [link](https://example.com/${index}).\n\n- item a\n- item b\n`,
 ).join('\n')
 
+const catalog = `# Full catalog
+
+- [x] task item
+- [ ] another task
+
+A footnote reference[^1].
+
+[^1]: The note body.
+
+\`\`\`ts
+const value: number = 1
+\`\`\`
+
+Inline math $x^2$ and display math:
+
+$$
+\\int_0^1 x^2 \\, dx
+$$
+
+\`\`\`mermaid
+flowchart LR
+  A --> B
+\`\`\`
+`
+
 let pipelineModule
 try {
   pipelineModule = await import('../dist/pipeline.js')
@@ -87,11 +112,11 @@ async function measureParse(label, source, iterations) {
   }
 }
 
-async function measureRender(label, source, iterations, cold) {
+async function measureRender(label, source, iterations, cold, props = {}) {
   const render = async () => {
     if (cold) memoClear()
     const app = createSSRApp({
-      render: () => h(MarkdownRenderer, { source }),
+      render: () => h(MarkdownRenderer, { source, ...props }),
     })
     return renderToString(app)
   }
@@ -143,19 +168,49 @@ const largeNodes = (() => {
   return countNodes(normalizeHast(result.hast, { slugger }).nodes)
 })()
 
+let catalogPlugins = []
+try {
+  const { gfmPlugin } = await import('../dist/plugins.js')
+  const { mathPlugin } = await import('../dist/math/index.js')
+  catalogPlugins = [gfmPlugin, mathPlugin()]
+} catch {
+  // Optional entries are not required for the small/large benchmarks.
+}
+
+const catalogNodes = (() => {
+  const pipeline = createOfficialPipeline()
+  const slugger = new GithubSlugger()
+  const result = pipeline.processSync(catalog, context(catalog, slugger))
+  return countNodes(normalizeHast(result.hast, { slugger }).nodes)
+})()
+
 const results = [
   await measureParse('small', small, 100),
   await measureParse('large', large, 20),
+  ...(catalogPlugins.length > 0
+    ? [await measureParse('catalog', catalog, 10)]
+    : []),
   await measureRender('small', small, 30, true),
   await measureRender('small', small, 30, false),
   await measureRender('large', large, 5, true),
   await measureRender('large', large, 5, false),
+  ...(catalogPlugins.length > 0
+    ? [
+        await measureRender('catalog', catalog, 5, true, {
+          plugins: catalogPlugins,
+        }),
+        await measureRender('catalog', catalog, 5, false, {
+          plugins: catalogPlugins,
+        }),
+      ]
+    : []),
 ]
 
 console.table(results)
 console.table([
   { label: 'nodes:small', nodes: smallNodes },
   { label: 'nodes:large', nodes: largeNodes },
+  { label: 'nodes:catalog', nodes: catalogNodes },
 ])
 console.table(
   Object.entries(await entrySizes()).map(([entry, bytes]) => ({ entry, bytes })),

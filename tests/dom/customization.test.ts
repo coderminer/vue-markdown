@@ -3,6 +3,7 @@ import { mount } from '@vue/test-utils'
 import { defineComponent, h, nextTick } from 'vue'
 import MarkdownRenderer from '../../src/components/MarkdownRenderer.vue'
 import MarkdownConfigProvider from '../../src/components/MarkdownConfigProvider.vue'
+import { useRenderContext } from '../../src/components/context'
 import { composePresets, defineMarkdownPreset } from '../../src/core/preset'
 import { withUniqueSlugs } from '../../src/core/slugger'
 import type { MarkdownPipeline } from '../../src/core/types'
@@ -472,6 +473,44 @@ describe('named region slots', () => {
     )
     await nextTick()
     expect(error.find('[data-custom-error]').text()).toContain('1:function')
+  })
+})
+
+describe('host slot helper', () => {
+  const Probe = defineComponent({
+    setup() {
+      const context = useRenderContext()
+      return () =>
+        h(
+          'div',
+          { 'data-probe': '' },
+          [
+            context.renderHostSlot('code', { source: 'const x = 1', language: 'ts' }, () =>
+              h('span', { 'data-fallback': '' }, 'default'),
+            ),
+          ],
+        )
+    },
+  })
+
+  it('renders a host slot with scoped data and falls back when absent or empty', () => {
+    const withSlot = renderer(
+      { source: 'x', components: { p: Probe } },
+      {
+        code: (ctx: { source: string; language: string }) =>
+          h('button', { 'data-custom-code': '' }, `${ctx.language}:${ctx.source}`),
+      },
+    )
+    expect(withSlot.find('[data-custom-code]').text()).toBe('ts:const x = 1')
+
+    const withoutSlot = renderer({ source: 'x', components: { p: Probe } })
+    expect(withoutSlot.find('[data-fallback]').text()).toBe('default')
+
+    const emptySlot = renderer(
+      { source: 'x', components: { p: Probe } },
+      { code: () => [] },
+    )
+    expect(emptySlot.find('[data-fallback]').text()).toBe('default')
   })
 })
 

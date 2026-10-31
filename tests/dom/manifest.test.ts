@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { defineComponent, h } from 'vue'
+import CodeBlock from '../../src/components/CodeBlock.vue'
+import VueSyntaxHighlighter from '../../src/components/VueSyntaxHighlighter.vue'
 import MarkdownBlockquote from '../../src/components/MarkdownBlockquote.vue'
 import MarkdownBreak from '../../src/components/MarkdownBreak.vue'
 import MarkdownChildren from '../../src/components/MarkdownChildren'
@@ -8,6 +10,13 @@ import MarkdownCode from '../../src/components/MarkdownCode.vue'
 import MarkdownContent from '../../src/components/MarkdownContent.vue'
 import MarkdownCustomTag from '../../src/components/MarkdownCustomTag.vue'
 import MarkdownEmphasis from '../../src/components/MarkdownEmphasis.vue'
+import MarkdownFootnoteReference from '../../src/components/MarkdownFootnoteReference.vue'
+import MarkdownFootnotes from '../../src/components/MarkdownFootnotes.vue'
+import MarkdownMath from '../../src/components/MarkdownMath.vue'
+import MarkdownMermaid from '../../src/components/MarkdownMermaid.vue'
+import MermaidBlock from '../../src/components/MermaidBlock.vue'
+import MermaidLiveEditor from '../../src/components/MermaidLiveEditor.vue'
+import MarkdownTaskItem from '../../src/components/MarkdownTaskItem.vue'
 import MarkdownEmpty from '../../src/components/MarkdownEmpty.vue'
 import MarkdownError from '../../src/components/MarkdownError.vue'
 import MarkdownHeading from '../../src/components/MarkdownHeading.vue'
@@ -87,6 +96,35 @@ const fixtures: Record<string, () => unknown> = {
     mount(MarkdownCode, {
       props: { node: { kind: 'code', key: '0', code: 'x', language: 'js' }, code: 'x', language: 'js' },
     }),
+  CodeBlock: () =>
+    mount(CodeBlock, {
+      props: { node: { kind: 'code', key: '0', code: 'x', language: 'js' }, code: 'x', language: 'js' },
+    }),
+  VueSyntaxHighlighter: () =>
+    mount(VueSyntaxHighlighter, {
+      props: { source: 'const x = 1', language: 'ts', lineNumbers: true },
+    }),
+  MarkdownTaskItem: () =>
+    mount(MarkdownTaskItem, {
+      props: { node: node('li'), checked: true },
+      slots: { default: 'task' },
+    }),
+  MarkdownFootnoteReference: () =>
+    mount(MarkdownFootnoteReference, {
+      props: { node: node('sup') },
+      slots: { default: '1' },
+    }),
+  MarkdownFootnotes: () =>
+    mount(MarkdownFootnotes, { props: { node: node('section') }, slots: { default: 'notes' } }),
+  MarkdownMath: () =>
+    mount(MarkdownMath, { props: { tex: 'x^2', displayMode: false } }),
+  MarkdownMermaid: () => mount(MarkdownMermaid, { props: { code: '' } }),
+  MermaidBlock: () => mount(MermaidBlock, { props: { source: '' } }),
+  MermaidLiveEditor: () =>
+    mount(MermaidLiveEditor, {
+      props: { modelValue: '' },
+      slots: { editor: () => h('div', { 'data-editor-stub': '' }) },
+    }),
   MarkdownBreak: () => mount(MarkdownBreak, { props: { node: node('br') } }),
   MarkdownHtml: () => mount(MarkdownHtml, { props: { value: '<b>x</b>' } }),
   MarkdownCustomTag: () =>
@@ -102,7 +140,7 @@ const fixtures: Record<string, () => unknown> = {
 describe('component manifests', () => {
   it('covers every public component with a valid registry', () => {
     expect(validateManifestRegistry()).toEqual([])
-    expect(Object.keys(COMPONENT_MANIFESTS)).toHaveLength(29)
+    expect(Object.keys(COMPONENT_MANIFESTS)).toHaveLength(38)
   })
 
   it('documents only known parts and default labels', () => {
@@ -123,7 +161,16 @@ describe('component manifests', () => {
       const wrapper = create() as ReturnType<typeof mount>
       const issues = validateManifest(manifest!, {
         parts: partsOf(wrapper as never),
-        mode: name === 'MarkdownRenderer' ? 'observed' : 'strict',
+        mode:
+          name === 'MarkdownRenderer' ||
+          name === 'CodeBlock' ||
+          name === 'VueSyntaxHighlighter' ||
+          name === 'MermaidBlock' ||
+          name === 'MermaidLiveEditor' ||
+          name === 'MarkdownMermaid' ||
+          name === 'MarkdownMath'
+            ? 'observed'
+            : 'strict',
       })
       expect(issues, `${name}: ${JSON.stringify(issues)}`).toEqual([])
       wrapper.unmount()

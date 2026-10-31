@@ -124,6 +124,18 @@ default region:
 | `error` | `{ diagnostics, label, retry }` |
 | `empty` | `{ label }` |
 | `loading` | `{ label }` |
+| `code` | `{ node, source, language, actions: { copy, download } }` |
+| `code-actions` | `{ source, language, actions: { copy, download } }` |
+| `highlighter` | `{ source, language, nodes, lines, actions: { copy } }` |
+| `math` | `{ tex, displayMode, rendered, error }` |
+| `math-error` | `{ tex, error, retry }` |
+| `mermaid` | `{ source, svg, status, error, actions: { copy, exportPng, fullscreen, retry } }` |
+| `mermaid-error` | `{ source, error, retry, focusSource }` |
+| `editor` | `{ value, update, diagnostics, status, actions: { focus, reset, fullscreen } }` |
+| `editor-diagnostics` | `{ diagnostics, focusLine }` |
+
+A slot receives the same data and functional actions as the default region. An
+absent slot, or a slot that renders no meaningful output, keeps the default.
 
 ## Presets
 

@@ -27,10 +27,10 @@ import type {
   TocItem,
 } from '../core/types'
 import { createDiagnostic, errorMessage } from '../core/diagnostics'
+import { finalizeMarkdownDocument } from '../core/finalize'
 import { identityOf } from '../core/identity'
 import { memoGet, memoSet } from '../core/memo'
-import { buildDocument, withDerivedDocument } from '../core/model'
-import { normalizeHast } from '../core/normalize'
+import { detectRawPlugin } from '../core/run'
 import { withUniqueSlugs } from '../core/slugger'
 import { createPluginContext } from '../plugins/define'
 import { applySourceTransforms } from '../plugins/source'
@@ -66,19 +66,6 @@ function isAsyncError(error: unknown): boolean {
     error instanceof Error &&
     /finished async|processSync.*async|async.*processSync/i.test(error.message)
   )
-}
-
-function detectRaw(plugins: PluggableList): boolean {
-  return plugins.some((item) => {
-    const name = Array.isArray(item)
-      ? typeof item[0] === 'function'
-        ? item[0].name
-        : ''
-      : typeof item === 'function'
-        ? item.name
-        : ''
-    return /^rehype[-_]?raw$/i.test(name)
-  })
 }
 
 export function useMarkdownDocument(
@@ -124,7 +111,7 @@ export function useMarkdownDocument(
   const idPrefix = computed(() => optionsRef.value.idPrefix ?? '')
   const allowHtml = computed(
     () =>
-      detectRaw(rehypePlugins.value) ||
+      detectRawPlugin(rehypePlugins.value) ||
       pipeline.value.capabilities?.html === true,
   )
 
@@ -222,47 +209,18 @@ export function useMarkdownDocument(
     source: string,
     result: PipelineResult,
     nextDiagnostics: MarkdownDiagnostic[],
-  ): MarkdownDocument => {
-    const context = createPluginContext(source, optionsRef.value, nextDiagnostics)
-    const normalized = normalizeHast(result.hast, {
+  ): MarkdownDocument =>
+    finalizeMarkdownDocument({
+      source,
+      result,
+      options: optionsRef.value,
+      plugins: resolved.value,
+      pipelineName: pipeline.value.name,
+      allowHtml: allowHtml.value,
       slugger: slugger.value,
       idPrefix: idPrefix.value,
-      urlTransform: optionsRef.value.urlTransform,
-      baseUrl: optionsRef.value.baseUrl,
-      allowedElements: optionsRef.value.allowedElements,
-      disallowedElements: optionsRef.value.disallowedElements,
-      unwrapDisallowed: optionsRef.value.unwrapDisallowed,
-      allowElement: optionsRef.value.allowElement,
-      skipHtml: optionsRef.value.skipHtml,
-      allowHtml: allowHtml.value,
       diagnostics: nextDiagnostics,
     })
-
-    let documentValue = buildDocument({
-      nodes: normalized.nodes,
-      plugins: resolved.value.names,
-      pipeline: pipeline.value.name,
-      frontmatter: result.frontmatter,
-    })
-
-    for (const plugin of resolved.value.plugins) {
-      if (!plugin.transformDocument) continue
-      try {
-        const transformed = plugin.transformDocument(documentValue, context)
-        if (transformed) documentValue = transformed
-      } catch (error) {
-        nextDiagnostics.push(
-          createDiagnostic('plugin-transform', errorMessage(error), {
-            phase: 'document',
-            plugin: plugin.name,
-          }),
-        )
-        plugin.onError?.(error, 'document', context)
-      }
-    }
-
-    return withDerivedDocument(documentValue)
-  }
 
   let runId = 0
 

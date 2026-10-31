@@ -180,7 +180,7 @@ export function isAllowedAttribute(tag: string, name: string): boolean {
 }
 
 function isSafeUrl(value: string, key: string): boolean {
-  return defaultUrlTransform(value, key) !== ''
+  return value.trim() === '' || defaultUrlTransform(value, key) !== ''
 }
 
 /**

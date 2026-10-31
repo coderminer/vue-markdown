@@ -8,6 +8,7 @@ import type {
   MarkdownTextNode,
 } from '../core/types'
 import type { RenderContext } from './context'
+import CodeBlock from './CodeBlock.vue'
 import MarkdownBlockquote from './MarkdownBlockquote.vue'
 import MarkdownBreak from './MarkdownBreak.vue'
 import MarkdownCode from './MarkdownCode.vue'
@@ -19,9 +20,14 @@ import MarkdownImage from './MarkdownImage.vue'
 import MarkdownInlineCode from './MarkdownInlineCode.vue'
 import MarkdownLink from './MarkdownLink.vue'
 import MarkdownList from './MarkdownList.vue'
+import MarkdownMath from './MarkdownMath.vue'
+import MarkdownMermaid from './MarkdownMermaid.vue'
 import MarkdownListItem from './MarkdownListItem.vue'
+import MarkdownFootnoteReference from './MarkdownFootnoteReference.vue'
+import MarkdownFootnotes from './MarkdownFootnotes.vue'
 import MarkdownParagraph from './MarkdownParagraph.vue'
 import MarkdownStrikethrough from './MarkdownStrikethrough.vue'
+import MarkdownTaskItem from './MarkdownTaskItem.vue'
 import MarkdownStrong from './MarkdownStrong.vue'
 import MarkdownTable from './MarkdownTable.vue'
 import MarkdownTableCell from './MarkdownTableCell.vue'
@@ -91,6 +97,8 @@ export const TAG_TO_KIND: Record<string, string> = {
 const SEMANTIC_BUILTINS: Record<string, Component> = {
   code: MarkdownCode,
   custom: MarkdownCustomTag,
+  math: MarkdownMath,
+  mermaid: MarkdownMermaid,
 }
 
 function isComponentValue(
@@ -108,6 +116,68 @@ function isNodeRenderer(
 function kindOf(node: MarkdownNode): string {
   if (node.kind !== 'element') return node.kind
   return TAG_TO_KIND[node.tag] ?? node.tag
+}
+
+function classList(node: MarkdownElementNode): string[] {
+  return (node.attrs.class ?? '').split(/\s+/).filter(Boolean)
+}
+
+function directTaskInput(
+  node: MarkdownElementNode,
+): MarkdownElementNode | undefined {
+  return node.children.find(
+    (child): child is MarkdownElementNode =>
+      child.kind === 'element' &&
+      child.tag === 'input' &&
+      child.attrs.type === 'checkbox',
+  )
+}
+
+function specialNodeKey(node: MarkdownNode): string | undefined {
+  if (node.kind !== 'element') return undefined
+  if (node.tag === 'li' && directTaskInput(node)) return 'taskItem'
+  if (
+    node.tag === 'sup' &&
+    (classList(node).includes('footnote-ref') ||
+      node.attrs['data-footnote-ref'] !== undefined ||
+      node.children.some(
+        (child) =>
+          child.kind === 'element' &&
+          child.tag === 'a' &&
+          (classList(child).includes('footnote-ref') ||
+            child.attrs['data-footnote-ref'] !== undefined),
+      ))
+  ) {
+    return 'footnoteReference'
+  }
+  if (
+    node.tag === 'section' &&
+    (classList(node).includes('footnotes') ||
+      node.attrs['data-footnotes'] !== undefined)
+  ) {
+    return 'footnotes'
+  }
+  return undefined
+}
+
+function hasNodeId(nodes: readonly MarkdownNode[], id: string): boolean {
+  for (const node of nodes) {
+    if (node.kind === 'element' && node.attrs.id === id) return true
+    if ('children' in node && Array.isArray(node.children)) {
+      if (hasNodeId(node.children, id)) return true
+    }
+  }
+  return false
+}
+
+function footnoteTarget(node: MarkdownNode): string | undefined {
+  if (node.kind !== 'element') return undefined
+  for (const child of node.children) {
+    if (child.kind === 'element' && child.tag === 'a' && child.attrs.href?.startsWith('#')) {
+      return child.attrs.href.slice(1)
+    }
+  }
+  return undefined
 }
 
 function rendererKeys(node: MarkdownNode): string[] {
@@ -146,6 +216,12 @@ function resolveNodeComponent(
       return tag as Component | string
     }
     return undefined
+  }
+
+  const special = specialNodeKey(node)
+  if (special) {
+    const specialValue = ctx.nodeComponents?.[special]
+    if (isComponentValue(specialValue)) return specialValue
   }
 
   const kind = kindOf(node)
@@ -323,19 +399,94 @@ function renderCodeElement(
 function renderCode(node: MarkdownCodeNode, ctx: RenderContext): VNodeChild {
   // `components.pre` wraps the code element; it does not replace it.
   const tagComponent = ctx.components.pre
-  const component =
-    typeof tagComponent === 'function' || isComponentValue(tagComponent)
-      ? (tagComponent as Component | string)
-      : MarkdownCode
+  if (typeof tagComponent === 'function' || isComponentValue(tagComponent)) {
+    return renderComponent(
+      tagComponent as Component | string,
+      node,
+      ctx,
+      {},
+      {},
+      () => [renderCodeElement(node, ctx)],
+    )
+  }
 
-  return renderComponent(
-    component,
-    node,
-    ctx,
-    {},
-    {},
-    () => [renderCodeElement(node, ctx)],
+  // Host code-element overrides keep the v1.0 `pre` wrapper and inner
+  // resolution path. The default v1.x path uses the richer CodeBlock.
+  if (
+    isComponentValue(ctx.components.code) ||
+    isComponentValue(ctx.nodeComponents?.code)
+  ) {
+    return renderComponent(
+      MarkdownCode,
+      node,
+      ctx,
+      {},
+      {},
+      () => [renderCodeElement(node, ctx)],
+    )
+  }
+
+  return h(CodeBlock, { node, key: node.key })
+}
+
+function renderTaskItem(
+  node: MarkdownElementNode,
+  ctx: RenderContext,
+): VNodeChild {
+  const input = directTaskInput(node)
+  const checked =
+    input?.attrs.checked !== undefined && input.attrs.checked !== 'false'
+  const children = node.children.filter((child) => child !== input)
+
+  return h(
+    MarkdownTaskItem,
+    {
+      node,
+      key: node.key,
+      checked,
+      children: node.children,
+    },
+    { default: () => renderNodes(children, ctx) },
   )
+}
+
+function renderFootnotes(
+  node: MarkdownElementNode,
+  ctx: RenderContext,
+): VNodeChild {
+  return h(
+    MarkdownFootnotes,
+    { node, key: node.key },
+    { default: () => renderNodes(node.children, ctx) },
+  )
+}
+
+function renderFootnoteReference(
+  node: MarkdownElementNode,
+  ctx: RenderContext,
+): VNodeChild {
+  const target = footnoteTarget(node)
+  const missing =
+    target !== undefined && ctx.document !== undefined
+      ? !hasNodeId(ctx.document.nodes, target)
+      : false
+
+  return h(
+    MarkdownFootnoteReference,
+    { node, key: node.key, missing },
+    { default: () => renderNodes(node.children, ctx) },
+  )
+}
+
+function renderSpecialElement(
+  node: MarkdownElementNode,
+  ctx: RenderContext,
+  key: string,
+): VNodeChild | undefined {
+  if (key === 'taskItem') return renderTaskItem(node, ctx)
+  if (key === 'footnotes') return renderFootnotes(node, ctx)
+  if (key === 'footnoteReference') return renderFootnoteReference(node, ctx)
+  return undefined
 }
 
 function renderCustom(node: MarkdownCustomTagNode, ctx: RenderContext): VNodeChild {
@@ -360,9 +511,16 @@ function renderNodeDefault(node: MarkdownNode, ctx: RenderContext): VNodeChild {
     case 'text':
       return renderText(node, ctx)
     case 'element': {
-      const component =
-        resolveNodeComponent(node, ctx) ?? BUILTINS[node.tag]
+      const component = resolveNodeComponent(node, ctx)
       if (!component) {
+        const special = specialNodeKey(node)
+        const rendered = special
+          ? renderSpecialElement(node, ctx, special)
+          : undefined
+        if (rendered !== undefined) return rendered
+      }
+      const resolved = component ?? BUILTINS[node.tag]
+      if (!resolved) {
         return h(
           node.tag,
           { ...node.attrs, key: node.key },
@@ -370,7 +528,7 @@ function renderNodeDefault(node: MarkdownNode, ctx: RenderContext): VNodeChild {
         )
       }
       return renderComponent(
-        component,
+        resolved,
         node,
         ctx,
         node.attrs,
@@ -388,7 +546,11 @@ function renderNodeDefault(node: MarkdownNode, ctx: RenderContext): VNodeChild {
         node,
         ctx,
         {},
-        { tex: node.tex, displayMode: node.displayMode },
+        {
+          tex: node.tex,
+          displayMode: node.displayMode,
+          rendered: node.rendered,
+        },
       )
     case 'mermaid':
       return renderComponent(

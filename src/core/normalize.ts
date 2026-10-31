@@ -62,6 +62,63 @@ function textContent(nodes: readonly MarkdownNode[]): string {
   return value
 }
 
+function classNames(element: Element): string[] {
+  const value: unknown = element.properties?.className
+  if (Array.isArray(value)) return value.map(String)
+  if (typeof value === 'string') return value.split(/\s+/)
+  return []
+}
+
+function mathContainer(element: Element): {
+  tex: string
+  displayMode: boolean
+  rendered: readonly RootContent[]
+} | undefined {
+  const names = classNames(element)
+  const isMath =
+    element.tagName === 'vmd-math' ||
+    (names.includes('language-math') &&
+      names.some((name) => name.startsWith('math-')))
+  if (!isMath) return undefined
+
+  const displayMode =
+    element.properties?.['data-display'] === 'true' ||
+    names.includes('math-display')
+  const explicitTex = element.properties?.['data-tex']
+  const code = findMathCode(element)
+  const tex =
+    typeof explicitTex === 'string'
+      ? explicitTex
+      : code
+        ? code.children.map((child) => (child.type === 'text' ? child.value : '')).join('')
+        : ''
+
+  const source = code ?? element
+  let rendered: readonly RootContent[] = source.children
+  const first = rendered.find(
+    (child): child is Element => child.type === 'element',
+  )
+  if (first?.tagName === 'pre' || first?.tagName === 'code') {
+    rendered = first.children
+  }
+
+  return { tex, displayMode, rendered }
+}
+
+function findMathCode(element: Element): Element | undefined {
+  for (const child of element.children) {
+    if (child.type !== 'element') continue
+    if (child.tagName === 'code' && classNames(child).includes('language-math')) {
+      return child
+    }
+    if (child.tagName === 'pre') {
+      const nested = findMathCode(child)
+      if (nested) return nested
+    }
+  }
+  return undefined
+}
+
 function isCodeBlock(element: Element): boolean {
   if (element.tagName !== 'pre') return false
   const meaningful = element.children.filter(
@@ -83,7 +140,7 @@ function codeLanguage(element: Element): string {
       : []),
   ]
   for (const name of classNames) {
-    const match = /^(?:language|lang)-([\w+-]+)$/.exec(name)
+    const match = /^(?:language|lang)-(.+)$/u.exec(name)
     if (match?.[1]) return match[1].toLowerCase()
   }
   return ''
@@ -172,7 +229,9 @@ function normalizeUrlAttribute(
   const transform = state.options.urlTransform
 
   if (!transform) {
-    return defaultUrlTransform(resolved, key) || undefined
+    const transformed = defaultUrlTransform(resolved, key)
+    if (transformed !== '') return transformed
+    return resolved.trim() === '' ? '' : undefined
   }
 
   try {
@@ -202,11 +261,45 @@ function convertElement(
   index: number,
   parent: MarkdownElementNode | undefined,
   state: FilterState,
+  allowMath = false,
 ): MarkdownNode | MarkdownNode[] | null {
-  if (DANGEROUS_TAGS.has(element.tagName)) return null
+  if (
+    DANGEROUS_TAGS.has(element.tagName) &&
+    !(allowMath && element.tagName === 'math')
+  ) {
+    return null
+  }
 
   const source = toSourceRange(element)
   const attrs = propertiesToAttrs(element.tagName, element.properties)
+
+  const math = mathContainer(element)
+  if (math) {
+    const provisional: MarkdownElementNode = {
+      kind: 'element',
+      key: path,
+      tag: element.tagName,
+      attrs,
+      children: [],
+      source,
+    }
+    const decision = filterDecision(provisional, index, parent, state)
+    if (decision !== 'keep') return null
+    return {
+      kind: 'math',
+      key: path,
+      tex: math.tex,
+      displayMode: math.displayMode,
+      rendered: convertChildren(
+        math.rendered,
+        path,
+        provisional,
+        state,
+        true,
+      ),
+      source,
+    }
+  }
 
   const provisional: MarkdownElementNode = {
     kind: 'element',
@@ -217,7 +310,13 @@ function convertElement(
     source,
   }
 
-  const children = convertChildren(element.children, path, provisional, state)
+  const children = convertChildren(
+    element.children,
+    path,
+    provisional,
+    state,
+    allowMath,
+  )
   provisional.children = children
 
   const decision = filterDecision(provisional, index, parent, state)
@@ -250,6 +349,7 @@ function convertChildren(
   parentPath: string,
   parent: MarkdownElementNode | undefined,
   state: FilterState,
+  allowMath = false,
 ): MarkdownNode[] {
   const result: MarkdownNode[] = []
   children.forEach((child, index) => {
@@ -281,7 +381,7 @@ function convertChildren(
 
     if (child.type !== 'element') return
 
-    const converted = convertElement(child, path, index, parent, state)
+    const converted = convertElement(child, path, index, parent, state, allowMath)
     if (converted === null) return
     if (Array.isArray(converted)) result.push(...converted)
     else result.push(converted)

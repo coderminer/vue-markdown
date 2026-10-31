@@ -16,7 +16,7 @@ export function defaultUrlTransform(
 ): string {
   if (typeof url !== 'string') return ''
   const value = url.trim()
-  if (!value) return ''
+  if (!value) return url
 
   if (value.startsWith('data:')) {
     if (key === 'src' && SAFE_DATA_IMAGE.test(value)) return value

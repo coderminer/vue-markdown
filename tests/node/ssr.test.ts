@@ -5,6 +5,7 @@ import MarkdownRenderer from '../../src/components/MarkdownRenderer.vue'
 import MarkdownEmpty from '../../src/components/MarkdownEmpty.vue'
 import MarkdownError from '../../src/components/MarkdownError.vue'
 import MarkdownLoading from '../../src/components/MarkdownLoading.vue'
+import MermaidBlock from '../../src/components/MermaidBlock.vue'
 import MarkdownToc from '../../src/components/MarkdownToc.vue'
 import { exportMarkdownHtmlSync } from '../../src/export'
 import { gfmPlugin } from '../../src/plugins/builtin'
@@ -31,6 +32,30 @@ describe('server rendering', () => {
   it('runs without browser globals', () => {
     expect(typeof document).toBe('undefined')
     expect(typeof window).toBe('undefined')
+  })
+
+  it('renders a deterministic Mermaid placeholder without the runtime', async () => {
+    const html = await renderComponent(MermaidBlock, { source: 'graph TD; A-->B' })
+    expect(html).toContain('data-vmd-part="mermaid"')
+    expect(html).toContain('Rendering diagram')
+    expect(html).not.toContain('<svg')
+  })
+
+  it('renders region slots on the server', async () => {
+    const app = createSSRApp({
+      render: () =>
+        h(
+          MarkdownRenderer,
+          { source: '# Hello' },
+          {
+            content: (ctx: { nodes: unknown[] }) =>
+              h('section', { 'data-ssr-slot': '' }, `nodes:${ctx.nodes.length}`),
+          },
+        ),
+    })
+    const html = await renderToString(app)
+    expect(html).toContain('data-ssr-slot')
+    expect(html).toContain('nodes:1')
   })
 
   it('renders Markdown to semantic HTML', async () => {

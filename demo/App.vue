@@ -12,6 +12,7 @@ import HeadlessSection from './sections/HeadlessSection.vue'
 import MigrationSection from './sections/MigrationSection.vue'
 import SsrSection from './sections/SsrSection.vue'
 import CustomizationSection from './sections/CustomizationSection.vue'
+import V1xSection from './sections/V1xSection.vue'
 
 const sections = [
   { id: 'playground', label: 'Playground' },
@@ -26,6 +27,7 @@ const sections = [
   { id: 'migration', label: 'Migration' },
   { id: 'ssr', label: 'SSR' },
   { id: 'customization', label: 'Customization' },
+  { id: 'v1x', label: 'v1.x engines' },
 ]
 </script>
 
@@ -64,6 +66,7 @@ const sections = [
       <MigrationSection />
       <SsrSection />
       <CustomizationSection />
+      <V1xSection />
     </main>
   </div>
 </template>

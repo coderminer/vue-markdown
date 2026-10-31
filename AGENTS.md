@@ -1,8 +1,9 @@
 # AGENTS.md
 
 This repository builds `vue-markdown-suite`, a Vue 3 Markdown component suite.
-The OpenSpec change in `openspec/changes/add-vue-markdown-component-suite/` is
-the source of truth for behavior. `tasks.md` is the implementation checklist.
+The archived v1.0 change and the main specs under `openspec/specs/` are the
+source of truth for behavior. The active change under `openspec/changes/` is the
+implementation checklist.
 
 ## Layers and dependency direction
 
@@ -29,7 +30,13 @@ of other presets.
   pipeline, and plugins.
 - `src/composables/` — Vue state adapters; the only place that owns
   `shallowRef` documents and watchers.
-- `src/components/` — node catalog, renderer, render context, resolution.
+- `src/components/` — node catalog, renderer, render context, resolution, and
+  the optional engine presentation components.
+- `src/highlight/` — highlighter adapters and result normalization; the default
+  highlight.js adapter and Shiki adapter live behind separate entries.
+- `src/math/` — math plugin, KaTeX engine, and math entry.
+- `src/mermaid/` — lazy Mermaid runtime and SVG sanitizer.
+- `src/editor/` — lazy CodeMirror integration for the Mermaid editor.
 - `src/styles/` — tokens and part-based CSS.
 - `demo/` — public-entry-only demonstration app; no business logic.
 
@@ -57,7 +64,13 @@ npm run bench        # parse/render budget gate
   slot. Keep them CSS-independent and SSR-safe.
 - New public components must ship parts, tokens, and labels. From v1.x they
   also ship a manifest entry.
-- Do not use `v-html` anywhere in the render path.
+- Every replaceable region ships a named slot with scoped data and functional
+  actions. An absent or empty slot keeps the default rendering.
+- Optional engines (highlight.js, Shiki, KaTeX, Mermaid, CodeMirror) stay in
+  their own entries or dynamic chunks. The headless, pipeline, and plugins
+  entries must not import them.
+- Do not use `v-html` anywhere in the render path. Engine output is converted to
+  nodes; Mermaid SVG is sanitized before rendering.
 
 ## Plugin rules
 

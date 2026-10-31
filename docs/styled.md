@@ -136,6 +136,18 @@ unchanged.
 - Images fall back to their alt text when loading fails.
 - The error region uses `role="alert"`.
 
+## v1.x parts
+
+The stylesheet includes hooks for the rich catalog and optional engines:
+`task-item`, `task-checkbox`, `footnote-reference`, `footnotes`, `code-header`,
+`code-lang`, `code-toolbar`, `code-action`, `code-body`, `highlighter`,
+`highlighter-line`, `highlighter-gutter`, `highlighter-empty`, `math`,
+`math-error`, `mermaid`, `mermaid-header`, `mermaid-tabs`, `mermaid-actions`,
+`mermaid-preview`, `mermaid-source`, `mermaid-pending`, `mermaid-error`,
+`editor`, `editor-toolbar`, `editor-pane`, `editor-divider`,
+`editor-preview`, and `editor-diagnostics`. Fullscreen state is exposed with
+`data-fullscreen`; Mermaid uses `data-status`, `data-view`, and `data-renderer`.
+
 ## Next
 
 - [Headless usage](headless.md) for fully custom markup.
