@@ -20,7 +20,7 @@ default).
 ## GFM
 
 ```ts
-import { gfmPlugin } from 'vue-markdown-suite/plugins'
+import { gfmPlugin } from '@coderminer/vue-markdown/plugins'
 ```
 
 ```vue
@@ -37,7 +37,7 @@ import { gfmPlugin } from 'vue-markdown-suite/plugins'
 To keep the default plugins as well:
 
 ```ts
-import { defaultPlugins, gfmPlugin } from 'vue-markdown-suite/plugins'
+import { defaultPlugins, gfmPlugin } from '@coderminer/vue-markdown/plugins'
 
 const plugins = [...defaultPlugins, gfmPlugin]
 ```
@@ -52,13 +52,13 @@ and `MarkdownTableCell`. Cells receive `align` from the delimiter row and set
 
 ## Task lists
 
-Task list items render a disabled checkbox parsed from `remark-gfm`. The v1.x
-`MarkdownTaskItem` adds `task-change`; v1.0 keeps the parsed checkbox markup.
+Task list items render a disabled checkbox parsed from `remark-gfm`.
+`MarkdownTaskItem` adds the accessible checkbox wrapper and `task-change` event.
 
 ## Frontmatter
 
 ```ts
-import { frontmatterPlugin } from 'vue-markdown-suite/plugins'
+import { frontmatterPlugin } from '@coderminer/vue-markdown/plugins'
 
 const plugins = [frontmatterPlugin]
 ```

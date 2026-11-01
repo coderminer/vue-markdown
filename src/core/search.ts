@@ -1,10 +1,10 @@
-import type { MarkdownDocument, MarkdownNode, MarkdownTextNode } from './types'
+import type {
+  MarkdownDocument,
+  MarkdownNode,
+  MarkdownTextNode,
+  SearchOptions,
+} from './types'
 import { walkNodes } from './normalize'
-
-export interface SearchOptions {
-  query?: string
-  caseSensitive?: boolean
-}
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')

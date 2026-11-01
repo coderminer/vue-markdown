@@ -99,6 +99,19 @@ export interface TocItem {
   level: number
 }
 
+/** Renderer-level search state emitted with `search-change`. */
+export interface SearchChangePayload {
+  query: string
+  caseSensitive: boolean
+  matches: number
+}
+
+/** Options for segmenting text nodes into search matches. */
+export interface SearchOptions {
+  query?: string
+  caseSensitive?: boolean
+}
+
 export interface CustomTagInstance {
   key: string
   tag: string
@@ -135,6 +148,8 @@ export interface MarkdownDiagnostic {
   phase?: DiagnosticPhase
   plugin?: string
   source?: SourceRange
+  /** Optional raw parser/engine detail shown only by opt-in UI. */
+  details?: string
 }
 
 /**
@@ -198,6 +213,14 @@ export interface MarkdownLabels {
   zoomIn: MarkdownLabelValue
   zoomOut: MarkdownLabelValue
   reset: MarkdownLabelValue
+  editor: MarkdownLabelValue
+  editorEmpty: MarkdownLabelValue
+  editorLine: MarkdownLabelValue
+  editorSplitter: MarkdownLabelValue
+  editorDiagnostics: MarkdownLabelValue
+  editorReset: MarkdownLabelValue
+  editorSyntaxError: MarkdownLabelValue
+  editorParseError: MarkdownLabelValue
 }
 
 export type MarkdownTheme = 'light' | 'dark' | 'auto' | 'custom'
@@ -457,4 +480,6 @@ export interface MarkdownDocumentOptions {
   externalLinkTarget?: string
   baseUrl?: string
   idPrefix?: string
+  /** Host-provided search state; search segments are recomputed when set. */
+  search?: SearchOptions
 }

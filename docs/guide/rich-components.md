@@ -14,9 +14,9 @@ import {
   VueSyntaxHighlighter,
   type CodeBlockAction,
   type MarkdownCodeNode,
-} from 'vue-markdown-suite'
-import { defaultPlugins } from 'vue-markdown-suite/plugins'
-import { mathPlugin } from 'vue-markdown-suite/math'
+} from '@coderminer/vue-markdown'
+import { defaultPlugins } from '@coderminer/vue-markdown/plugins'
+import { mathPlugin } from '@coderminer/vue-markdown/math'
 
 const { isDark } = useData()
 const richTheme = computed(() => (isDark.value ? 'dark' : 'light'))
@@ -71,18 +71,18 @@ with your own component.
 
 | Component | Default renderer role | Entry |
 | --- | --- | --- |
-| `CodeBlock` | Fenced code with header, actions, and lazy highlighting | `vue-markdown-suite` |
-| `VueSyntaxHighlighter` | Standalone highlighted snippet | `vue-markdown-suite` |
-| `MermaidBlock` | Diagram preview with zoom, fullscreen, and export | `vue-markdown-suite` |
-| `MermaidLiveEditor` | CodeMirror-backed Mermaid editor | `vue-markdown-suite` |
-| `MarkdownMath` | Math node rendered by the configured engine | `vue-markdown-suite` |
+| `CodeBlock` | Fenced code with header, actions, and lazy highlighting | `@coderminer/vue-markdown` |
+| `VueSyntaxHighlighter` | Standalone highlighted snippet | `@coderminer/vue-markdown` |
+| `MermaidBlock` | Diagram preview with zoom, fullscreen, and export | `@coderminer/vue-markdown` |
+| `MermaidLiveEditor` | CodeMirror-backed Mermaid editor | `@coderminer/vue-markdown` |
+| `MarkdownMath` | Math node rendered by the configured engine | `@coderminer/vue-markdown` |
 
 Every component is also available through a per-component entry:
 
 ```ts
-import CodeBlock from 'vue-markdown-suite/components/CodeBlock'
-import VueSyntaxHighlighter from 'vue-markdown-suite/components/VueSyntaxHighlighter'
-import MermaidBlock from 'vue-markdown-suite/components/MermaidBlock'
+import CodeBlock from '@coderminer/vue-markdown/components/CodeBlock'
+import VueSyntaxHighlighter from '@coderminer/vue-markdown/components/VueSyntaxHighlighter'
+import MermaidBlock from '@coderminer/vue-markdown/components/MermaidBlock'
 ```
 
 ## CodeBlock
@@ -95,7 +95,7 @@ require an icon package; every icon button keeps an accessible label and title.
 
 ```vue
 <script setup lang="ts">
-import { CodeBlock, type CodeBlockAction } from 'vue-markdown-suite'
+import { CodeBlock, type CodeBlockAction } from '@coderminer/vue-markdown'
 
 const actions: CodeBlockAction[] = [
   {
@@ -190,7 +190,7 @@ import {
   type MarkdownHighlighter,
   type MarkdownNode,
   type MarkdownTheme,
-} from 'vue-markdown-suite'
+} from '@coderminer/vue-markdown'
 
 withDefaults(
   defineProps<{
@@ -303,7 +303,7 @@ Use the lab to verify:
 
 ```vue
 <script setup lang="ts">
-import { MarkdownRenderer } from 'vue-markdown-suite'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
 import ReviewCodeBlock from './ReviewCodeBlock.vue'
 
 const components = {
@@ -331,7 +331,7 @@ virtualization for long files.
 
 ```vue
 <script setup lang="ts">
-import { VueSyntaxHighlighter } from 'vue-markdown-suite'
+import { VueSyntaxHighlighter } from '@coderminer/vue-markdown'
 </script>
 
 <template>
@@ -387,7 +387,7 @@ as `CodeBlock`.
 
 ```vue
 <script setup lang="ts">
-import { MermaidBlock } from 'vue-markdown-suite'
+import { MermaidBlock } from '@coderminer/vue-markdown'
 
 const diagram = `flowchart LR
   Markdown --> Pipeline
@@ -474,7 +474,7 @@ const renderer = {
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue'
-import { MermaidLiveEditor } from 'vue-markdown-suite'
+import { MermaidLiveEditor } from '@coderminer/vue-markdown'
 
 const source = ref(`flowchart LR
   Markdown --> Pipeline
@@ -496,24 +496,39 @@ const source = ref(`flowchart LR
 
 | Prop | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `modelValue` | `string` | `''` | Diagram source. Use `v-model`. |
+| `modelValue` | `string` | `''` | Diagram source. Use `v-model`. Non-string values render the empty preview. |
 | `debounce` | `number` | `300` | Preview debounce in milliseconds. |
 | `theme` | `MarkdownTheme` | context | Editor and preview theme. |
 | `renderer` | `MermaidRenderer` | context | Preview renderer override. |
 | `diagnosticsFormatter` | `DiagnosticFormatter` | context | Formats preview errors. |
-| `compact` | `boolean` | `false` | Compact toolbar layout. |
+| `compact` | `boolean` | `false` | Compact toolbar and diagnostics layout. |
+| `rawDetails` | `boolean` | `false` | Shows the raw parser detail alongside the friendly diagnostic. |
+| `autoFocus` | `boolean` | `false` | Focuses the mapped error line after a diagnostic. |
 | `initialRatio` | `number` | `0.5` | Initial editor pane ratio. |
 | `minRatio` | `number` | `0.2` | Minimum editor pane ratio. |
 
 Events: `update:modelValue(value)`, `preview(value)`, and `error(diagnostic)`.
-Slots: `editor` and `editor-diagnostics`.
-The `editor` slot receives `{ value, update, diagnostics, status, actions }`;
-`editor-diagnostics` receives `{ diagnostics, focusLine }`.
+Slots: `toolbar`, `editor`, `preview`, `editor-diagnostics`, `empty`, and
+`fullscreen`.
+
+| Slot | Context |
+| --- | --- |
+| `toolbar` | `{ ratio, fullscreen, compact, actions: { toggleFullscreen, resetRatio, setRatio } }` |
+| `editor` | `{ value, update, diagnostics, status, actions: { focus, reset, fullscreen } }` |
+| `preview` | `{ source, status, error, nodes, actions: { refresh, fullscreen, focus } }` |
+| `editor-diagnostics` | `{ diagnostics, focusLine }` |
+| `empty` | `{ source, actions: { focus, refresh } }` |
+| `fullscreen` | `{ fullscreen, label, toggle }` |
+
+An empty source renders the `empty` placeholder instead of a stale diagram.
+With a custom `toolbar` slot, provide `#fullscreen` to keep the default
+fullscreen control, or call `actions.toggleFullscreen` from the toolbar.
 Exposed: `focus()`, `refreshPreview()`, `toggleFullscreen()`, and
 `getDiagnostics()`.
 
 `compact` hides the preview block's toolbar buttons while keeping the preview
-tabs, so the editor's own toolbar is not duplicated.
+tabs, so the editor's own toolbar is not duplicated. It also tightens the
+diagnostics panel.
 
 ```vue
 <MermaidLiveEditor v-model="source">
@@ -531,9 +546,9 @@ TeX source.
 
 ```vue
 <script setup lang="ts">
-import { MarkdownRenderer } from 'vue-markdown-suite'
-import { mathPlugin, katexEngine } from 'vue-markdown-suite/math'
-import 'vue-markdown-suite/styles/math-full.css'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
+import { mathPlugin, katexEngine } from '@coderminer/vue-markdown/math'
+import '@coderminer/vue-markdown/styles/math-full.css'
 </script>
 
 <template>
@@ -587,10 +602,10 @@ the same `render()`, `copy()`, `exportPng()`, `downloadSvg()`, and
 
 ```vue
 <script setup lang="ts">
-import { MarkdownRenderer } from 'vue-markdown-suite'
-import { fullPlugins } from 'vue-markdown-suite/plugins'
-import { mathPlugin } from 'vue-markdown-suite/math'
-import { mermaidPlugin } from 'vue-markdown-suite/mermaid'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
+import { fullPlugins } from '@coderminer/vue-markdown/plugins'
+import { mathPlugin } from '@coderminer/vue-markdown/math'
+import { mermaidPlugin } from '@coderminer/vue-markdown/mermaid'
 
 // Create plugin instances once, outside the template and outside render.
 const plugins = [...fullPlugins, mathPlugin(), mermaidPlugin()]

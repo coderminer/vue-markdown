@@ -14,9 +14,9 @@ import {
   VueSyntaxHighlighter,
   type CodeBlockAction,
   type MarkdownCodeNode,
-} from 'vue-markdown-suite'
-import { defaultPlugins } from 'vue-markdown-suite/plugins'
-import { mathPlugin } from 'vue-markdown-suite/math'
+} from '@coderminer/vue-markdown'
+import { defaultPlugins } from '@coderminer/vue-markdown/plugins'
+import { mathPlugin } from '@coderminer/vue-markdown/math'
 
 const { isDark } = useData()
 const richTheme = computed(() => (isDark.value ? 'dark' : 'light'))
@@ -70,18 +70,18 @@ $$`
 
 | 组件 | 默认渲染器中的角色 | 入口 |
 | --- | --- | --- |
-| `CodeBlock` | 带头部、操作和按需高亮的围栏代码 | `vue-markdown-suite` |
-| `VueSyntaxHighlighter` | 独立的高亮代码片段 | `vue-markdown-suite` |
-| `MermaidBlock` | 带缩放、全屏和导出的图表预览 | `vue-markdown-suite` |
-| `MermaidLiveEditor` | 基于 CodeMirror 的 Mermaid 编辑器 | `vue-markdown-suite` |
-| `MarkdownMath` | 由配置引擎渲染的数学节点 | `vue-markdown-suite` |
+| `CodeBlock` | 带头部、操作和按需高亮的围栏代码 | `@coderminer/vue-markdown` |
+| `VueSyntaxHighlighter` | 独立的高亮代码片段 | `@coderminer/vue-markdown` |
+| `MermaidBlock` | 带缩放、全屏和导出的图表预览 | `@coderminer/vue-markdown` |
+| `MermaidLiveEditor` | 基于 CodeMirror 的 Mermaid 编辑器 | `@coderminer/vue-markdown` |
+| `MarkdownMath` | 由配置引擎渲染的数学节点 | `@coderminer/vue-markdown` |
 
 每个组件也都有单组件入口：
 
 ```ts
-import CodeBlock from 'vue-markdown-suite/components/CodeBlock'
-import VueSyntaxHighlighter from 'vue-markdown-suite/components/VueSyntaxHighlighter'
-import MermaidBlock from 'vue-markdown-suite/components/MermaidBlock'
+import CodeBlock from '@coderminer/vue-markdown/components/CodeBlock'
+import VueSyntaxHighlighter from '@coderminer/vue-markdown/components/VueSyntaxHighlighter'
+import MermaidBlock from '@coderminer/vue-markdown/components/MermaidBlock'
 ```
 
 ## CodeBlock
@@ -92,7 +92,7 @@ Mermaid 主导的外观。内置图标不需要图标包，每个图标按钮都
 
 ```vue
 <script setup lang="ts">
-import { CodeBlock, type CodeBlockAction } from 'vue-markdown-suite'
+import { CodeBlock, type CodeBlockAction } from '@coderminer/vue-markdown'
 
 const actions: CodeBlockAction[] = [
   {
@@ -184,7 +184,7 @@ import {
   type MarkdownHighlighter,
   type MarkdownNode,
   type MarkdownTheme,
-} from 'vue-markdown-suite'
+} from '@coderminer/vue-markdown'
 
 withDefaults(
   defineProps<{
@@ -296,7 +296,7 @@ defineExpose({ copy, download, getHighlighted })
 
 ```vue
 <script setup lang="ts">
-import { MarkdownRenderer } from 'vue-markdown-suite'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
 import ReviewCodeBlock from './ReviewCodeBlock.vue'
 
 const components = {
@@ -322,7 +322,7 @@ const components = {
 
 ```vue
 <script setup lang="ts">
-import { VueSyntaxHighlighter } from 'vue-markdown-suite'
+import { VueSyntaxHighlighter } from '@coderminer/vue-markdown'
 </script>
 
 <template>
@@ -378,7 +378,7 @@ preview/source 标签。默认头部、标签、文案和图标操作由可选�
 
 ```vue
 <script setup lang="ts">
-import { MermaidBlock } from 'vue-markdown-suite'
+import { MermaidBlock } from '@coderminer/vue-markdown'
 
 const diagram = `flowchart LR
   Markdown --> Pipeline
@@ -462,7 +462,7 @@ CodeMirror。
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue'
-import { MermaidLiveEditor } from 'vue-markdown-suite'
+import { MermaidLiveEditor } from '@coderminer/vue-markdown'
 
 const source = ref(`flowchart LR
   Markdown --> Pipeline
@@ -484,24 +484,38 @@ const source = ref(`flowchart LR
 
 | 属性 | 类型 | 默认值 | 说明 |
 | --- | --- | --- | --- |
-| `modelValue` | `string` | `''` | 图表源码，使用 `v-model`。 |
+| `modelValue` | `string` | `''` | 图表源码，使用 `v-model`；非字符串值按空预览处理。 |
 | `debounce` | `number` | `300` | 预览防抖，单位毫秒。 |
 | `theme` | `MarkdownTheme` | 上下文 | 编辑器和预览主题。 |
 | `renderer` | `MermaidRenderer` | 上下文 | 预览渲染器覆盖。 |
 | `diagnosticsFormatter` | `DiagnosticFormatter` | 上下文 | 格式化预览错误。 |
-| `compact` | `boolean` | `false` | 紧凑工具栏布局。 |
+| `compact` | `boolean` | `false` | 紧凑工具栏和诊断布局。 |
+| `rawDetails` | `boolean` | `false` | 在友好诊断旁显示原始解析器详情。 |
+| `autoFocus` | `boolean` | `false` | 诊断后聚焦映射到的错误行。 |
 | `initialRatio` | `number` | `0.5` | 编辑器面板初始比例。 |
 | `minRatio` | `number` | `0.2` | 编辑器面板最小比例。 |
 
 事件：`update:modelValue(value)`、`preview(value)` 和 `error(diagnostic)`。
 
-插槽：`editor` 和 `editor-diagnostics`。`editor` 收到
-`{ value, update, diagnostics, status, actions }`；`editor-diagnostics` 收到
-`{ diagnostics, focusLine }`。
+插槽：`toolbar`、`editor`、`preview`、`editor-diagnostics`、`empty` 和
+`fullscreen`。
 
-暴露：`focus()`、`refreshPreview()`、`toggleFullscreen()` 和 `getDiagnostics()`。
+| 插槽 | 上下文 |
+| --- | --- |
+| `toolbar` | `{ ratio, fullscreen, compact, actions: { toggleFullscreen, resetRatio, setRatio } }` |
+| `editor` | `{ value, update, diagnostics, status, actions: { focus, reset, fullscreen } }` |
+| `preview` | `{ source, status, error, nodes, actions: { refresh, fullscreen, focus } }` |
+| `editor-diagnostics` | `{ diagnostics, focusLine }` |
+| `empty` | `{ source, actions: { focus, refresh } }` |
+| `fullscreen` | `{ fullscreen, label, toggle }` |
 
-`compact` 隐藏预览块的操作按钮，但保留预览标签，避免与编辑器自己的工具栏重复。
+源码为空时显示 `empty` 占位，而不是保留旧图表。使用自定义 `toolbar` 插槽时，
+提供 `#fullscreen` 可保留默认全屏控件，或在工具栏中调用
+`actions.toggleFullscreen`。暴露：`focus()`、`refreshPreview()`、
+`toggleFullscreen()` 和 `getDiagnostics()`。
+
+`compact` 隐藏预览块的操作按钮，但保留预览标签，避免与编辑器自己的工具栏重复，同时
+收紧诊断面板。
 
 ```vue
 <MermaidLiveEditor v-model="source">
@@ -518,9 +532,9 @@ const source = ref(`flowchart LR
 
 ```vue
 <script setup lang="ts">
-import { MarkdownRenderer } from 'vue-markdown-suite'
-import { katexEngine, mathPlugin } from 'vue-markdown-suite/math'
-import 'vue-markdown-suite/styles/math-full.css'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
+import { katexEngine, mathPlugin } from '@coderminer/vue-markdown/math'
+import '@coderminer/vue-markdown/styles/math-full.css'
 </script>
 
 <template>
@@ -570,10 +584,10 @@ import 'vue-markdown-suite/styles/math-full.css'
 
 ```vue
 <script setup lang="ts">
-import { MarkdownRenderer } from 'vue-markdown-suite'
-import { fullPlugins } from 'vue-markdown-suite/plugins'
-import { mathPlugin } from 'vue-markdown-suite/math'
-import { mermaidPlugin } from 'vue-markdown-suite/mermaid'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
+import { fullPlugins } from '@coderminer/vue-markdown/plugins'
+import { mathPlugin } from '@coderminer/vue-markdown/math'
+import { mermaidPlugin } from '@coderminer/vue-markdown/mermaid'
 
 // 在模板和渲染函数之外创建一次插件实例。
 const plugins = [...fullPlugins, mathPlugin(), mermaidPlugin()]

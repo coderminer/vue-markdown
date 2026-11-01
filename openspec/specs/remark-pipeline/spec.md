@@ -91,7 +91,7 @@ The library SHALL provide a `gfmPlugin` that composes `remark-gfm`. With the plu
 
 ### Requirement: Raw HTML and the html plugin
 
-`remark-rehype` SHALL run with `allowDangerousHtml: true` so raw HTML survives as `raw` nodes. By default the model builder SHALL drop raw nodes. Raw HTML SHALL be rendered only when a plugin declares `html: true` and contributes `rehype-raw`, as `htmlPlugin()` from the official `vue-markdown-suite/html` entry does. Sanitization SHALL run immediately after it. No renderer prop SHALL implicitly enable raw HTML, and a manual `rehype-raw` in `rehypePlugins` SHALL be ignored with a warning.
+`remark-rehype` SHALL run with `allowDangerousHtml: true` so raw HTML survives as `raw` nodes. By default the model builder SHALL drop raw nodes. Raw HTML SHALL be rendered only when a plugin declares `html: true` and contributes `rehype-raw`, as `htmlPlugin()` from the official `@coderminer/vue-markdown/html` entry does. Sanitization SHALL run immediately after it. No renderer prop SHALL implicitly enable raw HTML, and a manual `rehype-raw` in `rehypePlugins` SHALL be ignored with a warning.
 
 #### Scenario: Raw HTML dropped
 - **WHEN** Markdown contains `<div>hi</div>` and the html plugin is not enabled

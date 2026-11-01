@@ -1,5 +1,5 @@
 ---
-description: Customize elements, themes, and CSS in vue-markdown-suite with stable override layers, design tokens, and documented parts.
+description: Customize elements, themes, and CSS in @coderminer/vue-markdown with stable override layers, design tokens, and documented parts.
 ---
 
 # Customization
@@ -27,7 +27,7 @@ replacement in its own `.vue` file and pass the component reference.
 
 ```vue [BadgeLink.vue]
 <script setup lang="ts">
-import type { MarkdownNode } from 'vue-markdown-suite'
+import type { MarkdownNode } from '@coderminer/vue-markdown'
 
 defineProps<{
   node?: MarkdownNode
@@ -45,7 +45,7 @@ defineProps<{
 
 ```vue [CodeFrame.vue]
 <script setup lang="ts">
-import type { MarkdownCodeNode } from 'vue-markdown-suite'
+import type { MarkdownCodeNode } from '@coderminer/vue-markdown'
 
 defineProps<{ node?: MarkdownCodeNode }>()
 </script>
@@ -60,7 +60,7 @@ defineProps<{ node?: MarkdownCodeNode }>()
 
 ```vue [App.vue]
 <script setup lang="ts">
-import { MarkdownRenderer } from 'vue-markdown-suite'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
 import BadgeLink from './BadgeLink.vue'
 import CodeFrame from './CodeFrame.vue'
 
@@ -87,7 +87,7 @@ element tags). A component is the clearest form:
 
 ```vue [Callout.vue]
 <script setup lang="ts">
-import type { MarkdownNode } from 'vue-markdown-suite'
+import type { MarkdownNode } from '@coderminer/vue-markdown'
 
 defineProps<{ node?: MarkdownNode }>()
 </script>
@@ -101,7 +101,7 @@ defineProps<{ node?: MarkdownNode }>()
 
 ```vue [ArticleLink.vue]
 <script setup lang="ts">
-import type { MarkdownNode } from 'vue-markdown-suite'
+import type { MarkdownNode } from '@coderminer/vue-markdown'
 
 defineProps<{ node?: MarkdownNode }>()
 </script>
@@ -115,7 +115,7 @@ defineProps<{ node?: MarkdownNode }>()
 
 ```vue [App.vue]
 <script setup lang="ts">
-import { MarkdownRenderer } from 'vue-markdown-suite'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
 import ArticleLink from './ArticleLink.vue'
 import Callout from './Callout.vue'
 
@@ -148,7 +148,7 @@ so the plugin is required in this example.
 
 ```vue [CustomCode.vue]
 <script setup lang="ts">
-import type { MarkdownCodeNode } from 'vue-markdown-suite'
+import type { MarkdownCodeNode } from '@coderminer/vue-markdown'
 
 defineProps<{
   node?: MarkdownCodeNode
@@ -168,8 +168,8 @@ defineProps<{
 
 ```vue [CustomMermaid.vue]
 <script setup lang="ts">
-import { MermaidBlock } from 'vue-markdown-suite'
-import type { MarkdownMermaidNode } from 'vue-markdown-suite'
+import { MermaidBlock } from '@coderminer/vue-markdown'
+import type { MarkdownMermaidNode } from '@coderminer/vue-markdown'
 
 defineProps<{
   node?: MarkdownMermaidNode
@@ -184,9 +184,9 @@ defineProps<{
 
 ```vue [App.vue]
 <script setup lang="ts">
-import { MarkdownRenderer } from 'vue-markdown-suite'
-import { defaultPlugins } from 'vue-markdown-suite/plugins'
-import { mermaidPlugin } from 'vue-markdown-suite/mermaid'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
+import { defaultPlugins } from '@coderminer/vue-markdown/plugins'
+import { mermaidPlugin } from '@coderminer/vue-markdown/mermaid'
 import CustomCode from './CustomCode.vue'
 import CustomMermaid from './CustomMermaid.vue'
 
@@ -294,7 +294,7 @@ interface TocItem {
 }
 ```
 
-Customize it at four layers:
+Customize it at several layers:
 
 | Layer | API |
 | --- | --- |
@@ -302,13 +302,20 @@ Customize it at four layers:
 | One item | `#toc-item` slot or `regions.tocItem` |
 | Label | `labels.toc` |
 | Depth | `tocDepth` (`0` = all levels, `1`–`6` = maximum level) |
+| Placement | `tocPlacement` (`top`, `left`, `right`, `hidden`) |
 | Behaviour | `toc`, `syncHash`, `idPrefix`, `getToc()`, `scrollToHeading(id)` |
 
-Limit the default TOC to `h1`–`h3`:
+Limit the default TOC to `h1`–`h3`, or place it beside the content:
 
 ```vue
 <MarkdownRenderer :source="source" toc :toc-depth="3" />
+<MarkdownRenderer :source="source" toc toc-placement="left" />
 ```
+
+`tocPlacement="left"` and `"right"` use a side column on wide viewports and
+fall back to the stacked layout on narrow screens. `hidden` hides the default
+TOC even when `toc` is true; the `#toc` slot and `regions.toc` keep working for
+custom layouts.
 
 `tocDepth` also filters the `items` passed to `#toc` / `#toc-item`, the list
 returned by `getToc()`, and the payload of `toc-change`.
@@ -370,7 +377,7 @@ the URL hash during navigation, and the exposed `getToc()` /
 own components:
 
 ```ts
-import { customTagsPlugin } from 'vue-markdown-suite/plugins'
+import { customTagsPlugin } from '@coderminer/vue-markdown/plugins'
 
 const plugins = [customTagsPlugin({ tags: ['x-note'] })]
 ```
@@ -441,10 +448,10 @@ Read [Styling and themes](./styling.md) for the token surface.
 The stylesheet is optional and split into two layers:
 
 ```ts
-import 'vue-markdown-suite/style.css'
+import '@coderminer/vue-markdown/style.css'
 // or
-import 'vue-markdown-suite/styles/tokens.css'
-import 'vue-markdown-suite/styles/components.css'
+import '@coderminer/vue-markdown/styles/tokens.css'
+import '@coderminer/vue-markdown/styles/components.css'
 ```
 
 Target documented parts and tokens, never internal element structure:
@@ -517,7 +524,7 @@ Presets bundle configuration under a name. They are declarative but not
 JSON-serializable because they contain components and functions:
 
 ```ts
-import { composePresets, defineMarkdownPreset } from 'vue-markdown-suite/presets'
+import { composePresets, defineMarkdownPreset } from '@coderminer/vue-markdown/presets'
 
 const brand = defineMarkdownPreset({
   name: 'brand',

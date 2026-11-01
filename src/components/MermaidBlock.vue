@@ -176,6 +176,7 @@ onMounted(() => {
   void render()
 })
 onUnmounted(() => {
+  mounted = false
   if (copiedTimer) clearTimeout(copiedTimer)
   if (typeof document !== 'undefined') {
     document.removeEventListener('keydown', onKeydown)
@@ -277,6 +278,7 @@ async function toggleFullscreen(next = !fullscreen.value): Promise<void> {
     } catch {
       // CSS fallback below.
     }
+    if (!mounted) return
     fullscreen.value = true
     document.addEventListener('keydown', onKeydown)
     element?.focus?.()
@@ -286,6 +288,7 @@ async function toggleFullscreen(next = !fullscreen.value): Promise<void> {
     } catch {
       // Ignore browsers that already exited.
     }
+    if (!mounted) return
     fullscreen.value = false
     document.removeEventListener('keydown', onKeydown)
   }
@@ -703,25 +706,30 @@ defineExpose({ render, copy, exportPng, downloadSvg, toggleFullscreen })
     :aria-label="label"
     tabindex="-1"
   >
-    <div data-vmd-part="mermaid-header" class="vmd-mermaid-header">
-      <HeaderContent />
-    </div>
-
     <div
-      v-if="view === 'preview'"
-      data-vmd-part="mermaid-preview"
-      class="vmd-mermaid-preview"
+      class="vmd-mermaid-surface"
+      :data-vmd-part="fullscreen ? 'mermaid-fullscreen' : undefined"
     >
+      <div data-vmd-part="mermaid-header" class="vmd-mermaid-header">
+        <HeaderContent />
+      </div>
+
       <div
-        v-if="lastGood && status === 'error' && showErrors"
-        class="vmd-mermaid-error-banner"
-      ><ErrorContent /></div>
-      <PreviewContent />
+        v-if="view === 'preview'"
+        data-vmd-part="mermaid-preview"
+        class="vmd-mermaid-preview"
+      >
+        <div
+          v-if="lastGood && status === 'error' && showErrors"
+          class="vmd-mermaid-error-banner"
+        ><ErrorContent /></div>
+        <PreviewContent />
+      </div>
+      <pre
+        v-else
+        data-vmd-part="mermaid-source"
+        class="vmd-mermaid-source"
+      ><code>{{ source }}</code></pre>
     </div>
-    <pre
-      v-else
-      data-vmd-part="mermaid-source"
-      class="vmd-mermaid-source"
-    ><code>{{ source }}</code></pre>
   </div>
 </template>

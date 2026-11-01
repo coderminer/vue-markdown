@@ -12,6 +12,7 @@ export function createDiagnostic(
     phase?: DiagnosticPhase
     plugin?: string
     source?: SourceRange
+    details?: string
   } = {},
 ): MarkdownDiagnostic {
   return {
@@ -21,6 +22,7 @@ export function createDiagnostic(
     phase: options.phase,
     plugin: options.plugin,
     source: options.source,
+    details: options.details,
   }
 }
 

@@ -11,14 +11,14 @@ import {
   useActiveHeading,
   useMarkdownDocument,
   walkNodes,
-} from 'vue-markdown-suite/headless'
+} from '@coderminer/vue-markdown/headless'
 ```
 
 ## 组合式函数
 
 ```ts
 import { ref } from 'vue'
-import { useMarkdownDocument } from 'vue-markdown-suite/headless'
+import { useMarkdownDocument } from '@coderminer/vue-markdown/headless'
 
 const source = ref('# 你好\n\n一段 **加粗** 文字。')
 const {
@@ -36,7 +36,7 @@ const {
 `components`、`plugins`、`disablePlugins`、`remarkPlugins`、`rehypePlugins`、
 `remarkRehypeOptions`、`pipeline`、`slugger`、`allowedElements`、
 `disallowedElements`、`unwrapDisallowed`、`allowElement`、`urlTransform`、
-`linkTarget`、`externalLinkTarget`、`baseUrl`、`idPrefix`。
+`linkTarget`、`externalLinkTarget`、`baseUrl`、`idPrefix`、`search`。
 
 组合式函数还会暴露插件贡献，方便自己渲染标记的宿主：
 
@@ -80,7 +80,7 @@ type MarkdownNode =
 
 ```vue [NodeView.vue]
 <script setup lang="ts">
-import type { MarkdownNode } from 'vue-markdown-suite/headless'
+import type { MarkdownNode } from '@coderminer/vue-markdown/headless'
 
 defineProps<{ node: MarkdownNode }>()
 </script>
@@ -101,7 +101,7 @@ defineProps<{ node: MarkdownNode }>()
 
 ```vue [App.vue]
 <script setup lang="ts">
-import { useMarkdownDocument } from 'vue-markdown-suite/headless'
+import { useMarkdownDocument } from '@coderminer/vue-markdown/headless'
 import NodeView from './NodeView.vue'
 
 const { document } = useMarkdownDocument(source)
@@ -121,7 +121,7 @@ const { document } = useMarkdownDocument(source)
 ## 模型辅助函数
 
 ```ts
-import { walkNodes } from 'vue-markdown-suite/headless'
+import { walkNodes } from '@coderminer/vue-markdown/headless'
 
 walkNodes(document.value?.nodes ?? [], (node, parent) => {
   // 深度优先访问每个节点。
@@ -132,7 +132,7 @@ walkNodes(document.value?.nodes ?? [], (node, parent) => {
 
 ```ts
 import { computed } from 'vue'
-import { useActiveHeading } from 'vue-markdown-suite/headless'
+import { useActiveHeading } from '@coderminer/vue-markdown/headless'
 
 const activeId = useActiveHeading(
   computed(() => toc.value.map((item) => item.id)),

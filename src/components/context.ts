@@ -65,10 +65,11 @@ export interface RenderContext {
   onCustomTagClick(payload: CustomTagClickPayload): void
   onTaskChange(payload: TaskChangePayload): void
   onRenderError?(diagnostic: import('../core/types').MarkdownDiagnostic): void
+  onMathError?(diagnostic: import('../core/types').MarkdownDiagnostic): void
 }
 
 export const RENDER_CONTEXT: InjectionKey<RenderContext> = Symbol(
-  'vue-markdown-suite:render-context',
+  '@coderminer/vue-markdown:render-context',
 )
 
 const fallbackContext: RenderContext = {

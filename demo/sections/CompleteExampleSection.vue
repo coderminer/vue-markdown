@@ -12,7 +12,7 @@ import {
   type MarkdownTheme,
   type TocItem,
   type VueMarkdownNodeComponents,
-} from 'vue-markdown-suite'
+} from '@coderminer/vue-markdown'
 import {
   codePlugin,
   customTagsPlugin,
@@ -22,9 +22,9 @@ import {
   linkPlugin,
   searchPlugin,
   tocPlugin,
-} from 'vue-markdown-suite/plugins'
-import { mathPlugin } from 'vue-markdown-suite/math'
-import { MermaidBlock } from 'vue-markdown-suite'
+} from '@coderminer/vue-markdown/plugins'
+import { mathPlugin } from '@coderminer/vue-markdown/math'
+import { MermaidBlock } from '@coderminer/vue-markdown'
 import CodeSample from '../components/CodeSample.vue'
 import SectionShell from '../components/SectionShell.vue'
 import SourceEditor from '../components/SourceEditor.vue'
@@ -251,7 +251,7 @@ function downloadHtml(): void {
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement('a')
     anchor.href = url
-    anchor.download = 'vue-markdown-suite-example.html'
+    anchor.download = '@coderminer/vue-markdown-example.html'
     anchor.click()
     URL.revokeObjectURL(url)
     exportMessage.value = `Exported ${html.length.toLocaleString()} characters.`

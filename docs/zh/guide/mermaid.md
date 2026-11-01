@@ -8,7 +8,7 @@ Mermaid 支持按需加载，且只在客户端运行。只有 Mermaid 块或可
 运行时。
 
 ```ts
-import { mermaidPlugin, renderMermaid, sanitizeSvg } from 'vue-markdown-suite/mermaid'
+import { mermaidPlugin, renderMermaid, sanitizeSvg } from '@coderminer/vue-markdown/mermaid'
 ```
 
 `MermaidBlock` 从包根导出。它在 SSR 期间渲染确定性占位符，挂载后再加载运行时。
@@ -20,9 +20,9 @@ import { mermaidPlugin, renderMermaid, sanitizeSvg } from 'vue-markdown-suite/me
 
 ```vue
 <script setup lang="ts">
-import { MarkdownRenderer } from 'vue-markdown-suite'
-import { defaultPlugins } from 'vue-markdown-suite/plugins'
-import { mermaidPlugin } from 'vue-markdown-suite/mermaid'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
+import { defaultPlugins } from '@coderminer/vue-markdown/plugins'
+import { mermaidPlugin } from '@coderminer/vue-markdown/mermaid'
 
 const plugins = [...defaultPlugins, mermaidPlugin()]
 </script>
@@ -38,7 +38,7 @@ Mermaid 是可选 peer。没有插件时，Mermaid 围栏保持普通代码块�
 渲染器时，块会保留源码并报告 `mermaid-unavailable`，而不是塌缩成空白区域。
 
 <script setup>
-import { MermaidBlock } from 'vue-markdown-suite'
+import { MermaidBlock } from '@coderminer/vue-markdown'
 
 const diagram = `flowchart LR
   Markdown --> Pipeline
@@ -89,16 +89,19 @@ SVG 和节点输出仍会被净化；非法输出会被报告，同时保留上�
 
 `MermaidLiveEditor` 绑定 `v-model`，同步外部值，对预览做防抖（默认 300 ms），并且只在
 挂载后加载 CodeMirror 6。它的 `theme` 同时作用于 CodeMirror 和 `MermaidBlock` 预览，
-`compact` 隐藏预览块重复的工具栏。
+`compact` 隐藏预览块重复的工具栏，并收紧诊断面板。
 
 ```vue
 <MermaidLiveEditor v-model="source" theme="dark" :renderer="renderer" compact />
 ```
 
 分栏布局会强制最小面板尺寸，支持键盘调整（ArrowLeft/ArrowRight，Home 重置），全屏带
-CSS 回退。`editor` 插槽收到 `{ value, update, diagnostics, status, actions }`；
-`editor-diagnostics` 插槽收到 `{ diagnostics, focusLine }`。可选的 `./editor` 入口暴露
-CodeMirror 创建辅助函数。
+CSS 回退。全屏会锁定页面滚动、限制焦点范围，并在退出或卸载时恢复之前的滚动和全屏状态。`rawDetails` 在友好诊断旁显示原始解析器消息，`autoFocus` 聚焦映射到的错误行。
+插槽：`toolbar`、`editor`、`preview`、`editor-diagnostics`、`empty` 和 `fullscreen`。
+`editor` 收到 `{ value, update, diagnostics, status, actions }`；`preview` 收到
+`{ source, status, error, nodes, actions }`；`editor-diagnostics` 收到
+`{ diagnostics, focusLine }`。源码为空时显示 `empty` 占位，而不是旧图表。可选的
+`./editor` 入口暴露 CodeMirror 创建辅助函数。
 
 ## 下一步
 

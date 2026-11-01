@@ -1,8 +1,8 @@
 import remarkGfm from 'remark-gfm'
 import remarkFrontmatter from 'remark-frontmatter'
 import { parse as parseYaml } from 'yaml'
-import type { MarkdownNode, MarkdownPlugin } from '../core/types'
-import { searchDocument, type SearchOptions } from '../core/search'
+import type { MarkdownNode, MarkdownPlugin, SearchOptions } from '../core/types'
+import { searchDocument } from '../core/search'
 
 export const tocPlugin: MarkdownPlugin = {
   name: 'toc',

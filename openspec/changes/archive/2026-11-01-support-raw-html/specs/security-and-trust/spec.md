@@ -2,7 +2,7 @@
 
 ### Requirement: Raw HTML is opt-in and sanitized
 
-Raw HTML SHALL be dropped by default. It SHALL be enabled only through the official optional `vue-markdown-suite/html` entry, whose `htmlPlugin()` contributes `rehype-raw`. When the plugin is present, `rehype-sanitize` SHALL run immediately after `rehype-raw` and before any trusted transform or host rehype plugin. The default schema SHALL block `script`, `style`, `iframe`, `object`, and `embed`, strip event-handler attributes, and restrict URLs and attributes. A manual `rehype-raw` in `rehypePlugins` SHALL be ignored with a warning.
+Raw HTML SHALL be dropped by default. It SHALL be enabled only through the official optional `@coderminer/vue-markdown/html` entry, whose `htmlPlugin()` contributes `rehype-raw`. When the plugin is present, `rehype-sanitize` SHALL run immediately after `rehype-raw` and before any trusted transform or host rehype plugin. The default schema SHALL block `script`, `style`, `iframe`, `object`, and `embed`, strip event-handler attributes, and restrict URLs and attributes. A manual `rehype-raw` in `rehypePlugins` SHALL be ignored with a warning.
 
 #### Scenario: Default drop
 - **WHEN** raw HTML is not enabled

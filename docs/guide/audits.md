@@ -25,7 +25,7 @@ keyboard resizing, fullscreen state, TOC navigation, and slot actions.
 
 The stylesheet keeps the `prefers-reduced-motion` override, hides the TOC and
 heading anchors in print, and uses `LinkText`/`CanvasText` in forced-colors
-mode. New v1.x parts are covered by the same print and forced-colors blocks.
+mode. New rich and layout parts are covered by the same print and forced-colors blocks.
 
 ## RTL and tokens
 

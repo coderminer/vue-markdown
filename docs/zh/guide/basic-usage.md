@@ -46,12 +46,12 @@ description: 渲染器的输入方式、样式、事件、插槽和实例方法�
 ::: code-group
 
 ```ts [完整样式表]
-import 'vue-markdown-suite/style.css'
+import '@coderminer/vue-markdown/style.css'
 ```
 
 ```ts [令牌 + 组件样式]
-import 'vue-markdown-suite/styles/tokens.css'
-import 'vue-markdown-suite/styles/components.css'
+import '@coderminer/vue-markdown/styles/tokens.css'
+import '@coderminer/vue-markdown/styles/components.css'
 ```
 
 ```ts [无样式]
@@ -102,8 +102,8 @@ import 'vue-markdown-suite/styles/components.css'
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue'
-import { MarkdownRenderer } from 'vue-markdown-suite'
-import type { MarkdownDiagnostic, TocItem } from 'vue-markdown-suite'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
+import type { MarkdownDiagnostic, TocItem } from '@coderminer/vue-markdown'
 
 const renderer = ref<InstanceType<typeof MarkdownRenderer>>()
 

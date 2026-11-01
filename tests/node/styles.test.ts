@@ -122,9 +122,11 @@ describe('stylesheet compatibility fallbacks', () => {
     expectPhysicalFallbacks(readStyle('math.css'), 'math.css')
   })
 
-  it('styles every v1.x part and keeps fullscreen fallbacks', () => {
+  it('styles every rich and layout part and keeps fullscreen fallbacks', () => {
     const components = readStyle('components.css')
     for (const part of [
+      'body',
+      'toc-column',
       'task-item',
       'task-checkbox',
       'footnote-reference',
@@ -138,6 +140,9 @@ describe('stylesheet compatibility fallbacks', () => {
       'editor',
       'editor-divider',
       'editor-diagnostics',
+      'editor-empty',
+      'editor-fullscreen',
+      'mermaid-fullscreen',
     ]) {
       expect(components, `${part} must have a style hook`).toContain(
         `[data-vmd-part='${part}']`,
@@ -173,6 +178,20 @@ describe('stylesheet compatibility fallbacks', () => {
     expect(components).toContain(".vmd-toc-nav[data-vmd-part='toc-nav']")
     expect(components).toContain('padding-left: 2.25rem;')
     expect(components).toContain('list-style: decimal outside;')
+  })
+
+  it('supports side TOC placement with flex fallbacks', () => {
+    const components = readStyle('components.css')
+    expect(components).toContain("[data-vmd-part='body']")
+    expect(components).toContain("[data-vmd-part='toc-column']")
+    expect(components).toContain("data-vmd-toc-layout='side'")
+    expect(components).toContain("data-vmd-toc-placement='right'")
+    expect(components).toContain('flex-direction: row-reverse;')
+    expect(components).toContain('@media (max-width: 768px)')
+    expect(components).not.toContain('display: grid')
+    expect(components).toMatch(
+      /\[data-vmd-part='toc-column'\]\s*\{[^}]*position: -webkit-sticky;/,
+    )
   })
 
   it('does not add outer padding around the rich code block shell', () => {

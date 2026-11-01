@@ -4,21 +4,21 @@ description: Design tokens, themes, stable parts, and unstyled usage.
 
 # Styling and themes
 
-`vue-markdown-suite` ships semantic, unstyled components. The optional
+`@coderminer/vue-markdown` ships semantic, unstyled components. The optional
 stylesheet adds layout, spacing, and color through design tokens and stable
 parts.
 
 ## Import the stylesheet
 
 ```ts
-import 'vue-markdown-suite/style.css'
+import '@coderminer/vue-markdown/style.css'
 ```
 
 Or import the pieces separately:
 
 ```ts
-import 'vue-markdown-suite/styles/tokens.css'
-import 'vue-markdown-suite/styles/components.css'
+import '@coderminer/vue-markdown/styles/tokens.css'
+import '@coderminer/vue-markdown/styles/components.css'
 ```
 
 `tokens.css` defines defaults on `:root`, so host overrides win by cascade order
@@ -108,7 +108,7 @@ Tag overrides accept a tag name or a Vue component:
 
 ```vue
 <script setup lang="ts">
-import { MarkdownRenderer } from 'vue-markdown-suite'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
 
 const components = {
   h1: 'h2',
@@ -142,18 +142,21 @@ unchanged.
 - Images fall back to their alt text when loading fails.
 - The error region uses `role="alert"`.
 
-## v1.x parts
+## Rich and layout parts
 
-The stylesheet includes hooks for the rich catalog and optional engines:
-`task-item`, `task-checkbox`, `footnote-reference`, `footnotes`, `code-header`,
-`code-heading`, `code-title`, `code-file-name`, `code-lang`, `code-toolbar`,
-`code-action`, `code-body`, `code-feedback`, `highlighter`, `highlighter-line`,
-`highlighter-gutter`, `highlighter-empty`, `math`,
-`math-error`, `mermaid`, `mermaid-header`, `mermaid-tabs`, `mermaid-actions`,
-`mermaid-preview`, `mermaid-source`, `mermaid-pending`, `mermaid-error`,
-`editor`, `editor-toolbar`, `editor-pane`, `editor-divider`,
-`editor-preview`, and `editor-diagnostics`. Fullscreen state is exposed with
+The stylesheet includes hooks for the renderer layout and rich catalog:
+`body`, `toc-column`, `task-item`, `task-checkbox`, `footnote-reference`,
+`footnotes`, `code-header`, `code-heading`, `code-title`, `code-file-name`,
+`code-lang`, `code-toolbar`, `code-action`, `code-body`, `code-feedback`,
+`highlighter`, `highlighter-line`, `highlighter-gutter`, `highlighter-empty`,
+`math`, `math-error`, `mermaid`, `mermaid-header`, `mermaid-tabs`,
+`mermaid-actions`, `mermaid-preview`, `mermaid-source`, `mermaid-pending`,
+`mermaid-error`, `mermaid-fullscreen`, `editor`, `editor-toolbar`,
+`editor-pane`, `editor-divider`, `editor-preview`, `editor-diagnostics`,
+`editor-empty`, and `editor-fullscreen`. Fullscreen state is exposed with
 `data-fullscreen`; Mermaid uses `data-status`, `data-view`, and `data-renderer`.
+Side TOC placement adds `data-vmd-toc-placement` and `data-vmd-toc-layout` on the
+root.
 
 ## Next
 

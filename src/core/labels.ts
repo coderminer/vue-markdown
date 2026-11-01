@@ -39,4 +39,13 @@ export const DEFAULT_LABELS: MarkdownLabels = {
   zoomIn: 'Zoom in',
   zoomOut: 'Zoom out',
   reset: 'Reset zoom',
+  editor: 'Mermaid editor',
+  editorEmpty: 'Nothing to preview yet.',
+  editorLine: (context) => `Line ${String(context.line ?? '')}`,
+  editorSplitter: 'Resize editor',
+  editorDiagnostics: 'Diagnostics',
+  editorReset: 'Reset split',
+  editorSyntaxError: (context) =>
+    `Mermaid syntax error near line ${String(context.line ?? '')}.`,
+  editorParseError: 'Mermaid could not parse this diagram.',
 }

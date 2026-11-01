@@ -48,12 +48,12 @@ Import the full stylesheet, the tokens only, or nothing at all:
 ::: code-group
 
 ```ts [Full stylesheet]
-import 'vue-markdown-suite/style.css'
+import '@coderminer/vue-markdown/style.css'
 ```
 
 ```ts [Tokens + components]
-import 'vue-markdown-suite/styles/tokens.css'
-import 'vue-markdown-suite/styles/components.css'
+import '@coderminer/vue-markdown/styles/tokens.css'
+import '@coderminer/vue-markdown/styles/components.css'
 ```
 
 ```ts [Unstyled]
@@ -102,7 +102,7 @@ its anchor behavior.
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue'
-import { MarkdownRenderer } from 'vue-markdown-suite'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
 
 const renderer = ref<InstanceType<typeof MarkdownRenderer>>()
 

@@ -4,15 +4,15 @@ description: 服务端渲染和确定性的静态 HTML 导出。
 
 # SSR 与静态导出
 
-`vue-markdown-suite` 对 SSR 安全：模块作用域不访问浏览器全局，标题 ID 确定性生成，并且
+`@coderminer/vue-markdown` 对 SSR 安全：模块作用域不访问浏览器全局，标题 ID 确定性生成，并且
 当所有插件同步时，渲染器优先使用同步路径。
 
 ## 服务端渲染
 
 ```vue [App.vue]
 <script setup lang="ts">
-import { MarkdownRenderer } from 'vue-markdown-suite'
-import 'vue-markdown-suite/style.css'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
+import '@coderminer/vue-markdown/style.css'
 
 defineProps<{ source: string }>()
 </script>
@@ -43,7 +43,7 @@ const html = await renderToString(app)
 ## 静态 HTML 导出
 
 ```ts
-import { exportMarkdownHtml, exportMarkdownHtmlSync } from 'vue-markdown-suite'
+import { exportMarkdownHtml, exportMarkdownHtmlSync } from '@coderminer/vue-markdown'
 
 const html = await exportMarkdownHtml('# 你好')
 const sync = exportMarkdownHtmlSync('# 你好')

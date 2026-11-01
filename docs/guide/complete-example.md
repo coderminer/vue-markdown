@@ -1,5 +1,5 @@
 ---
-description: A complete documentation portal built with the public vue-markdown-suite API, including search, TOC, frontmatter, plugins, math, and static export.
+description: A complete documentation portal built with the public @coderminer/vue-markdown API, including search, TOC, frontmatter, plugins, math, and static export.
 ---
 
 # Complete example
@@ -34,7 +34,7 @@ import {
   composePresets,
   defineMarkdownPreset,
   defineMarkdownPlugin,
-} from 'vue-markdown-suite'
+} from '@coderminer/vue-markdown'
 import {
   codePlugin,
   frontmatterPlugin,
@@ -42,8 +42,8 @@ import {
   linkPlugin,
   searchPlugin,
   tocPlugin,
-} from 'vue-markdown-suite/plugins'
-import { mathPlugin } from 'vue-markdown-suite/math'
+} from '@coderminer/vue-markdown/plugins'
+import { mathPlugin } from '@coderminer/vue-markdown/math'
 
 const docsPlugin = defineMarkdownPlugin({
   name: 'docs-enhancements',
@@ -78,7 +78,7 @@ const plugins = computed(() => [
 
 ```vue [Callout.vue]
 <script setup lang="ts">
-import type { MarkdownNode } from 'vue-markdown-suite'
+import type { MarkdownNode } from '@coderminer/vue-markdown'
 
 defineProps<{ node?: MarkdownNode }>()
 </script>
@@ -92,7 +92,7 @@ defineProps<{ node?: MarkdownNode }>()
 
 ```vue [ArticleLink.vue]
 <script setup lang="ts">
-import type { MarkdownNode } from 'vue-markdown-suite'
+import type { MarkdownNode } from '@coderminer/vue-markdown'
 
 defineProps<{ node?: MarkdownNode }>()
 </script>

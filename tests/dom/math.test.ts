@@ -60,6 +60,10 @@ describe('MarkdownMath', () => {
     expect(
       errors.some((event) => (event[0] as { code: string }).code === 'math-error'),
     ).toBe(true)
+    const mathErrors = wrapper.emitted('math-error') ?? []
+    expect(
+      mathErrors.some((event) => (event[0] as { code: string }).code === 'math-error'),
+    ).toBe(true)
   })
 
   it('ignores default KaTeX error markup when a custom engine succeeds', async () => {

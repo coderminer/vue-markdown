@@ -28,6 +28,8 @@ export function createPipelineIdentity(input: PipelineIdentityInput): string {
     options.unwrapDisallowed ? '1' : '0',
     identityOf(options.allowElement),
     identityOf(options.urlTransform),
+    options.search?.query?.trim() ?? '',
+    options.search?.caseSensitive ? '1' : '0',
   ].join('\u001e')
 }
 

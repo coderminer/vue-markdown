@@ -11,7 +11,7 @@ import {
   type MarkdownDocument,
   type TocItem,
   type VueMarkdownNodeComponents,
-} from 'vue-markdown-suite'
+} from '@coderminer/vue-markdown'
 import {
   codePlugin,
   defineMarkdownPlugin,
@@ -20,8 +20,8 @@ import {
   linkPlugin,
   searchPlugin,
   tocPlugin,
-} from 'vue-markdown-suite/plugins'
-import { mathPlugin } from 'vue-markdown-suite/math'
+} from '@coderminer/vue-markdown/plugins'
+import { mathPlugin } from '@coderminer/vue-markdown/math'
 
 const { isDark } = useData()
 
@@ -285,7 +285,7 @@ function exportHtml(): void {
     const url = URL.createObjectURL(blob)
     const anchor = window.document.createElement('a')
     anchor.href = url
-    anchor.download = 'vue-markdown-suite-example.html'
+    anchor.download = '@coderminer/vue-markdown-example.html'
     window.document.body.appendChild(anchor)
     anchor.click()
     anchor.parentNode?.removeChild(anchor)

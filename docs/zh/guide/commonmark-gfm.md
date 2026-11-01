@@ -18,7 +18,7 @@ HTML（默认丢弃）。
 ## GFM
 
 ```ts
-import { gfmPlugin } from 'vue-markdown-suite/plugins'
+import { gfmPlugin } from '@coderminer/vue-markdown/plugins'
 ```
 
 ```vue
@@ -35,7 +35,7 @@ import { gfmPlugin } from 'vue-markdown-suite/plugins'
 如果想保留默认插件：
 
 ```ts
-import { defaultPlugins, gfmPlugin } from 'vue-markdown-suite/plugins'
+import { defaultPlugins, gfmPlugin } from '@coderminer/vue-markdown/plugins'
 
 const plugins = [...defaultPlugins, gfmPlugin]
 ```
@@ -56,7 +56,7 @@ const plugins = [...defaultPlugins, gfmPlugin]
 ## Frontmatter
 
 ```ts
-import { frontmatterPlugin } from 'vue-markdown-suite/plugins'
+import { frontmatterPlugin } from '@coderminer/vue-markdown/plugins'
 
 const plugins = [frontmatterPlugin]
 ```

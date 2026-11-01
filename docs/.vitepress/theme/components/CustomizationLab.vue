@@ -4,7 +4,7 @@ import {
   MarkdownRenderer,
   type MarkdownNodeRenderContext,
   type MarkdownTheme,
-} from 'vue-markdown-suite'
+} from '@coderminer/vue-markdown'
 
 const props = withDefaults(defineProps<{ locale?: 'en' | 'zh' }>(), {
   locale: 'en',

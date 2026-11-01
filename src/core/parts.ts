@@ -9,6 +9,8 @@ export const VMD_CLASS_PREFIX = 'vmd-'
 
 export const PARTS = {
   root: 'root',
+  body: 'body',
+  tocColumn: 'toc-column',
   content: 'content',
   toc: 'toc',
   tocNav: 'toc-nav',
@@ -70,6 +72,7 @@ export const PARTS = {
   editorDivider: 'editor-divider',
   editorPreview: 'editor-preview',
   editorDiagnostics: 'editor-diagnostics',
+  editorEmpty: 'editor-empty',
   editorToolbar: 'editor-toolbar',
   editorFullscreen: 'editor-fullscreen',
   html: 'html',

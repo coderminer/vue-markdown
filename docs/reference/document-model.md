@@ -39,7 +39,7 @@ type MarkdownNode =
 
 ```ts
 import { computed, ref } from 'vue'
-import { useMarkdownDocument } from 'vue-markdown-suite/headless'
+import { useMarkdownDocument } from '@coderminer/vue-markdown/headless'
 
 const source = ref('# Hello\n\nA **bold** paragraph.')
 
@@ -58,7 +58,17 @@ const {
 subset of renderer props: `components`, `plugins`, `disablePlugins`,
 `remarkPlugins`, `rehypePlugins`, `remarkRehypeOptions`, `pipeline`, `slugger`,
 `allowedElements`, `disallowedElements`, `unwrapDisallowed`, `allowElement`,
-`urlTransform`, `baseUrl`, and `idPrefix`.
+`urlTransform`, `baseUrl`, `idPrefix`, and `search`.
+
+```ts
+const { document } = useMarkdownDocument(source, {
+  search: { query: 'install', caseSensitive: false },
+})
+```
+
+The `search` option segments text nodes after plugin transforms. The renderer
+also exposes it as the `search` / `searchCaseSensitive` props and emits
+`search-change` with the current match count.
 
 The composable also exposes plugin contributions:
 
@@ -78,7 +88,7 @@ Local overrides should win over these values.
 
 ```vue [NodeView.vue]
 <script setup lang="ts">
-import type { MarkdownNode } from 'vue-markdown-suite/headless'
+import type { MarkdownNode } from '@coderminer/vue-markdown/headless'
 
 defineProps<{ node: MarkdownNode }>()
 </script>
@@ -99,7 +109,7 @@ defineProps<{ node: MarkdownNode }>()
 
 ```vue [App.vue]
 <script setup lang="ts">
-import { useMarkdownDocument } from 'vue-markdown-suite/headless'
+import { useMarkdownDocument } from '@coderminer/vue-markdown/headless'
 import NodeView from './NodeView.vue'
 
 const { document } = useMarkdownDocument(source)
@@ -132,7 +142,7 @@ import {
   countSearchMatches,
   defaultUrlTransform,
   walkNodes,
-} from 'vue-markdown-suite/headless'
+} from '@coderminer/vue-markdown/headless'
 
 walkNodes(document.value?.nodes ?? [], (node, parent) => {
   // Visit every node depth-first.

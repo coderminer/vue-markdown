@@ -8,7 +8,7 @@ import {
   type MarkdownPipeline,
   type MarkdownTheme,
   type PipelineResult,
-} from 'vue-markdown-suite'
+} from '@coderminer/vue-markdown'
 import SectionShell from '../components/SectionShell.vue'
 import SourceEditor from '../components/SourceEditor.vue'
 import OutputPane from '../components/OutputPane.vue'

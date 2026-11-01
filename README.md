@@ -1,15 +1,15 @@
-# vue-markdown-suite
+# @coderminer/vue-markdown
 
-[![npm version](https://img.shields.io/npm/v/vue-markdown-suite.svg)](https://www.npmjs.com/package/vue-markdown-suite)
+[![npm version](https://img.shields.io/npm/v/@coderminer/vue-markdown.svg)](https://www.npmjs.com/package/@coderminer/vue-markdown)
 [![CI](https://github.com/coderminer/vue-markdown/actions/workflows/ci.yml/badge.svg)](https://github.com/coderminer/vue-markdown/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Docs](https://img.shields.io/badge/docs-live-8250df)](https://coderminer.github.io/vue-markdown/)
 
-English | [简体中文](./README.zh-CN.md)
+English | [简体中文](./README.zh-CN.md) | [Changelog](./CHANGELOG.md)
 
 A general-purpose, customizable, plugin-driven **Vue 3 Markdown component suite**.
 
-`vue-markdown-suite` renders Markdown directly into Vue VNodes with the official
+`@coderminer/vue-markdown` renders Markdown directly into Vue VNodes with the official
 `unified` pipeline (`remark-parse` + `remark-rehype`). There is no HTML string
 round-trip and no `v-html`. The parsed document is a serializable, DOM-free model,
 so the same run can drive the styled renderer, a headless host, or static HTML
@@ -35,7 +35,7 @@ export.
 ## Install
 
 ```bash
-npm install vue-markdown-suite
+npm install @coderminer/vue-markdown
 ```
 
 Requires Node 20+ and Vue 3.5+.
@@ -54,6 +54,9 @@ npm install katex
 # Diagrams
 npm install mermaid
 
+# Sanitized raw HTML through @coderminer/vue-markdown/html
+npm install rehype-raw
+
 # Mermaid live editor
 npm install @codemirror/state @codemirror/view @codemirror/language @codemirror/commands
 ```
@@ -63,8 +66,8 @@ npm install @codemirror/state @codemirror/view @codemirror/language @codemirror/
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue'
-import { MarkdownRenderer } from 'vue-markdown-suite'
-import 'vue-markdown-suite/style.css'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
+import '@coderminer/vue-markdown/style.css'
 
 const source = ref(`
 # Hello, Markdown
@@ -104,10 +107,10 @@ and renders the empty state instead of throwing.
 ### Styling
 
 ```ts
-import 'vue-markdown-suite/style.css'
+import '@coderminer/vue-markdown/style.css'
 // or import the pieces separately
-import 'vue-markdown-suite/styles/tokens.css'
-import 'vue-markdown-suite/styles/components.css'
+import '@coderminer/vue-markdown/styles/tokens.css'
+import '@coderminer/vue-markdown/styles/components.css'
 ```
 
 Override tokens on any ancestor or through the `tokens` prop:
@@ -168,7 +171,7 @@ tokens, or documented CSS parts. The full guide with a live preview is in the
 
 ```vue [BadgeLink.vue]
 <script setup lang="ts">
-import type { MarkdownNode } from 'vue-markdown-suite'
+import type { MarkdownNode } from '@coderminer/vue-markdown'
 
 defineProps<{
   node?: MarkdownNode
@@ -186,7 +189,7 @@ defineProps<{
 
 ```vue [Callout.vue]
 <script setup lang="ts">
-import type { MarkdownNode } from 'vue-markdown-suite'
+import type { MarkdownNode } from '@coderminer/vue-markdown'
 
 defineProps<{ node?: MarkdownNode }>()
 </script>
@@ -200,7 +203,7 @@ defineProps<{ node?: MarkdownNode }>()
 
 ```vue [App.vue]
 <script setup lang="ts">
-import { MarkdownRenderer } from 'vue-markdown-suite'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
 import BadgeLink from './BadgeLink.vue'
 import Callout from './Callout.vue'
 
@@ -272,7 +275,7 @@ so a scoped theme is just a class with `--vmd-*` properties.
 ### Customize CSS
 
 ```ts
-import 'vue-markdown-suite/style.css'
+import '@coderminer/vue-markdown/style.css'
 ```
 
 ```css
@@ -305,8 +308,8 @@ See [Styled usage](docs/guide/styling.md) and
 ### Plugins and presets
 
 ```ts
-import { defineMarkdownPlugin } from 'vue-markdown-suite/plugins'
-import { defineMarkdownPreset, composePresets } from 'vue-markdown-suite/presets'
+import { defineMarkdownPlugin } from '@coderminer/vue-markdown/plugins'
+import { defineMarkdownPreset, composePresets } from '@coderminer/vue-markdown/presets'
 
 export const docsPlugin = defineMarkdownPlugin({
   name: 'docs',
@@ -352,7 +355,7 @@ the last good document.
 ### Headless rendering
 
 ```ts
-import { useMarkdownDocument } from 'vue-markdown-suite/headless'
+import { useMarkdownDocument } from '@coderminer/vue-markdown/headless'
 
 const { document, toc, status, diagnostics, refresh } = useMarkdownDocument(source, {
   plugins: [docsPlugin],
@@ -366,12 +369,12 @@ own markup.
 ### Syntax highlighting, math, and diagrams
 
 ```ts
-import { highlightjs } from 'vue-markdown-suite/highlight'
-import { shiki } from 'vue-markdown-suite/highlight/shiki'
-import { fullPlugins } from 'vue-markdown-suite/plugins'
-import { mathPlugin, katexEngine } from 'vue-markdown-suite/math'
-import { mermaidPlugin, renderMermaid } from 'vue-markdown-suite/mermaid'
-import 'vue-markdown-suite/styles/math-full.css'
+import { highlightjs } from '@coderminer/vue-markdown/highlight'
+import { shiki } from '@coderminer/vue-markdown/highlight/shiki'
+import { fullPlugins } from '@coderminer/vue-markdown/plugins'
+import { mathPlugin, katexEngine } from '@coderminer/vue-markdown/math'
+import { mermaidPlugin, renderMermaid } from '@coderminer/vue-markdown/mermaid'
+import '@coderminer/vue-markdown/styles/math-full.css'
 
 const plugins = [...fullPlugins, mathPlugin(), mermaidPlugin()]
 ```
@@ -396,7 +399,7 @@ usage.
 ### Server rendering and static export
 
 ```ts
-import { exportMarkdownHtml, exportMarkdownHtmlSync } from 'vue-markdown-suite'
+import { exportMarkdownHtml, exportMarkdownHtmlSync } from '@coderminer/vue-markdown'
 
 const html = exportMarkdownHtmlSync(source)
 const asyncHtml = await exportMarkdownHtml(source, { plugins: [docsPlugin] })
@@ -458,7 +461,11 @@ component manifest, lives in the
 | `idPrefix` | `string` | `''` | Prefixes generated heading IDs. Use a unique prefix for multiple renderers on one page. |
 | `syncHash` | `boolean` | `false` | Updates the URL hash on heading activation. |
 | `toc` | `boolean` | `false` | Renders the TOC region. |
-| `showError` | `boolean` | `false` | Renders the error region on failure. |
+| `tocDepth` | `number` | `0` | Maximum heading level in the TOC. `0` means every level. |
+| `tocPlacement` | `'top' \| 'left' \| 'right' \| 'hidden'` | `'top'` | Stack the TOC, place it beside the content, or hide it. |
+| `search` | `string` | `''` | Highlights matches and emits `search-change`. |
+| `searchCaseSensitive` | `boolean` | `false` | Makes the `search` match case-sensitive. |
+| `showError` | `boolean` | `true` | Renders the error region on failure. |
 | `tokens` | `Record<string, string>` | `{}` | Inline `--vmd-*` custom properties on the root. |
 | `theme` | `'light' \| 'dark' \| 'auto' \| 'custom'` | `'light'` | Sets `data-vmd-theme` on the root. |
 | `as` | `string \| Component` | `'div'` | Root element or component. |
@@ -472,10 +479,14 @@ component manifest, lives in the
 | `link-click` | `{ url, target, node, event }` |
 | `custom-tag-click` | `{ tag, props, node, event }` |
 | `task-change` | `{ checked, node }` |
+| `search-change` | `{ query, caseSensitive, matches }` |
+| `math-error` | `MarkdownDiagnostic` |
 | `render-error` | `MarkdownDiagnostic` |
 | `ready` | `MarkdownDocument` |
 
 `toc-change` is signature-gated: it only fires when the serialized TOC changes.
+`search-change` follows the `search` prop and reports the current match count
+after the rendered document has settled for that query.
 `ready` fires once for the first successful document.
 
 ### Slots
@@ -489,28 +500,28 @@ rendering. See the [customization guide](docs/guide/customization.md#slots).
 
 | Entry | Contents |
 | --- | --- |
-| `vue-markdown-suite` | Renderer, preset components, composables, core helpers |
-| `vue-markdown-suite/headless` | Types, model helpers, composables; no preset components or CSS |
-| `vue-markdown-suite/pipeline` | Official pipeline, custom pipeline validation, identity |
-| `vue-markdown-suite/plugins` | `defineMarkdownPlugin`, registry, built-in plugins |
-| `vue-markdown-suite/presets` | `defineMarkdownPreset`, `composePresets`, configuration types |
-| `vue-markdown-suite/highlight` | highlight.js adapter and normalization helpers |
-| `vue-markdown-suite/highlight/shiki` | Optional Shiki adapter |
-| `vue-markdown-suite/math` | `mathPlugin`, `katexEngine`, math types |
-| `vue-markdown-suite/mermaid` | Lazy Mermaid runtime and SVG sanitizer |
-| `vue-markdown-suite/editor` | Lazy CodeMirror integration |
-| `vue-markdown-suite/html` | `htmlPlugin()` and sanitized raw HTML |
-| `vue-markdown-suite/node-components` | The node component catalog only |
-| `vue-markdown-suite/components/*` | One entry per public component |
-| `vue-markdown-suite/style.css` | Full stylesheet |
-| `vue-markdown-suite/styles/tokens.css` | Design tokens only |
-| `vue-markdown-suite/styles/components.css` | Part-based component styles |
-| `vue-markdown-suite/styles/math.css` | Math container styles; import KaTeX CSS separately |
-| `vue-markdown-suite/styles/math-full.css` | KaTeX CSS plus math container styles |
+| `@coderminer/vue-markdown` | Renderer, preset components, composables, core helpers |
+| `@coderminer/vue-markdown/headless` | Types, model helpers, composables; no preset components or CSS |
+| `@coderminer/vue-markdown/pipeline` | Official pipeline, custom pipeline validation, identity |
+| `@coderminer/vue-markdown/plugins` | `defineMarkdownPlugin`, registry, built-in plugins |
+| `@coderminer/vue-markdown/presets` | `defineMarkdownPreset`, `composePresets`, configuration types |
+| `@coderminer/vue-markdown/highlight` | highlight.js adapter and normalization helpers |
+| `@coderminer/vue-markdown/highlight/shiki` | Optional Shiki adapter |
+| `@coderminer/vue-markdown/math` | `mathPlugin`, `katexEngine`, math types |
+| `@coderminer/vue-markdown/mermaid` | Lazy Mermaid runtime and SVG sanitizer |
+| `@coderminer/vue-markdown/editor` | Lazy CodeMirror integration |
+| `@coderminer/vue-markdown/html` | `htmlPlugin()` and sanitized raw HTML |
+| `@coderminer/vue-markdown/node-components` | The node component catalog only |
+| `@coderminer/vue-markdown/components/*` | One entry per public component |
+| `@coderminer/vue-markdown/style.css` | Full stylesheet |
+| `@coderminer/vue-markdown/styles/tokens.css` | Design tokens only |
+| `@coderminer/vue-markdown/styles/components.css` | Part-based component styles |
+| `@coderminer/vue-markdown/styles/math.css` | Math container styles; import KaTeX CSS separately |
+| `@coderminer/vue-markdown/styles/math-full.css` | KaTeX CSS plus math container styles |
 
 ## Security defaults
 
-- Raw HTML is dropped. Add `htmlPlugin()` from `vue-markdown-suite/html` to
+- Raw HTML is dropped. Add `htmlPlugin()` from `@coderminer/vue-markdown/html` to
   enable it; the sanitizer then runs immediately after raw parsing.
 - URL protocols are limited to `http`, `https`, `irc`, `ircs`, `mailto`,
   `xmpp`, and relative URLs.

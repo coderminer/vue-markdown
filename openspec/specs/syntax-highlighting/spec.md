@@ -19,7 +19,7 @@ The highlighter SHALL render a source string using the requested language gramma
 
 ### Requirement: Injectable highlighting
 
-The highlighter SHALL accept the same highlighter adapter as the code block component. The default adapter SHALL use highlight.js and `rehype-highlight`. A custom adapter SHALL control tokenization and node generation while the component retains line numbers, highlight lines, truncation, virtualization, and copy behavior. Adapters SHALL return normalized nodes rather than HTML strings. Asynchronous adapters SHALL show plain source until ready.
+The highlighter SHALL accept the same highlighter adapter as the code block component. The default adapter SHALL use highlight.js through the adapter contract. A custom adapter SHALL control tokenization and node generation while the component retains line numbers, highlight lines, truncation, virtualization, and copy behavior. Adapters SHALL return normalized nodes rather than HTML strings. Asynchronous adapters SHALL show plain source until ready.
 
 #### Scenario: Shared custom adapter
 - **WHEN** a host supplies one adapter to both the code block and the standalone highlighter
@@ -31,7 +31,7 @@ The highlighter SHALL accept the same highlighter adapter as the code block comp
 
 ### Requirement: Official highlighter adapters
 
-The library SHALL ship highlight.js as the default adapter and Shiki as an official optional adapter. The in-document path SHALL use `rehype-highlight` for highlight.js and `@shikijs/rehype` for Shiki. highlight.js SHALL work synchronously after import, with an explicitly registered default language set. Shiki SHALL preload its highlighter, themes, and requested languages asynchronously before producing output and SHALL support light and dark theme output. Both adapters SHALL be distributed through separate entries so neither is loaded by the headless path or by consumers using a different adapter. Hosts SHALL be able to provide a completely custom adapter.
+The library SHALL ship highlight.js as the default adapter and Shiki as an official optional adapter. In-document highlighting SHALL use the active highlighter adapter; the default highlight.js adapter produces normalized nodes without requiring an HTML round-trip. highlight.js SHALL work synchronously after import, with an explicitly registered default language set. Shiki SHALL preload its highlighter, themes, and requested languages asynchronously before producing output and SHALL support light and dark theme output. Both adapters SHALL be distributed through separate entries so neither is loaded by the headless path or by consumers using a different adapter. Hosts SHALL be able to provide a completely custom adapter.
 
 #### Scenario: Default adapter
 - **WHEN** a host does not supply a highlighter

@@ -9,8 +9,8 @@ description: MarkdownRenderer 的属性、事件、实例方法、插槽和区�
 
 ```vue
 <script setup lang="ts">
-import { MarkdownRenderer } from 'vue-markdown-suite'
-import 'vue-markdown-suite/style.css'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
+import '@coderminer/vue-markdown/style.css'
 </script>
 
 <template>
@@ -28,7 +28,7 @@ import 'vue-markdown-suite/style.css'
 | `nodeComponents` | `Record<string, Component \| string \| NodeRenderer>` | 默认 `{}`。语义节点覆盖和函数渲染器。 |
 | `labels` | `Partial<MarkdownLabels>` | 默认 `{}`。内置文案，支持字符串或函数。 |
 | `preset` | `MarkdownPreset \| MarkdownPreset[]` | 应用一个或多个预设。 |
-| `plugins` | `PluginInput[]` | 默认 `defaultPlugins`。传入后替换默认插件集合；加入来自 `vue-markdown-suite/html` 的 `htmlPlugin()` 启用净化后的原始 HTML。 |
+| `plugins` | `PluginInput[]` | 默认 `defaultPlugins`。传入后替换默认插件集合；加入来自 `@coderminer/vue-markdown/html` 的 `htmlPlugin()` 启用净化后的原始 HTML。 |
 | `disablePlugins` | `string[]` | 默认 `[]`。按名称从解析后的集合移除插件。 |
 | `remarkPlugins` | `PluggableList` | 默认 `[]`。在库内置 remark 插件之后运行。 |
 | `rehypePlugins` | `PluggableList` | 默认 `[]`。在库内置 rehype 插件和内置净化器之后运行。 |
@@ -51,7 +51,10 @@ import 'vue-markdown-suite/style.css'
 | `syncHash` | `boolean` | 默认 `false`。标题激活时更新 URL hash。 |
 | `toc` | `boolean` | 默认 `false`。渲染目录区域。 |
 | `tocDepth` | `number` | 默认 `0`（全部层级）。目录包含的最大标题层级，范围 `1` 到 `6`。 |
-| `showError` | `boolean` | 默认 `false`。失败时渲染错误区域。 |
+| `tocPlacement` | `'top' \| 'left' \| 'right' \| 'hidden'` | 默认 `'top'`。目录置顶、放左侧/右侧或隐藏。 |
+| `search` | `string` | 默认 `''`。高亮匹配项并触发 `search-change`。 |
+| `searchCaseSensitive` | `boolean` | 默认 `false`。让 `search` 区分大小写。 |
+| `showError` | `boolean` | 默认 `true`。失败时渲染错误区域。 |
 | `tokens` | `Record<string, string>` | 默认 `{}`。根元素上的内联 `--vmd-*` 自定义属性。 |
 | `theme` | `'light' \| 'dark' \| 'auto' \| 'custom'` | 默认 `'light'`。设置根元素的 `data-vmd-theme`。 |
 | `as` | `string \| Component` | 默认 `'div'`。根元素或根组件。 |
@@ -65,6 +68,12 @@ import 'vue-markdown-suite/style.css'
 插件数组也要保持稳定。内联工厂调用会在每次父组件渲染时创建新的插件对象，并使解析缓存
 失效。
 
+`search` 会影响解析：每次变化都会重新解析文档。实现大文档的即时搜索时，请对输入做防抖
+（例如 200–300 ms）。两者同时存在时，显式的 `search` 选项会覆盖
+`searchPlugin()` 产生的搜索片段。`search-change` 只在当前渲染文档对应当前查询时触发，
+因此等待中或失败的运行不会报告旧的匹配数。空查询挂载时不会发事件；之后切换大小写是
+真实状态变化，会正常触发。
+
 ## 事件
 
 | 事件 | 负载 | 说明 |
@@ -74,6 +83,8 @@ import 'vue-markdown-suite/style.css'
 | `link-click` | `{ url, target, node, event }` | 渲染后的链接被激活后触发。 |
 | `custom-tag-click` | `{ tag, props, node, event }` | props 已归一化且安全。 |
 | `task-change` | `{ checked, node }` | GFM 任务复选框变化时触发。 |
+| `search-change` | `{ query, caseSensitive, matches }` | 跟随 `search` 属性，报告当前匹配数。 |
+| `math-error` | `MarkdownDiagnostic` | 数学渲染产生诊断时触发。 |
 | `render-error` | `MarkdownDiagnostic` | 解析、插件、适配器和配置失败。 |
 | `ready` | `MarkdownDocument` | 第一次成功生成文档时触发一次。 |
 
@@ -81,7 +92,7 @@ import 'vue-markdown-suite/style.css'
 
 ```ts
 import { ref } from 'vue'
-import type { MarkdownRendererInstance } from 'vue-markdown-suite'
+import type { MarkdownRendererInstance } from '@coderminer/vue-markdown'
 
 const renderer = ref<MarkdownRendererInstance>()
 
@@ -114,12 +125,12 @@ renderer.value?.updateSource('# 新的源码')
 | `toc-item` | `{ item, active, navigate }` |
 | `content` | `{ nodes, document }` |
 | `error` | `{ diagnostics, label, retry }` |
-| `empty` | `{ label }` |
+| `empty` | 渲染器：`{ label }`；MermaidLiveEditor：`{ source, actions: { focus, refresh } }` |
 | `loading` | `{ label }` |
 | `code` | `{ node, source, language, highlighted, nodes, lines, visibleLines, actions: { copy, download } }` |
 | `code-actions` | `{ source, language, fileName, title, highlighted, nodes, actions: { copy, download } }` |
 | `header` | CodeBlock：`{ source, language, label, fileName, title, highlighted, nodes, actions }`；MermaidBlock：`{ source, label, view, status, copied, fullscreen, compact, actions, showPreview, showSource }`；VueSyntaxHighlighter：`{ source, language, highlighted, nodes, lines, actions: { copy } }` |
-| `toolbar` | `{ source, language, fileName, title, highlighted, nodes, actions: { copy, download } }` |
+| `toolbar` | CodeBlock：`{ source, language, fileName, title, highlighted, nodes, actions: { copy, download } }`；MermaidLiveEditor：`{ ratio, fullscreen, compact, actions: { toggleFullscreen, resetRatio, setRatio } }` |
 | `tabs` | `{ view, status, actions: { preview, source } }` |
 | `actions` | `{ source, status, copied, fullscreen, enableZoom, allowFullscreen, compact, actions }` |
 | `footer` | `{ source, language, highlighted, nodes, lines, actions: { copy } }` |
@@ -130,6 +141,8 @@ renderer.value?.updateSource('# 新的源码')
 | `mermaid-error` | `{ source, error, retry, focusSource }` |
 | `editor` | `{ value, update, diagnostics, status, actions: { focus, reset, fullscreen } }` |
 | `editor-diagnostics` | `{ diagnostics, focusLine }` |
+| `preview` | MermaidLiveEditor：`{ source, status, error, nodes, actions: { refresh, fullscreen, focus } }` |
+| `fullscreen` | MermaidLiveEditor：`{ fullscreen, label, toggle }` |
 
 插槽不存在或内容为空时保留默认渲染。
 
@@ -143,14 +156,17 @@ renderer.value?.updateSource('# 新的源码')
 
 ## 目录
 
-目录通过 `toc` 开启。用 `tocDepth` 限制最大层级（`0` 表示全部），用 `#toc` 替换整个
-导航，用 `#toc-item` 替换单项，用 `labels.toc` 设置可访问标签，用 `getToc()` /
-`scrollToHeading(id)` 驱动外部目录。`getToc()`、`toc-change`、插槽上下文、默认目录和
-当前标题跟踪器都使用过滤后的列表。自定义区域组件收到 `items`、`activeId`、`label`、
-`tocDepth` 和可选的 `tocItem`；目录项组件收到 `item` 和 `active`，并触发 `navigate`。
+目录通过 `toc` 开启。用 `tocDepth` 限制最大层级（`0` 表示全部），用 `tocPlacement`
+选择 `top`、`left`、`right` 或 `hidden`，用 `#toc` 替换整个导航，用 `#toc-item` 替换
+单项，用 `labels.toc` 设置可访问标签，用 `getToc()` / `scrollToHeading(id)` 驱动外部
+目录。`hidden` 只隐藏默认目录，自定义 `#toc` 插槽或 `regions.toc` 区域仍会渲染。
+`getToc()`、`toc-change`、插槽上下文、默认目录和当前标题跟踪器都使用过滤后的列表。
+自定义区域组件收到 `items`、`activeId`、`label`、`tocDepth` 和可选的 `tocItem`；目录项
+组件收到 `item` 和 `active`，并触发 `navigate`。
 
 ```vue
 <MarkdownRenderer :source="source" toc :toc-depth="3" />
+<MarkdownRenderer :source="source" toc toc-placement="left" />
 ```
 
 完整目录 API 与示例见[公共 API](./api.md)。

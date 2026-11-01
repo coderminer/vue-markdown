@@ -10,8 +10,8 @@ the component catalog.
 
 ```vue
 <script setup lang="ts">
-import { MarkdownRenderer } from 'vue-markdown-suite'
-import 'vue-markdown-suite/style.css'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
+import '@coderminer/vue-markdown/style.css'
 </script>
 
 <template>
@@ -29,7 +29,7 @@ import 'vue-markdown-suite/style.css'
 | `nodeComponents` | `Record<string, Component \| string \| NodeRenderer>` | Default `{}`. Semantic node overrides and function renderers. |
 | `labels` | `Partial<MarkdownLabels>` | Default `{}`. String or function labels for built-in text. |
 | `preset` | `MarkdownPreset \| MarkdownPreset[]` | Applies one or more presets. |
-| `plugins` | `PluginInput[]` | Default `defaultPlugins`. Replaces the default plugin set when provided. Add `htmlPlugin()` from `vue-markdown-suite/html` for sanitized raw HTML. |
+| `plugins` | `PluginInput[]` | Default `defaultPlugins`. Replaces the default plugin set when provided. Add `htmlPlugin()` from `@coderminer/vue-markdown/html` for sanitized raw HTML. |
 | `disablePlugins` | `string[]` | Default `[]`. Removes named plugins from the resolved set. |
 | `remarkPlugins` | `PluggableList` | Default `[]`. Runs after library remark plugins. |
 | `rehypePlugins` | `PluggableList` | Default `[]`. Runs after library rehype plugins and the built-in sanitizer. |
@@ -52,7 +52,10 @@ import 'vue-markdown-suite/style.css'
 | `syncHash` | `boolean` | Default `false`. Updates the URL hash on heading activation. |
 | `toc` | `boolean` | Default `false`. Renders the TOC region. |
 | `tocDepth` | `number` | Default `0` (all levels). Maximum heading level to include, from `1` to `6`. |
-| `showError` | `boolean` | Default `false`. Renders the error region on failure. |
+| `tocPlacement` | `'top' \| 'left' \| 'right' \| 'hidden'` | Default `'top'`. Stacks the TOC above the content, places it in a side column, or hides it. |
+| `search` | `string` | Default `''`. Highlights text matches and emits `search-change`. |
+| `searchCaseSensitive` | `boolean` | Default `false`. Makes `search` case-sensitive. |
+| `showError` | `boolean` | Default `true`. Renders the error region on failure. |
 | `tokens` | `Record<string, string>` | Default `{}`. Inline `--vmd-*` custom properties on the root. |
 | `theme` | `'light' \| 'dark' \| 'auto' \| 'custom'` | Default `'light'`. Sets `data-vmd-theme` on the root. |
 | `as` | `string \| Component` | Default `'div'`. Root element or component. |
@@ -67,6 +70,14 @@ the renderer's own root when markup is scoped this way.
 Keep plugin arrays stable as well. Inline factory calls create new plugin
 objects on every parent render and invalidate the parse memo.
 
+`search` is parse-affecting: changing it re-parses the document. Debounce host
+input (for example 200–300 ms) when implementing search-as-you-type on large
+documents. When both are present, the explicit `search` option wins over
+segments contributed by `searchPlugin()`. `search-change` is emitted only when
+the rendered document belongs to the current query, so pending or failed runs
+do not report stale match counts. Mounting with an empty query emits nothing;
+a later case-sensitivity toggle is a real state change and does emit.
+
 ## Events
 
 | Event | Payload | Notes |
@@ -76,6 +87,8 @@ objects on every parent render and invalidate the parse memo.
 | `link-click` | `{ url, target, node, event }` | Fires after a rendered link is activated. |
 | `custom-tag-click` | `{ tag, props, node, event }` | Props are normalized and safe. |
 | `task-change` | `{ checked, node }` | Fires when a GFM task checkbox changes. |
+| `search-change` | `{ query, caseSensitive, matches }` | Signature-gated; follows the `search` prop and its match count. |
+| `math-error` | `MarkdownDiagnostic` | Fires when math rendering produces a diagnostic. |
 | `render-error` | `MarkdownDiagnostic` | Parse, plugin, adapter, and configuration failures. |
 | `ready` | `MarkdownDocument` | Fires once for the first successful document. |
 
@@ -83,7 +96,7 @@ objects on every parent render and invalidate the parse memo.
 
 ```ts
 import { ref } from 'vue'
-import type { MarkdownRendererInstance } from 'vue-markdown-suite'
+import type { MarkdownRendererInstance } from '@coderminer/vue-markdown'
 
 const renderer = ref<MarkdownRendererInstance>()
 
@@ -117,12 +130,12 @@ default region and receive scoped data and actions.
 | `toc-item` | `{ item, active, navigate }` |
 | `content` | `{ nodes, document }` |
 | `error` | `{ diagnostics, label, retry }` |
-| `empty` | `{ label }` |
+| `empty` | Renderer: `{ label }`; MermaidLiveEditor: `{ source, actions: { focus, refresh } }` |
 | `loading` | `{ label }` |
 | `code` | `{ node, source, language, highlighted, nodes, lines, visibleLines, actions: { copy, download } }` |
 | `code-actions` | `{ source, language, fileName, title, highlighted, nodes, actions: { copy, download } }` |
 | `header` | CodeBlock: `{ source, language, label, fileName, title, highlighted, nodes, actions }`; MermaidBlock: `{ source, label, view, status, copied, fullscreen, compact, actions, showPreview, showSource }`; VueSyntaxHighlighter: `{ source, language, highlighted, nodes, lines, actions: { copy } }` |
-| `toolbar` | `{ source, language, fileName, title, highlighted, nodes, actions: { copy, download } }` |
+| `toolbar` | CodeBlock: `{ source, language, fileName, title, highlighted, nodes, actions: { copy, download } }`; MermaidLiveEditor: `{ ratio, fullscreen, compact, actions: { toggleFullscreen, resetRatio, setRatio } }` |
 | `tabs` | `{ view, status, actions: { preview, source } }` |
 | `actions` | `{ source, status, copied, fullscreen, enableZoom, allowFullscreen, compact, actions }` |
 | `footer` | `{ source, language, highlighted, nodes, lines, actions: { copy } }` |
@@ -133,6 +146,8 @@ default region and receive scoped data and actions.
 | `mermaid-error` | `{ source, error, retry, focusSource }` |
 | `editor` | `{ value, update, diagnostics, status, actions: { focus, reset, fullscreen } }` |
 | `editor-diagnostics` | `{ diagnostics, focusLine }` |
+| `preview` | MermaidLiveEditor: `{ source, status, error, nodes, actions: { refresh, fullscreen, focus } }` |
+| `fullscreen` | MermaidLiveEditor: `{ fullscreen, label, toggle }` |
 
 An absent or empty slot keeps the default rendering.
 
@@ -147,16 +162,19 @@ An absent or empty slot keeps the default rendering.
 ## TOC
 
 The TOC is opt-in with `toc`. Use `tocDepth` to include headings up to a
-maximum level (`0` means every level), `#toc` to replace the whole navigation,
-`#toc-item` to replace one entry, `labels.toc` for the accessible label, and
-`getToc()` / `scrollToHeading(id)` for an external TOC. `getToc()`, `toc-change`,
-the slot contexts, the default TOC, and the active-heading tracker all use the
-filtered list. Custom region components receive `items`, `activeId`, `label`,
-`tocDepth`, and optional `tocItem`; item components receive `item` and `active`
-and emit `navigate`.
+maximum level (`0` means every level), `tocPlacement` to choose `top`, `left`,
+`right`, or `hidden`, `#toc` to replace the whole navigation, `#toc-item` to
+replace one entry, `labels.toc` for the accessible label, and `getToc()` /
+`scrollToHeading(id)` for an external TOC. `hidden` suppresses the default TOC
+but keeps a custom `#toc` slot or `regions.toc` region rendering. `getToc()`,
+`toc-change`, the slot contexts, the default TOC, and the active-heading tracker
+all use the filtered list. Custom region components receive `items`, `activeId`,
+`label`, `tocDepth`, and optional `tocItem`; item components receive `item` and
+`active` and emit `navigate`.
 
 ```vue
 <MarkdownRenderer :source="source" toc :toc-depth="3" />
+<MarkdownRenderer :source="source" toc toc-placement="left" />
 ```
 
 See [Public API § TOC](./api.md#toc) for the complete API and examples.

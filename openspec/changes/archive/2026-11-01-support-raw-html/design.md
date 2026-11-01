@@ -17,7 +17,7 @@ parser. A plugin keeps the main and pipeline entries unchanged and lets the
 host opt in with one import:
 
 ```ts
-import { htmlPlugin } from 'vue-markdown-suite/html'
+import { htmlPlugin } from '@coderminer/vue-markdown/html'
 const plugins = [htmlPlugin()]
 ```
 

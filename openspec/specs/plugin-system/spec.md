@@ -107,7 +107,7 @@ Plugins SHALL support setup and cleanup hooks. Setup SHALL run when the owning r
 
 ### Requirement: Built-in features and core invariants
 
-TOC generation, code-node construction, and link policy SHALL be documented core invariants in v1.0, exported as non-disableable marker plugins. Search highlighting, custom tag mapping, GFM (`remark-gfm`), frontmatter (`remark-frontmatter`), and footnotes SHALL be implemented as official plugins that can be enabled, disabled, reordered, or replaced individually. Mermaid rendering and math rendering are v1.x official plugins. The preset components SHALL use a documented default plugin set. Disabling a non-core built-in plugin SHALL remove its behavior without producing render errors.
+TOC generation, code-node construction, and link policy SHALL be documented core invariants, exported as non-disableable marker plugins. Search highlighting SHALL be available as an official `search` plugin and as an explicit renderer/headless `search` option. The explicit option is a documented core convenience: it segments text after plugin document transforms and wins over plugin-contributed search segments. Disabling the `search` plugin removes that plugin transform, but an explicit `search` option still applies. Custom tag mapping, GFM (`remark-gfm`), frontmatter (`remark-frontmatter`), and footnotes SHALL be implemented as official plugins that can be enabled, disabled, reordered, or replaced individually. Mermaid rendering and math rendering are official opt-in plugins. The preset components SHALL use a documented default plugin set. Disabling a non-core built-in plugin SHALL remove its plugin behavior without producing render errors.
 
 #### Scenario: Disable Mermaid
 - **WHEN** the Mermaid plugin is disabled
@@ -122,8 +122,12 @@ TOC generation, code-node construction, and link policy SHALL be documented core
 - **THEN** the behavior remains active and a `plugin-core` diagnostic explains that the marker cannot be disabled
 
 #### Scenario: Disable search
-- **WHEN** the search plugin is disabled
+- **WHEN** the search plugin is disabled and no explicit `search` option is set
 - **THEN** search segments are no longer produced and the rest of the document renders unchanged
+
+#### Scenario: Explicit search option
+- **WHEN** an explicit `search` option is set while the search plugin is disabled
+- **THEN** core search segmentation still applies and wins over plugin-contributed segments
 
 ### Requirement: Plugin error isolation
 

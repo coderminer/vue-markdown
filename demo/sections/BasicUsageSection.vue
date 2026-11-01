@@ -1,17 +1,17 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { MarkdownRenderer } from 'vue-markdown-suite'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
 import CodeSample from '../components/CodeSample.vue'
 import SectionShell from '../components/SectionShell.vue'
 import SourceEditor from '../components/SourceEditor.vue'
 import OutputPane from '../components/OutputPane.vue'
 
-const install = 'npm install vue-markdown-suite'
+const install = 'npm install @coderminer/vue-markdown'
 
 const quickStart = `<script setup lang="ts">
 import { ref } from 'vue'
-import { MarkdownRenderer } from 'vue-markdown-suite'
-import 'vue-markdown-suite/style.css'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
+import '@coderminer/vue-markdown/style.css'
 
 const source = ref('# Hello\\n\\nA **bold** paragraph with a [link](https://example.com).')
 \x3C/script>
@@ -101,7 +101,7 @@ function onLinkClick(payload: { url: string }): void {
       <article class="demo-card">
         <h3>Styled or unstyled</h3>
         <p>
-          Import <code>vue-markdown-suite/style.css</code> for the default design,
+          Import <code>@coderminer/vue-markdown/style.css</code> for the default design,
           or skip it and keep the semantic markup.
         </p>
       </article>

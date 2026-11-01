@@ -8,7 +8,7 @@ import {
   type MarkdownHighlighter,
   type MarkdownNode,
   type MarkdownTheme,
-} from 'vue-markdown-suite'
+} from '@coderminer/vue-markdown'
 
 withDefaults(
   defineProps<{

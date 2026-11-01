@@ -26,7 +26,7 @@ description: 用稳定覆盖层、设计令牌和文档化部件定制元素、�
 
 ```vue [BadgeLink.vue]
 <script setup lang="ts">
-import type { MarkdownNode } from 'vue-markdown-suite'
+import type { MarkdownNode } from '@coderminer/vue-markdown'
 
 defineProps<{
   node?: MarkdownNode
@@ -44,7 +44,7 @@ defineProps<{
 
 ```vue [CodeFrame.vue]
 <script setup lang="ts">
-import type { MarkdownCodeNode } from 'vue-markdown-suite'
+import type { MarkdownCodeNode } from '@coderminer/vue-markdown'
 
 defineProps<{ node?: MarkdownCodeNode }>()
 </script>
@@ -59,7 +59,7 @@ defineProps<{ node?: MarkdownCodeNode }>()
 
 ```vue [App.vue]
 <script setup lang="ts">
-import { MarkdownRenderer } from 'vue-markdown-suite'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
 import BadgeLink from './BadgeLink.vue'
 import CodeFrame from './CodeFrame.vue'
 
@@ -86,7 +86,7 @@ const components = {
 
 ```vue [Callout.vue]
 <script setup lang="ts">
-import type { MarkdownNode } from 'vue-markdown-suite'
+import type { MarkdownNode } from '@coderminer/vue-markdown'
 
 defineProps<{ node?: MarkdownNode }>()
 </script>
@@ -100,7 +100,7 @@ defineProps<{ node?: MarkdownNode }>()
 
 ```vue [ArticleLink.vue]
 <script setup lang="ts">
-import type { MarkdownNode } from 'vue-markdown-suite'
+import type { MarkdownNode } from '@coderminer/vue-markdown'
 
 defineProps<{ node?: MarkdownNode }>()
 </script>
@@ -114,7 +114,7 @@ defineProps<{ node?: MarkdownNode }>()
 
 ```vue [App.vue]
 <script setup lang="ts">
-import { MarkdownRenderer } from 'vue-markdown-suite'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
 import ArticleLink from './ArticleLink.vue'
 import Callout from './Callout.vue'
 
@@ -144,7 +144,7 @@ const nodeComponents = {
 
 ```vue [CustomCode.vue]
 <script setup lang="ts">
-import type { MarkdownCodeNode } from 'vue-markdown-suite'
+import type { MarkdownCodeNode } from '@coderminer/vue-markdown'
 
 defineProps<{
   node?: MarkdownCodeNode
@@ -164,8 +164,8 @@ defineProps<{
 
 ```vue [CustomMermaid.vue]
 <script setup lang="ts">
-import { MermaidBlock } from 'vue-markdown-suite'
-import type { MarkdownMermaidNode } from 'vue-markdown-suite'
+import { MermaidBlock } from '@coderminer/vue-markdown'
+import type { MarkdownMermaidNode } from '@coderminer/vue-markdown'
 
 defineProps<{
   node?: MarkdownMermaidNode
@@ -180,9 +180,9 @@ defineProps<{
 
 ```vue [App.vue]
 <script setup lang="ts">
-import { MarkdownRenderer } from 'vue-markdown-suite'
-import { defaultPlugins } from 'vue-markdown-suite/plugins'
-import { mermaidPlugin } from 'vue-markdown-suite/mermaid'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
+import { defaultPlugins } from '@coderminer/vue-markdown/plugins'
+import { mermaidPlugin } from '@coderminer/vue-markdown/mermaid'
 import CustomCode from './CustomCode.vue'
 import CustomMermaid from './CustomMermaid.vue'
 
@@ -286,7 +286,7 @@ interface TocItem {
 }
 ```
 
-可以从五个层面定制：
+可以从多个层面定制：
 
 | 层面 | API |
 | --- | --- |
@@ -294,13 +294,18 @@ interface TocItem {
 | 单项 | `#toc-item` 插槽或 `regions.tocItem` |
 | 文案 | `labels.toc` |
 | 深度 | `tocDepth`（`0` 表示全部层级，`1`–`6` 表示最大层级） |
+| 位置 | `tocPlacement`（`top`、`left`、`right`、`hidden`） |
 | 行为 | `toc`、`syncHash`、`idPrefix`、`getToc()`、`scrollToHeading(id)` |
 
-只保留 `h1`–`h3`：
+只保留 `h1`–`h3`，或把目录放到内容左侧：
 
 ```vue
 <MarkdownRenderer :source="source" toc :toc-depth="3" />
+<MarkdownRenderer :source="source" toc toc-placement="left" />
 ```
+
+`left` / `right` 在宽屏使用侧栏布局，窄屏自动回退为置顶。`hidden` 会隐藏默认目录，
+即使 `toc` 为 true；`#toc` 插槽和 `regions.toc` 仍可用于完全自定义布局。
 
 `tocDepth` 会同时过滤传给 `#toc` / `#toc-item` 的 `items`、`getToc()` 的返回值，以及
 `toc-change` 的负载。
@@ -359,7 +364,7 @@ const regions = {
 `customTagsPlugin` 把选中的元素转换成自定义节点，再映射到你自己的组件：
 
 ```ts
-import { customTagsPlugin } from 'vue-markdown-suite/plugins'
+import { customTagsPlugin } from '@coderminer/vue-markdown/plugins'
 
 const plugins = [customTagsPlugin({ tags: ['x-note'] })]
 ```
@@ -428,10 +433,10 @@ nodeComponents 函数
 样式表是可选的，分为两层：
 
 ```ts
-import 'vue-markdown-suite/style.css'
+import '@coderminer/vue-markdown/style.css'
 // 或者
-import 'vue-markdown-suite/styles/tokens.css'
-import 'vue-markdown-suite/styles/components.css'
+import '@coderminer/vue-markdown/styles/tokens.css'
+import '@coderminer/vue-markdown/styles/components.css'
 ```
 
 只面向文档化的部件和令牌，不要针对内部元素结构：
@@ -496,7 +501,7 @@ import 'vue-markdown-suite/styles/components.css'
 文案、覆盖键和行为钩子。注册表不依赖 Vue，工具和文档无需导入组件代码即可读取。
 
 ```ts
-import { COMPONENT_MANIFESTS, getComponentManifest } from 'vue-markdown-suite'
+import { COMPONENT_MANIFESTS, getComponentManifest } from '@coderminer/vue-markdown'
 
 const manifest = getComponentManifest('CodeBlock')
 console.log(COMPONENT_MANIFESTS)
@@ -508,7 +513,7 @@ console.log(COMPONENT_MANIFESTS)
 的：
 
 ```ts
-import { composePresets, defineMarkdownPreset } from 'vue-markdown-suite/presets'
+import { composePresets, defineMarkdownPreset } from '@coderminer/vue-markdown/presets'
 
 const brand = defineMarkdownPreset({
   name: 'brand',

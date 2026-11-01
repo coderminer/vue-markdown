@@ -16,15 +16,15 @@ import {
   MarkdownRenderer,
   defineMarkdownPlugin,
   defineMarkdownPreset,
-} from 'vue-markdown-suite'
+} from '@coderminer/vue-markdown'
 import {
   defaultPlugins,
   gfmPlugin,
   searchPlugin,
-} from 'vue-markdown-suite/plugins'
-import { mathPlugin } from 'vue-markdown-suite/math'
-import 'vue-markdown-suite/style.css'
-import 'vue-markdown-suite/styles/math-full.css'
+} from '@coderminer/vue-markdown/plugins'
+import { mathPlugin } from '@coderminer/vue-markdown/math'
+import '@coderminer/vue-markdown/style.css'
+import '@coderminer/vue-markdown/styles/math-full.css'
 
 const docsPlugin = defineMarkdownPlugin({
   name: 'docs',
@@ -67,7 +67,7 @@ const plugins = [
 生命周期钩子：
 
 ```ts
-import { defineMarkdownPlugin } from 'vue-markdown-suite/plugins'
+import { defineMarkdownPlugin } from '@coderminer/vue-markdown/plugins'
 
 export const brandPlugin = defineMarkdownPlugin({
   name: 'brand',
@@ -98,7 +98,7 @@ export const brandPlugin = defineMarkdownPlugin({
 预设把配置打包到一个名字下。后一个预设覆盖前一个，其插件列表会追加：
 
 ```ts
-import { composePresets, defineMarkdownPreset } from 'vue-markdown-suite/presets'
+import { composePresets, defineMarkdownPreset } from '@coderminer/vue-markdown/presets'
 
 const brand = defineMarkdownPreset({
   name: 'brand',
@@ -120,8 +120,8 @@ const preset = composePresets(brand, docs)
 ## 语法高亮
 
 ```ts
-import { highlightjs } from 'vue-markdown-suite/highlight'
-import { shiki } from 'vue-markdown-suite/highlight/shiki'
+import { highlightjs } from '@coderminer/vue-markdown/highlight'
+import { shiki } from '@coderminer/vue-markdown/highlight/shiki'
 ```
 
 ```vue
@@ -137,9 +137,9 @@ import { shiki } from 'vue-markdown-suite/highlight/shiki'
 ## 数学公式
 
 ```ts
-import { defaultPlugins } from 'vue-markdown-suite/plugins'
-import { mathPlugin, katexEngine } from 'vue-markdown-suite/math'
-import 'vue-markdown-suite/styles/math-full.css'
+import { defaultPlugins } from '@coderminer/vue-markdown/plugins'
+import { mathPlugin, katexEngine } from '@coderminer/vue-markdown/math'
+import '@coderminer/vue-markdown/styles/math-full.css'
 
 const plugins = [...defaultPlugins, mathPlugin()]
 ```
@@ -160,12 +160,12 @@ const plugins = [...defaultPlugins, mathPlugin()]
 ## Mermaid
 
 ```ts
-import { renderMermaid, sanitizeSvg } from 'vue-markdown-suite/mermaid'
+import { renderMermaid, sanitizeSvg } from '@coderminer/vue-markdown/mermaid'
 ```
 
 ```vue
 <script setup lang="ts">
-import { MermaidBlock } from 'vue-markdown-suite'
+import { MermaidBlock } from '@coderminer/vue-markdown'
 
 const diagram = `flowchart LR
   Markdown --> Pipeline
@@ -189,8 +189,8 @@ const diagram = `flowchart LR
 当预设标记不适合你的场景时，自己接管输出：
 
 ```ts
-import { useMarkdownDocument } from 'vue-markdown-suite/headless'
-import { gfmPlugin } from 'vue-markdown-suite/plugins'
+import { useMarkdownDocument } from '@coderminer/vue-markdown/headless'
+import { gfmPlugin } from '@coderminer/vue-markdown/plugins'
 
 const {
   document,
@@ -213,7 +213,7 @@ const {
 ## SSR 与静态导出
 
 ```ts
-import { exportMarkdownHtml, exportMarkdownHtmlSync } from 'vue-markdown-suite'
+import { exportMarkdownHtml, exportMarkdownHtmlSync } from '@coderminer/vue-markdown'
 
 const html = exportMarkdownHtmlSync(source)
 const asyncHtml = await exportMarkdownHtml(source, { plugins })

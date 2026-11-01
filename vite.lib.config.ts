@@ -28,7 +28,7 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      'vue-markdown-suite': resolveSrc('./src/index.ts'),
+      '@coderminer/vue-markdown': resolveSrc('./src/index.ts'),
     },
     // Prefer the DOM-free implementations so the built library can be
     // imported by Node/SSR as well as bundled for browsers.

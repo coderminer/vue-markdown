@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { MarkdownRenderer } from 'vue-markdown-suite'
-import { gfmPlugin } from 'vue-markdown-suite/plugins'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
+import { gfmPlugin } from '@coderminer/vue-markdown/plugins'
 import SectionShell from '../components/SectionShell.vue'
 import SourceEditor from '../components/SourceEditor.vue'
 import OutputPane from '../components/OutputPane.vue'

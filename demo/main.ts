@@ -1,5 +1,5 @@
 import { createApp } from 'vue'
-import 'vue-markdown-suite/style.css'
+import '@coderminer/vue-markdown/style.css'
 import App from './App.vue'
 
 createApp(App).mount('#app')

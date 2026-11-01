@@ -4,7 +4,7 @@ description: Server rendering and deterministic static HTML export.
 
 # SSR and static export
 
-`vue-markdown-suite` is SSR-safe: no browser globals are touched at module
+`@coderminer/vue-markdown` is SSR-safe: no browser globals are touched at module
 scope, heading IDs are deterministic, and the renderer prefers the synchronous
 path when every plugin is synchronous.
 
@@ -12,8 +12,8 @@ path when every plugin is synchronous.
 
 ```vue [App.vue]
 <script setup lang="ts">
-import { MarkdownRenderer } from 'vue-markdown-suite'
-import 'vue-markdown-suite/style.css'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
+import '@coderminer/vue-markdown/style.css'
 
 defineProps<{ source: string }>()
 </script>
@@ -48,7 +48,7 @@ request-specific state inside plugins.
 ## Static HTML export
 
 ```ts
-import { exportMarkdownHtml, exportMarkdownHtmlSync } from 'vue-markdown-suite'
+import { exportMarkdownHtml, exportMarkdownHtmlSync } from '@coderminer/vue-markdown'
 
 const html = await exportMarkdownHtml('# Hello')
 const sync = exportMarkdownHtmlSync('# Hello')

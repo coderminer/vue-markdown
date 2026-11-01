@@ -16,7 +16,7 @@ Python、Ruby、Rust、SCSS、Shell、SQL、Swift、TypeScript、HTML/XML、YAML
 根本不会加载。
 
 ```ts
-import { highlightjs } from 'vue-markdown-suite/highlight'
+import { highlightjs } from '@coderminer/vue-markdown/highlight'
 ```
 
 ## Shiki
@@ -24,7 +24,7 @@ import { highlightjs } from 'vue-markdown-suite/highlight'
 可选的 Shiki 入口会预加载 highlighter、主题和语言。在就绪之前，源码按纯文本渲染。
 
 ```ts
-import { shiki } from 'vue-markdown-suite/highlight/shiki'
+import { shiki } from '@coderminer/vue-markdown/highlight/shiki'
 
 const highlighter = shiki
 ```
@@ -56,7 +56,7 @@ const highlighter = shiki
 适配器是一个带唯一 `id` 和 `highlight` 方法的对象，返回归一化节点，而不是 HTML 字符串：
 
 ```ts
-import type { MarkdownHighlighter } from 'vue-markdown-suite'
+import type { MarkdownHighlighter } from '@coderminer/vue-markdown'
 
 export const myHighlighter: MarkdownHighlighter = {
   id: 'my-highlighter',

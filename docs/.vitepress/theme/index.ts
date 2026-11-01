@@ -1,8 +1,8 @@
 import DefaultTheme from 'vitepress/theme'
 import type { Theme } from 'vitepress'
 import { defineAsyncComponent } from 'vue'
-import 'vue-markdown-suite/style.css'
-import 'vue-markdown-suite/styles/math-full.css'
+import '@coderminer/vue-markdown/style.css'
+import '@coderminer/vue-markdown/styles/math-full.css'
 import './custom.css'
 import DemoFrame from './components/DemoFrame.vue'
 

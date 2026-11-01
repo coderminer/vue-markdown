@@ -107,7 +107,7 @@ The renderer SHALL apply a `urlTransform` function to every URL-bearing attribut
 
 ### Requirement: HTML handling modes
 
-Raw HTML SHALL be dropped by default. It SHALL be rendered only when the host adds `htmlPlugin()` from `vue-markdown-suite/html`; the renderer SHALL NOT expose an `enableHtml` or `html` prop. When the html plugin is present, `rehype-sanitize` SHALL run immediately after `rehype-raw` and before any trusted transform. A manual `rehype-raw` in `rehypePlugins` SHALL be ignored with a warning. A host that enables raw HTML is making an explicit trust decision documented by the library.
+Raw HTML SHALL be dropped by default. It SHALL be rendered only when the host adds `htmlPlugin()` from `@coderminer/vue-markdown/html`; the renderer SHALL NOT expose an `enableHtml` or `html` prop. When the html plugin is present, `rehype-sanitize` SHALL run immediately after `rehype-raw` and before any trusted transform. A manual `rehype-raw` in `rehypePlugins` SHALL be ignored with a warning. A host that enables raw HTML is making an explicit trust decision documented by the library.
 
 #### Scenario: Default drop
 - **WHEN** the source contains a raw HTML block and the html plugin is not configured
@@ -203,7 +203,7 @@ The renderer SHALL support a `baseUrl` option that resolves relative link and im
 
 ### Requirement: Heading anchors and table of contents
 
-Every heading SHALL receive a stable, unique identifier derived from its text content. Duplicate heading text SHALL produce suffixed identifiers. The renderer SHALL build a table of contents in document order, nest entries by heading level, and support `tocDepth` to include headings up to a maximum level (`0` means every level). The filtered TOC SHALL drive `toc-change`, `getToc()`, slot contexts, and active-heading tracking. `toc-change` SHALL be emitted only when the effective, filtered TOC changes. TOC placement SHALL support left, right, and hidden, and the entry for the section currently in view SHALL be marked active. Identifier generation SHALL be replaceable through behavior injection.
+Every heading SHALL receive a stable, unique identifier derived from its text content. Duplicate heading text SHALL produce suffixed identifiers. The renderer SHALL build a table of contents in document order, nest entries by heading level, and support `tocDepth` to include headings up to a maximum level (`0` means every level). The filtered TOC SHALL drive `toc-change`, `getToc()`, slot contexts, and active-heading tracking. `toc-change` SHALL be emitted only when the effective, filtered TOC changes. TOC placement SHALL support left, right, and hidden through the `tocPlacement` prop (`top` remains the stacked default), and the entry for the section currently in view SHALL be marked active. Identifier generation SHALL be replaceable through behavior injection.
 
 #### Scenario: Duplicate headings receive unique identifiers
 - **WHEN** a document contains two headings with the same text
@@ -212,6 +212,14 @@ Every heading SHALL receive a stable, unique identifier derived from its text co
 #### Scenario: TOC respects tocDepth
 - **WHEN** `tocDepth` is `2`
 - **THEN** level 3 headings appear in the content but not in the table of contents
+
+#### Scenario: Side TOC placement
+- **WHEN** `tocPlacement` is `left` or `right`
+- **THEN** the TOC renders in a side column and falls back to the stacked layout on narrow viewports
+
+#### Scenario: Hidden TOC placement
+- **WHEN** `tocPlacement` is `hidden` and no custom TOC slot or region is provided
+- **THEN** the default TOC is not rendered even when `toc` is true, while a custom TOC slot or region still renders
 
 #### Scenario: TOC emission is signature gated
 - **WHEN** content is re-rendered with an unchanged set of headings
@@ -255,7 +263,7 @@ Raw HTML SHALL be disabled by default. When a host explicitly enables it through
 
 ### Requirement: Search highlighting
 
-A host-provided search string SHALL highlight matching text in the rendered content. Matching SHALL be case-insensitive by default and MAY be made case-sensitive. Highlighting SHALL affect text nodes only, SHALL preserve existing markup and link destinations, and SHALL be removed when the search string becomes empty. The match renderer SHALL be replaceable through the customization contract.
+A host-provided search string SHALL highlight matching text in the rendered content. The renderer SHALL accept the query through the `search` prop (or the headless `search` option) and case sensitivity through `searchCaseSensitive`. Matching SHALL be case-insensitive by default and MAY be made case-sensitive. Highlighting SHALL affect text nodes only, SHALL preserve existing markup and link destinations, and SHALL be removed when the search string becomes empty. The match renderer SHALL be replaceable through the customization contract.
 
 #### Scenario: Highlight matches without breaking markup
 - **WHEN** the search text matches words inside a paragraph and a link label
@@ -264,6 +272,10 @@ A host-provided search string SHALL highlight matching text in the rendered cont
 #### Scenario: Custom match rendering
 - **WHEN** a host replaces the search match renderer
 - **THEN** matches use the host markup while non-matching content remains unchanged
+
+#### Scenario: Search state event
+- **WHEN** the `search` query changes or the rendered document for that query reports a different match count
+- **THEN** `search-change` reports the current query, case sensitivity, and match count, and pending or failed runs do not emit a stale count
 
 ### Requirement: Generic custom tags
 
@@ -303,7 +315,7 @@ When parsing or rendering fails, the renderer SHALL preserve the last successful
 
 ### Requirement: Events and exposed actions
 
-The renderer SHALL emit `toc-change` when the effective TOC changes, `link-click` when a link is activated, `task-change` when a task checkbox changes, `custom-tag-click` when a mapped custom tag is activated, `search-change` when search state changes, `render-error` on failure, `math-error` on math failure, and `ready` when the first document is available. It SHALL expose `scrollToHeading`, `getDocument`, `getToc`, and `refresh` actions.
+The renderer SHALL emit `toc-change` when the effective TOC changes, `link-click` when a link is activated, `task-change` when a task checkbox changes, `custom-tag-click` when a mapped custom tag is activated, `search-change` with the current query, case sensitivity, and match count when search state changes, `render-error` on failure, `math-error` with the math diagnostic on math failure (alongside the general diagnostic stream), and `ready` when the first document is available. It SHALL expose `scrollToHeading`, `getDocument`, `getToc`, and `refresh` actions.
 
 #### Scenario: Link event
 - **WHEN** the user activates a rendered link
@@ -316,6 +328,10 @@ The renderer SHALL emit `toc-change` when the effective TOC changes, `link-click
 #### Scenario: Ready event
 - **WHEN** the first document finishes rendering
 - **THEN** `ready` is emitted once with the document model
+
+#### Scenario: Math error event
+- **WHEN** a math node fails to render
+- **THEN** `math-error` carries the math diagnostic and other document content remains usable
 
 ### Requirement: Static HTML export
 

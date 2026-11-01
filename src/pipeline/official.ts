@@ -318,7 +318,7 @@ export function createOfficialPipeline(
       ctx.diagnostics.push(
         createDiagnostic(
           'html-plugin',
-          'Raw HTML is enabled with `htmlPlugin()` from "vue-markdown-suite/html"; manual rehype-raw is ignored.',
+          'Raw HTML is enabled with `htmlPlugin()` from "@coderminer/vue-markdown/html"; manual rehype-raw is ignored.',
           { severity: 'warning', phase: 'pipeline', plugin: 'html' },
         ),
       )

@@ -19,7 +19,7 @@ text.
 
 ### Enable sanitized HTML
 
-Install `rehype-raw` and add `htmlPlugin()` from `vue-markdown-suite/html`:
+Install `rehype-raw` and add `htmlPlugin()` from `@coderminer/vue-markdown/html`:
 
 ```bash
 npm install rehype-raw
@@ -27,9 +27,9 @@ npm install rehype-raw
 
 ```vue
 <script setup lang="ts">
-import { MarkdownRenderer } from 'vue-markdown-suite'
-import { defaultPlugins } from 'vue-markdown-suite/plugins'
-import { htmlPlugin } from 'vue-markdown-suite/html'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
+import { defaultPlugins } from '@coderminer/vue-markdown/plugins'
+import { htmlPlugin } from '@coderminer/vue-markdown/html'
 
 const plugins = [...defaultPlugins, htmlPlugin()]
 </script>
@@ -80,7 +80,7 @@ protocol policy is a core invariant and is not extensible.
 - `data:image/svg+xml` is rejected because SVG can carry script.
 
 ```ts
-import { defaultUrlTransform } from 'vue-markdown-suite'
+import { defaultUrlTransform } from '@coderminer/vue-markdown'
 
 defaultUrlTransform('javascript:alert(1)') // ''
 defaultUrlTransform('data:image/png;base64,abc', 'src') // kept
@@ -111,7 +111,7 @@ Return `null` to remove the attribute, or `undefined` to keep the sanitized URL.
 ## Custom tags
 
 ```ts
-import { customTagsPlugin } from 'vue-markdown-suite/plugins'
+import { customTagsPlugin } from '@coderminer/vue-markdown/plugins'
 
 const plugins = [customTagsPlugin({ tags: ['x-note'] })]
 ```

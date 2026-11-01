@@ -94,22 +94,22 @@ function reportError(): void {
   if (reported) return
   if (error.value) {
     reported = true
-    context.onRenderError?.(
-      createDiagnostic('math-error', error.value, {
-        phase: 'render',
-      }),
-    )
+    const diagnostic = createDiagnostic('math-error', error.value, {
+      phase: 'render',
+    })
+    context.onMathError?.(diagnostic)
+    context.onRenderError?.(diagnostic)
     return
   }
   if (unavailable.value) {
     reported = true
-    context.onRenderError?.(
-      createDiagnostic(
-        'math-engine-unavailable',
-        'No math engine or pre-rendered math output is available. Provide `mathEngine`, `rendered`, or use `mathPlugin()`.',
-        { severity: 'warning', phase: 'render' },
-      ),
+    const diagnostic = createDiagnostic(
+      'math-engine-unavailable',
+      'No math engine or pre-rendered math output is available. Provide `mathEngine`, `rendered`, or use `mathPlugin()`.',
+      { severity: 'warning', phase: 'render' },
     )
+    context.onMathError?.(diagnostic)
+    context.onRenderError?.(diagnostic)
   }
 }
 

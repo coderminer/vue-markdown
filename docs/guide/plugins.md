@@ -12,7 +12,7 @@ labels, tokens, and setup/cleanup.
 ## Define a plugin
 
 ```ts
-import { defineMarkdownPlugin } from 'vue-markdown-suite/plugins'
+import { defineMarkdownPlugin } from '@coderminer/vue-markdown/plugins'
 
 export const myPlugin = defineMarkdownPlugin({
   name: 'my-plugin',        // required and unique
@@ -97,11 +97,12 @@ Fenced code is the exception: `components.pre` always wraps the block, while the
 inner element resolves as local `components.code` > plugin
 `nodeComponents.code` > plugin `components.code` > built-in.
 
-Host-level `nodeComponents` and `regions` props are v1.x contracts. In v1.0,
-plugins may contribute `nodeComponents`, `regions`, `labels`, and `tokens`; the
-renderer merges those contributions. Local `components` and `tokens` props still
-win over plugin contributions. Function values in `nodeComponents` are also
-v1.x; v1.0 accepts component objects and tag-name strings.
+Host-level `nodeComponents` and `regions` props are part of the renderer
+contract. Plugins may also contribute `nodeComponents`, `regions`, `labels`,
+and `tokens`; the renderer merges those contributions. Local `components` and
+`tokens` props still win over plugin contributions. Function values in
+`nodeComponents` are supported alongside component objects and tag-name
+strings.
 
 ## Lifecycle
 
@@ -152,7 +153,7 @@ const rehypePlugins = [rehypeHighlight]
 Host remark plugins run after library remark plugins. Host rehype plugins run
 after library rehype plugins and after the built-in sanitizer. Raw HTML is not
 enabled through `rehypePlugins`: use `htmlPlugin()` from
-`vue-markdown-suite/html` so the parser and sanitizer stay paired.
+`@coderminer/vue-markdown/html` so the parser and sanitizer stay paired.
 
 ## Built-in plugins
 
@@ -165,13 +166,17 @@ enabled through `rehypePlugins`: use `htmlPlugin()` from
 | `customTagsPlugin({ tags })` | Convert tags to custom nodes; a real document transform. |
 | `gfmPlugin` | `remark-gfm`. |
 | `frontmatterPlugin` | `remark-frontmatter` + YAML capture. |
-| `htmlPlugin()` | Optional `vue-markdown-suite/html` entry; sanitized raw HTML. |
+| `htmlPlugin()` | Optional `@coderminer/vue-markdown/html` entry; sanitized raw HTML. |
 
 `defaultPlugins` is `[toc, code, link, search, custom-tags]`. The first three are
 core invariant markers: they remain in the resolved set for ordering and
 diagnostics, but `disablePlugins` reports a warning instead of removing them.
 `search` and `custom-tags` are real transforms and can be disabled. `fullPlugins`
 adds GFM and frontmatter.
+
+The renderer-level `search` prop is a core convenience in addition to
+`searchPlugin()`. When both are present, the explicit prop wins; disabling the
+`search` plugin does not disable the explicit prop.
 
 ## Conditional composition
 

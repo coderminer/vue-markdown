@@ -33,9 +33,9 @@ mdast，再转换成 hast，在需要时净化，最后把 hast 交给模型构�
 ## 直接使用
 
 ```ts
-import { createOfficialPipeline } from 'vue-markdown-suite/pipeline'
+import { createOfficialPipeline } from '@coderminer/vue-markdown/pipeline'
 import GithubSlugger from 'github-slugger'
-import { defaultPlugins } from 'vue-markdown-suite/plugins'
+import { defaultPlugins } from '@coderminer/vue-markdown/plugins'
 
 const pipeline = createOfficialPipeline()
 const result = await pipeline.process('# 你好', {
@@ -72,7 +72,7 @@ const result = await pipeline.process('# 你好', {
 文案、当前标题——不会触发重新解析。
 
 ```ts
-import { memoClear, memoSize } from 'vue-markdown-suite'
+import { memoClear, memoSize } from '@coderminer/vue-markdown'
 ```
 
 `memoClear()` 适合测试和基准测试；`memoSize()` 返回有界缓存当前的大小。

@@ -48,7 +48,7 @@ features:
       width: 24
       height: 24
     title: Safe by default
-    details: Raw HTML is dropped by default; add htmlPlugin() from vue-markdown-suite/html and the built-in sanitizer runs immediately.
+    details: Raw HTML is dropped by default; add htmlPlugin() from @coderminer/vue-markdown/html and the built-in sanitizer runs immediately.
   - icon:
       src: /icons/brackets.svg
       alt: Headless core
@@ -113,19 +113,19 @@ features:
 
 ::: code-group
 ```bash [npm]
-npm install vue-markdown-suite
+npm install @coderminer/vue-markdown
 ```
 
 ```bash [pnpm]
-pnpm add vue-markdown-suite
+pnpm add @coderminer/vue-markdown
 ```
 
 ```bash [yarn]
-yarn add vue-markdown-suite
+yarn add @coderminer/vue-markdown
 ```
 
 ```bash [bun]
-bun add vue-markdown-suite
+bun add @coderminer/vue-markdown
 ```
 :::
 
@@ -134,8 +134,8 @@ bun add vue-markdown-suite
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue'
-import { MarkdownRenderer } from 'vue-markdown-suite'
-import 'vue-markdown-suite/style.css'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
+import '@coderminer/vue-markdown/style.css'
 
 const source = ref('# Hello\n\nA **bold** paragraph with a [link](https://example.com).')
 </script>

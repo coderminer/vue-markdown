@@ -115,7 +115,7 @@ describe('server rendering', () => {
     expect(html).toContain('id="title"')
     expect(html).toContain('bold')
     expect(html).toContain('href="https://example.com"')
-    expect(html).not.toContain('vmd-toc')
+    expect(html).not.toContain('data-vmd-part="toc"')
   })
 
   it('uses the synchronous pipeline path when available', async () => {

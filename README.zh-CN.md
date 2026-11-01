@@ -1,15 +1,15 @@
-# vue-markdown-suite
+# @coderminer/vue-markdown
 
-[![npm version](https://img.shields.io/npm/v/vue-markdown-suite.svg)](https://www.npmjs.com/package/vue-markdown-suite)
+[![npm version](https://img.shields.io/npm/v/@coderminer/vue-markdown.svg)](https://www.npmjs.com/package/@coderminer/vue-markdown)
 [![CI](https://github.com/coderminer/vue-markdown/workflows/ci.yml/badge.svg)](https://github.com/coderminer/vue-markdown/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Docs](https://img.shields.io/badge/docs-live-8250df)](https://coderminer.github.io/vue-markdown/)
 
-[English](./README.md) | 简体中文
+[English](./README.md) | 简体中文 | [更新日志](./CHANGELOG.md)
 
 一个通用、可定制、插件驱动的 **Vue 3 Markdown 组件套件**。
 
-`vue-markdown-suite` 用官方 `unified` 管线（`remark-parse` + `remark-rehype`）把
+`@coderminer/vue-markdown` 用官方 `unified` 管线（`remark-parse` + `remark-rehype`）把
 Markdown 直接渲染成 Vue VNode：不经过 HTML 字符串往返，也不使用 `v-html`。解析结果是
 可序列化、与 DOM 无关的文档模型，因此同一份结果既可以交给带样式的渲染器，也可以交给
 无头宿主或静态 HTML 导出。
@@ -33,7 +33,7 @@ Markdown 直接渲染成 Vue VNode：不经过 HTML 字符串往返，也不使�
 ## 安装
 
 ```bash
-npm install vue-markdown-suite
+npm install @coderminer/vue-markdown
 ```
 
 需要 Node 20+ 和 Vue 3.5+。
@@ -52,6 +52,9 @@ npm install katex
 # 图表
 npm install mermaid
 
+# 通过 @coderminer/vue-markdown/html 启用净化后的原始 HTML
+npm install rehype-raw
+
 # Mermaid 可视化编辑器
 npm install @codemirror/state @codemirror/view @codemirror/language @codemirror/commands
 ```
@@ -61,8 +64,8 @@ npm install @codemirror/state @codemirror/view @codemirror/language @codemirror/
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue'
-import { MarkdownRenderer } from 'vue-markdown-suite'
-import 'vue-markdown-suite/style.css'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
+import '@coderminer/vue-markdown/style.css'
 
 const source = ref(`
 # 你好，Markdown
@@ -103,10 +106,10 @@ Markdown 可以通过 `source` 属性、`v-model:source` 或默认插槽传入�
 ### 样式
 
 ```ts
-import 'vue-markdown-suite/style.css'
+import '@coderminer/vue-markdown/style.css'
 // 也可以分开引入
-import 'vue-markdown-suite/styles/tokens.css'
-import 'vue-markdown-suite/styles/components.css'
+import '@coderminer/vue-markdown/styles/tokens.css'
+import '@coderminer/vue-markdown/styles/components.css'
 ```
 
 在任意祖先元素上覆盖令牌，或通过 `tokens` 属性传入：
@@ -140,7 +143,7 @@ import 'vue-markdown-suite/styles/components.css'
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue'
-import type { MarkdownRendererInstance, TocItem } from 'vue-markdown-suite'
+import type { MarkdownRendererInstance, TocItem } from '@coderminer/vue-markdown'
 
 const renderer = ref<MarkdownRendererInstance>()
 
@@ -185,7 +188,7 @@ function onToc(toc: TocItem[]) {
 
 ```vue
 <script setup lang="ts">
-import { MarkdownRenderer } from 'vue-markdown-suite'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
 import BadgeLink from './BadgeLink.vue'
 import Callout from './Callout.vue'
 import MyToc from './MyToc.vue'
@@ -271,8 +274,8 @@ const regions = {
 ### 插件与预设
 
 ```ts
-import { defineMarkdownPlugin } from 'vue-markdown-suite/plugins'
-import { composePresets, defineMarkdownPreset } from 'vue-markdown-suite/presets'
+import { defineMarkdownPlugin } from '@coderminer/vue-markdown/plugins'
+import { composePresets, defineMarkdownPreset } from '@coderminer/vue-markdown/presets'
 
 export const docsPlugin = defineMarkdownPlugin({
   name: 'docs',
@@ -321,7 +324,7 @@ const plugins = [docsPlugin]
 ### 无头渲染
 
 ```ts
-import { useMarkdownDocument } from 'vue-markdown-suite/headless'
+import { useMarkdownDocument } from '@coderminer/vue-markdown/headless'
 
 const {
   document,
@@ -340,12 +343,12 @@ const {
 ### 语法高亮、数学与图表
 
 ```ts
-import { highlightjs } from 'vue-markdown-suite/highlight'
-import { shiki } from 'vue-markdown-suite/highlight/shiki'
-import { fullPlugins } from 'vue-markdown-suite/plugins'
-import { mathPlugin, katexEngine } from 'vue-markdown-suite/math'
-import { mermaidPlugin, renderMermaid } from 'vue-markdown-suite/mermaid'
-import 'vue-markdown-suite/styles/math-full.css'
+import { highlightjs } from '@coderminer/vue-markdown/highlight'
+import { shiki } from '@coderminer/vue-markdown/highlight/shiki'
+import { fullPlugins } from '@coderminer/vue-markdown/plugins'
+import { mathPlugin, katexEngine } from '@coderminer/vue-markdown/math'
+import { mermaidPlugin, renderMermaid } from '@coderminer/vue-markdown/mermaid'
+import '@coderminer/vue-markdown/styles/math-full.css'
 
 const plugins = [...fullPlugins, mathPlugin(), mermaidPlugin()]
 ```
@@ -367,7 +370,7 @@ const plugins = [...fullPlugins, mathPlugin(), mermaidPlugin()]
 ### 服务端渲染与静态导出
 
 ```ts
-import { exportMarkdownHtml, exportMarkdownHtmlSync } from 'vue-markdown-suite'
+import { exportMarkdownHtml, exportMarkdownHtmlSync } from '@coderminer/vue-markdown'
 
 const html = exportMarkdownHtmlSync(source)
 const asyncHtml = await exportMarkdownHtml(source, { plugins: [docsPlugin] })
@@ -430,7 +433,10 @@ const asyncHtml = await exportMarkdownHtml(source, { plugins: [docsPlugin] })
 | `syncHash` | `boolean` | `false` | 标题激活时同步更新 URL hash。 |
 | `toc` | `boolean` | `false` | 渲染目录区域。 |
 | `tocDepth` | `number` | `0` | 目录包含的最大标题层级；`0` 表示全部层级。 |
-| `showError` | `boolean` | `false` | 失败时渲染错误区域。 |
+| `tocPlacement` | `'top' \| 'left' \| 'right' \| 'hidden'` | `'top'` | 目录置顶、放在内容左侧/右侧，或隐藏。 |
+| `search` | `string` | `''` | 高亮匹配项并触发 `search-change`。 |
+| `searchCaseSensitive` | `boolean` | `false` | 让 `search` 区分大小写。 |
+| `showError` | `boolean` | `true` | 失败时渲染错误区域。 |
 | `tokens` | `Record<string, string>` | `{}` | 写在根元素上的内联 `--vmd-*` 自定义属性。 |
 | `theme` | `'light' \| 'dark' \| 'auto' \| 'custom'` | `'light'` | 设置根元素的 `data-vmd-theme`。 |
 | `as` | `string \| Component` | `'div'` | 根元素或根组件。 |
@@ -444,11 +450,14 @@ const asyncHtml = await exportMarkdownHtml(source, { plugins: [docsPlugin] })
 | `link-click` | `{ url, target, node, event }` |
 | `custom-tag-click` | `{ tag, props, node, event }` |
 | `task-change` | `{ checked, node }` |
+| `search-change` | `{ query, caseSensitive, matches }` |
+| `math-error` | `MarkdownDiagnostic` |
 | `render-error` | `MarkdownDiagnostic` |
 | `ready` | `MarkdownDocument` |
 
-`toc-change` 带有签名判断：只有序列化后的目录真正变化时才会触发。`ready` 在第一次成功
-生成文档时触发一次。
+`toc-change` 带有签名判断：只有序列化后的目录真正变化时才会触发。`search-change`
+跟随 `search` 属性并报告当前匹配数，只有对应查询的文档真正渲染完成后才会触发。`ready`
+在第一次成功生成文档时触发一次。
 
 ### 插槽
 
@@ -461,28 +470,28 @@ const asyncHtml = await exportMarkdownHtml(source, { plugins: [docsPlugin] })
 
 | 入口 | 内容 |
 | --- | --- |
-| `vue-markdown-suite` | 渲染器、预设组件、组合式函数、内核辅助函数 |
-| `vue-markdown-suite/headless` | 类型、模型辅助函数、组合式函数；不含预设组件和 CSS |
-| `vue-markdown-suite/pipeline` | 官方管线、自定义管线校验、身份工具 |
-| `vue-markdown-suite/plugins` | `defineMarkdownPlugin`、注册表、内置插件 |
-| `vue-markdown-suite/presets` | `defineMarkdownPreset`、`composePresets`、配置类型 |
-| `vue-markdown-suite/highlight` | highlight.js 适配器和归一化辅助函数 |
-| `vue-markdown-suite/highlight/shiki` | 可选的 Shiki 适配器 |
-| `vue-markdown-suite/math` | `mathPlugin`、`katexEngine`、数学类型 |
-| `vue-markdown-suite/mermaid` | 按需加载的 Mermaid 运行时和 SVG 净化器 |
-| `vue-markdown-suite/editor` | 按需加载的 CodeMirror 集成 |
-| `vue-markdown-suite/html` | `htmlPlugin()` 和净化后的原始 HTML |
-| `vue-markdown-suite/node-components` | 仅节点组件目录 |
-| `vue-markdown-suite/components/*` | 每个公共组件一个入口 |
-| `vue-markdown-suite/style.css` | 完整样式表 |
-| `vue-markdown-suite/styles/tokens.css` | 仅设计令牌 |
-| `vue-markdown-suite/styles/components.css` | 基于部件的组件样式 |
-| `vue-markdown-suite/styles/math.css` | 数学容器样式；需另行引入 KaTeX CSS |
-| `vue-markdown-suite/styles/math-full.css` | KaTeX CSS 加数学容器样式 |
+| `@coderminer/vue-markdown` | 渲染器、预设组件、组合式函数、内核辅助函数 |
+| `@coderminer/vue-markdown/headless` | 类型、模型辅助函数、组合式函数；不含预设组件和 CSS |
+| `@coderminer/vue-markdown/pipeline` | 官方管线、自定义管线校验、身份工具 |
+| `@coderminer/vue-markdown/plugins` | `defineMarkdownPlugin`、注册表、内置插件 |
+| `@coderminer/vue-markdown/presets` | `defineMarkdownPreset`、`composePresets`、配置类型 |
+| `@coderminer/vue-markdown/highlight` | highlight.js 适配器和归一化辅助函数 |
+| `@coderminer/vue-markdown/highlight/shiki` | 可选的 Shiki 适配器 |
+| `@coderminer/vue-markdown/math` | `mathPlugin`、`katexEngine`、数学类型 |
+| `@coderminer/vue-markdown/mermaid` | 按需加载的 Mermaid 运行时和 SVG 净化器 |
+| `@coderminer/vue-markdown/editor` | 按需加载的 CodeMirror 集成 |
+| `@coderminer/vue-markdown/html` | `htmlPlugin()` 和净化后的原始 HTML |
+| `@coderminer/vue-markdown/node-components` | 仅节点组件目录 |
+| `@coderminer/vue-markdown/components/*` | 每个公共组件一个入口 |
+| `@coderminer/vue-markdown/style.css` | 完整样式表 |
+| `@coderminer/vue-markdown/styles/tokens.css` | 仅设计令牌 |
+| `@coderminer/vue-markdown/styles/components.css` | 基于部件的组件样式 |
+| `@coderminer/vue-markdown/styles/math.css` | 数学容器样式；需另行引入 KaTeX CSS |
+| `@coderminer/vue-markdown/styles/math-full.css` | KaTeX CSS 加数学容器样式 |
 
 ## 安全默认值
 
-- 原始 HTML 默认被丢弃。从 `vue-markdown-suite/html` 加入 `htmlPlugin()` 才会启用，
+- 原始 HTML 默认被丢弃。从 `@coderminer/vue-markdown/html` 加入 `htmlPlugin()` 才会启用，
   净化器会在原始 HTML 解析后立即运行。
 - URL 协议仅允许 `http`、`https`、`irc`、`ircs`、`mailto`、`xmpp` 以及相对 URL。
 - 图片 `data:` URL 只允许光栅格式；`data:image/svg+xml` 会被拒绝。

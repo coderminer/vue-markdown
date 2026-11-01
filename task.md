@@ -1,16 +1,16 @@
-# Remaining implementation backlog
+# Historical implementation backlog
 
-> Reconciled and completed on 2026-10-31. The authoritative plan and
-> implementation record is `openspec/changes/complete-v1-x-suite/tasks.md`.
+> Reconciled and completed for the `1.0.0` release on 2026-11-01. Release notes
+> and upgrade notes live in `CHANGELOG.md`.
 
-This is a working checklist for work that is not yet implemented. The OpenSpec
-changes remain the contract source of truth:
+The archived OpenSpec changes remain the contract history:
 
 - `openspec/changes/archive/2026-10-31-add-vue-markdown-component-suite/tasks.md`
 - `openspec/changes/archive/2026-10-31-finish-v1-0-closeout/tasks.md`
-- `openspec/changes/complete-v1-x-suite/tasks.md`
+- `openspec/changes/archive/2026-11-01-complete-v1-x-suite/tasks.md`
 
-Current baseline: branch `complete-v1-x-suite`, `npm test` 217 tests passing.
+This file is retained as the implementation record. The current baseline is the
+`1.0.0` release, verified by the Node and happy-dom test projects.
 
 Already landed and not repeated below:
 
@@ -85,18 +85,19 @@ Current `src/export/index.ts` stringifies raw pipeline hast. It does not run
 
 - [x] Reuse the normalized model or an equivalent normalized-hast path for
       export.
-- [x] Apply `urlTransform`, `baseUrl`, element filters, `skipHtml`, and
-      document transforms.
+- [x] Apply `urlTransform`, `baseUrl`, element filters, the raw-HTML policy,
+      and document transforms. `skipHtml` was later removed in 1.0; raw HTML is
+      enabled only through `htmlPlugin()`.
 - [x] Add tests proving export output matches sanitized rendered output.
-- [x] Add security tests for `javascript:`, raw HTML, `skipHtml`, and filtered
-      elements.
+- [x] Add security tests for `javascript:`, raw HTML, sanitized HTML, and
+      filtered elements.
 - [x] Add this work to the closeout or a dedicated v1.0 fix change.
 
-Known current behavior:
+Current behavior:
 
 ```ts
 exportMarkdownHtmlSync('[x](javascript:alert(1))')
-// <p><a href="javascript:alert(1)">x</a></p>
+// <p>x</p>
 ```
 
 ## 2. v1.x customization foundation

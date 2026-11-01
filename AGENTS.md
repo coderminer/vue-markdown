@@ -1,6 +1,6 @@
 # AGENTS.md
 
-This repository builds `vue-markdown-suite`, a Vue 3 Markdown component suite.
+This repository builds `@coderminer/vue-markdown`, a Vue 3 Markdown component suite.
 The archived v1.0 change and the main specs under `openspec/specs/` are the
 source of truth for behavior. The active change under `openspec/changes/` is the
 implementation checklist.

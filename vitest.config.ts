@@ -10,27 +10,27 @@ export default defineConfig({
   resolve: {
     alias: [
       {
-        find: 'vue-markdown-suite/styles/',
+        find: '@coderminer/vue-markdown/styles/',
         replacement: `${resolveSrc('./src/styles')}/`,
       },
       {
-        find: 'vue-markdown-suite/node-components',
+        find: '@coderminer/vue-markdown/node-components',
         replacement: resolveSrc('./src/node-components.ts'),
       },
       {
-        find: 'vue-markdown-suite/headless',
+        find: '@coderminer/vue-markdown/headless',
         replacement: resolveSrc('./src/headless.ts'),
       },
       {
-        find: 'vue-markdown-suite/pipeline',
+        find: '@coderminer/vue-markdown/pipeline',
         replacement: resolveSrc('./src/pipeline.ts'),
       },
       {
-        find: 'vue-markdown-suite/plugins',
+        find: '@coderminer/vue-markdown/plugins',
         replacement: resolveSrc('./src/plugins.ts'),
       },
       {
-        find: 'vue-markdown-suite',
+        find: '@coderminer/vue-markdown',
         replacement: resolveSrc('./src/index.ts'),
       },
     ],

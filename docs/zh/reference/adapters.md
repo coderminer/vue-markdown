@@ -10,7 +10,7 @@ description: 高亮器、数学、Mermaid、slugger、URL 变换、诊断、插�
 ## 高亮器
 
 ```ts
-import type { MarkdownHighlighter } from 'vue-markdown-suite'
+import type { MarkdownHighlighter } from '@coderminer/vue-markdown'
 
 const highlighter: MarkdownHighlighter = {
   id: 'my-highlighter',
@@ -30,13 +30,13 @@ const highlighter: MarkdownHighlighter = {
 `highlight` 返回归一化节点，永远不返回 HTML 字符串。抛错、未知语言和非法结果都会回退为
 纯源码。结果按适配器身份、源码、语言、主题和选项缓存。
 
-内置适配器：`vue-markdown-suite/highlight` 的 `highlightjs`，以及
-`vue-markdown-suite/highlight/shiki` 的 `shiki`。
+内置适配器：`@coderminer/vue-markdown/highlight` 的 `highlightjs`，以及
+`@coderminer/vue-markdown/highlight/shiki` 的 `shiki`。
 
 ## 数学引擎
 
 ```ts
-import type { MathEngine } from 'vue-markdown-suite'
+import type { MathEngine } from '@coderminer/vue-markdown'
 
 const engine: MathEngine = {
   id: 'my-math',
@@ -51,12 +51,12 @@ const engine: MathEngine = {
 返回 `{ nodes, error? }`。非法 TeX 可以返回 `error` 字符串；渲染器通过 `math-error`
 部件和插槽呈现它。
 
-内置引擎：`vue-markdown-suite/math` 的 `katexEngine`。
+内置引擎：`@coderminer/vue-markdown/math` 的 `katexEngine`。
 
 ## Mermaid 渲染器
 
 ```ts
-import type { MermaidRenderer } from 'vue-markdown-suite'
+import type { MermaidRenderer } from '@coderminer/vue-markdown'
 
 const renderer: MermaidRenderer = {
   id: 'my-mermaid',
@@ -72,12 +72,12 @@ const renderer: MermaidRenderer = {
 自定义输出会被净化。渲染器可以直接返回节点或 SVG 标记；非法输出会保留上一次成功预览，
 并报告诊断。
 
-内置渲染器：`vue-markdown-suite/mermaid` 的 `renderMermaid`。
+内置渲染器：`@coderminer/vue-markdown/mermaid` 的 `renderMermaid`。
 
 ## Slugger 与 URL 变换
 
 ```ts
-import type { MarkdownSlugger, MarkdownUrlTransform } from 'vue-markdown-suite'
+import type { MarkdownSlugger, MarkdownUrlTransform } from '@coderminer/vue-markdown'
 
 const slugger: MarkdownSlugger = {
   slug(value) {
@@ -99,7 +99,7 @@ const urlTransform: MarkdownUrlTransform = (url, key, node) => {
 ## 诊断格式化器
 
 ```ts
-import type { DiagnosticFormatter } from 'vue-markdown-suite'
+import type { DiagnosticFormatter } from '@coderminer/vue-markdown'
 
 const formatter: DiagnosticFormatter = {
   id: 'my-formatter',
@@ -117,7 +117,7 @@ const formatter: DiagnosticFormatter = {
 ## 插件契约
 
 ```ts
-import { defineMarkdownPlugin } from 'vue-markdown-suite/plugins'
+import { defineMarkdownPlugin } from '@coderminer/vue-markdown/plugins'
 
 const plugin = defineMarkdownPlugin({
   name: 'my-plugin',
@@ -151,7 +151,7 @@ const plugin = defineMarkdownPlugin({
 ## 管线契约
 
 ```ts
-import type { MarkdownPipeline } from 'vue-markdown-suite/pipeline'
+import type { MarkdownPipeline } from '@coderminer/vue-markdown/pipeline'
 
 const pipeline: MarkdownPipeline = {
   name: 'my-pipeline',

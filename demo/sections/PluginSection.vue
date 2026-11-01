@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { visit } from 'unist-util-visit'
-import { MarkdownRenderer } from 'vue-markdown-suite'
-import { defineMarkdownPlugin } from 'vue-markdown-suite/plugins'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
+import { defineMarkdownPlugin } from '@coderminer/vue-markdown/plugins'
 import SectionShell from '../components/SectionShell.vue'
 import SourceEditor from '../components/SourceEditor.vue'
 import OutputPane from '../components/OutputPane.vue'

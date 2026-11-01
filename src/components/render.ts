@@ -452,8 +452,8 @@ function renderCode(node: MarkdownCodeNode, ctx: RenderContext): VNodeChild {
     )
   }
 
-  // Host code-element overrides keep the v1.0 `pre` wrapper and inner
-  // resolution path. The default v1.x path uses the richer CodeBlock.
+  // Host code-element overrides keep the legacy `pre` wrapper and inner
+  // resolution path. The default path uses the richer CodeBlock.
   if (
     isComponentValue(ctx.components.code) ||
     isComponentValue(ctx.nodeComponents?.code) ||

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue'
-import { version } from 'vue-markdown-suite'
+import { version } from '@coderminer/vue-markdown'
 import PlaygroundSection from './sections/PlaygroundSection.vue'
 import BasicUsageSection from './sections/BasicUsageSection.vue'
 import AdvancedUsageSection from './sections/AdvancedUsageSection.vue'
@@ -112,7 +112,7 @@ onBeforeUnmount(() => {
         <a href="https://github.com/coderminer/vue-markdown" target="_blank" rel="noreferrer">
           GitHub
         </a>
-        <a href="https://www.npmjs.com/package/vue-markdown-suite" target="_blank" rel="noreferrer">
+        <a href="https://www.npmjs.com/package/@coderminer/vue-markdown" target="_blank" rel="noreferrer">
           npm
         </a>
       </div>
@@ -131,7 +131,7 @@ onBeforeUnmount(() => {
 
         <div class="demo-hero-install">
           <span>Install</span>
-          <code>npm install vue-markdown-suite</code>
+          <code>npm install @coderminer/vue-markdown</code>
         </div>
 
         <div class="demo-hero-actions">

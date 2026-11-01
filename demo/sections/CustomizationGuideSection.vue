@@ -4,7 +4,7 @@ import {
   MarkdownRenderer,
   type MarkdownNodeRenderContext,
   type MarkdownTheme,
-} from 'vue-markdown-suite'
+} from '@coderminer/vue-markdown'
 import CodeSample from '../components/CodeSample.vue'
 import SectionShell from '../components/SectionShell.vue'
 import OutputPane from '../components/OutputPane.vue'
@@ -67,7 +67,7 @@ const themeSample = `<!-- Theme presets -->
   <MarkdownRenderer :source="source" toc />
 </MarkdownConfigProvider>`
 
-const cssImport = `import 'vue-markdown-suite/style.css'`
+const cssImport = `import '@coderminer/vue-markdown/style.css'`
 
 const cssSample = `/* Tokens cascade from any ancestor. */
 .my-docs {

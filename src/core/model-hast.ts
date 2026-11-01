@@ -124,24 +124,36 @@ function codeBlock(code: string, language: string): Element {
   )
 }
 
-function nodeToHast(node: MarkdownNode): ElementContent | undefined {
+function nodeToHast(
+  node: MarkdownNode,
+): ElementContent | ElementContent[] | undefined {
   switch (node.kind) {
-    case 'text':
-      return { type: 'text', value: node.value }
+    case 'text': {
+      if (!node.segments || node.segments.length === 0) {
+        return { type: 'text', value: node.value }
+      }
+      return node.segments.map((segment) => {
+        if (!segment.match) return { type: 'text', value: segment.value }
+        return element(
+          'mark',
+          {
+            className: ['vmd-search-match'],
+            'data-vmd-part': 'search-match',
+          },
+          [{ type: 'text', value: segment.value }],
+        )
+      })
+    }
     case 'element':
       return element(
         node.tag,
         attrsToProps(node.attrs),
-        node.children
-          .map(nodeToHast)
-          .filter((child): child is ElementContent => Boolean(child)),
+        nodesToHast(node.children),
       )
     case 'code':
       return codeBlock(node.code, node.language)
     case 'math': {
-      const rendered = (node.rendered ?? [])
-        .map(nodeToHast)
-        .filter((child): child is ElementContent => Boolean(child))
+      const rendered = nodesToHast(node.rendered ?? [])
       return element(
         'span',
         {
@@ -169,14 +181,10 @@ function nodeToHast(node: MarkdownNode): ElementContent | undefined {
       return element(
         node.tag,
         attrsToProps(node.attrs),
-        node.children
-          .map(nodeToHast)
-          .filter((child): child is ElementContent => Boolean(child)),
+        nodesToHast(node.children),
       )
     case 'plugin': {
-      const children = (node.children ?? [])
-        .map(nodeToHast)
-        .filter((child): child is ElementContent => Boolean(child))
+      const children = nodesToHast(node.children ?? [])
       const properties: Properties = {
         'data-vmd-part': 'plugin',
         'data-plugin-type': node.type,
@@ -195,6 +203,17 @@ function nodeToHast(node: MarkdownNode): ElementContent | undefined {
   }
 }
 
+function nodesToHast(nodes: readonly MarkdownNode[]): ElementContent[] {
+  const output: ElementContent[] = []
+  for (const node of nodes) {
+    const child = nodeToHast(node)
+    if (!child) continue
+    if (Array.isArray(child)) output.push(...child)
+    else output.push(child)
+  }
+  return output
+}
+
 /**
  * Serialize the normalized document model back to hast for static export.
  * The model has already passed sanitization, filtering, URL policy, and plugin
@@ -203,10 +222,6 @@ function nodeToHast(node: MarkdownNode): ElementContent | undefined {
 export function modelToHast(document: MarkdownDocument): Root {
   return {
     type: 'root',
-    children: withBlockNewlines(
-      document.nodes
-        .map(nodeToHast)
-        .filter((child): child is ElementContent => Boolean(child)),
-    ),
+    children: withBlockNewlines(nodesToHast(document.nodes)),
   }
 }

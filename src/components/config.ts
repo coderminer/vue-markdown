@@ -8,7 +8,7 @@ import {
 import type { MarkdownConfig } from '../core/types'
 
 export const MARKDOWN_CONFIG: InjectionKey<ComputedRef<MarkdownConfig>> = Symbol(
-  'vue-markdown-suite:config',
+  '@coderminer/vue-markdown:config',
 )
 
 /** Read the nearest provider configuration, or an empty configuration. */

@@ -9,7 +9,7 @@ this change replaces the half-contract with one explicit, safe entry point.
 
 ## What Changes
 
-- **Enable raw HTML only through `vue-markdown-suite/html`.** The new
+- **Enable raw HTML only through `@coderminer/vue-markdown/html`.** The new
   `htmlPlugin()` contributes `rehype-raw` and marks the plugin with
   `html: true`; the official pipeline always runs the built-in sanitizer after
   it. A manual `rehype-raw` in `rehypePlugins` is ignored with a warning.

@@ -3,7 +3,7 @@ import type { MarkdownComponentValue } from '../core/types'
 import { useMarkdownConfig } from './config'
 import { useRenderContext } from './context'
 
-const CODE_REGION_DEPTH = Symbol('vue-markdown-suite:code-region-depth')
+const CODE_REGION_DEPTH = Symbol('@coderminer/vue-markdown:code-region-depth')
 
 export interface UseCodeRegionOptions {
   standalone?: () => boolean

@@ -5,7 +5,7 @@ import {
   defineMarkdownPreset,
   type MarkdownNodeRenderContext,
   type MarkdownTheme,
-} from 'vue-markdown-suite'
+} from '@coderminer/vue-markdown'
 import {
   codePlugin,
   customTagsPlugin,
@@ -15,16 +15,16 @@ import {
   linkPlugin,
   searchPlugin,
   tocPlugin,
-} from 'vue-markdown-suite/plugins'
-import { mathPlugin } from 'vue-markdown-suite/math'
+} from '@coderminer/vue-markdown/plugins'
+import { mathPlugin } from '@coderminer/vue-markdown/math'
 import CodeSample from '../components/CodeSample.vue'
 import SectionShell from '../components/SectionShell.vue'
 import SourceEditor from '../components/SourceEditor.vue'
 import OutputPane from '../components/OutputPane.vue'
 
-const composition = `import { MarkdownRenderer, defineMarkdownPreset } from 'vue-markdown-suite'
-import { defineMarkdownPlugin, fullPlugins } from 'vue-markdown-suite/plugins'
-import { mathPlugin } from 'vue-markdown-suite/math'
+const composition = `import { MarkdownRenderer, defineMarkdownPreset } from '@coderminer/vue-markdown'
+import { defineMarkdownPlugin, fullPlugins } from '@coderminer/vue-markdown/plugins'
+import { mathPlugin } from '@coderminer/vue-markdown/math'
 
 const docsPreset = defineMarkdownPreset({
   name: 'docs',

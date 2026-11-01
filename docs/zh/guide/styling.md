@@ -4,20 +4,20 @@ description: 设计令牌、主题、稳定部件和无样式用法。
 
 # 样式与主题
 
-`vue-markdown-suite` 的组件本身是语义化、无样式的。可选样式表通过设计令牌和稳定部件
+`@coderminer/vue-markdown` 的组件本身是语义化、无样式的。可选样式表通过设计令牌和稳定部件
 提供布局、间距和颜色。
 
 ## 引入样式表
 
 ```ts
-import 'vue-markdown-suite/style.css'
+import '@coderminer/vue-markdown/style.css'
 ```
 
 也可以分开引入：
 
 ```ts
-import 'vue-markdown-suite/styles/tokens.css'
-import 'vue-markdown-suite/styles/components.css'
+import '@coderminer/vue-markdown/styles/tokens.css'
+import '@coderminer/vue-markdown/styles/components.css'
 ```
 
 `tokens.css` 在 `:root` 和 `[data-vmd-theme='light']` 上定义默认值，因此宿主覆盖会按
@@ -113,19 +113,20 @@ Preview/Source 分段标签。不需要图标包或额外标记；即使可见�
 
 | 区域 | 部件 |
 | --- | --- |
-| 结构 | `root`、`content`、`error`、`empty`、`loading`、`search-match` |
-| 目录 | `toc`、`toc-nav`、`toc-item` |
+| 结构 | `root`、`body`、`content`、`error`、`empty`、`loading`、`search-match` |
+| 目录 | `toc`、`toc-column`、`toc-nav`、`toc-item` |
 | 基础元素 | `paragraph`、`heading`、`heading-anchor`、`emphasis`、`strong`、`strikethrough`、`link`、`image`、`list`、`list-item`、`blockquote`、`hr`、`break` |
 | 表格 | `table`、`table-section`、`table-row`、`table-cell` |
 | 代码 | `inline-code`、`code`、`code-header`、`code-heading`、`code-title`、`code-file-name`、`code-lang`、`code-toolbar`、`code-actions`、`code-action`、`code-body`、`code-feedback` |
 | 独立高亮器 | `highlighter`、`highlighter-header`、`highlighter-actions`、`highlighter-footer`、`highlighter-body`、`highlighter-gutter`、`highlighter-line`、`highlighter-hidden`、`highlighter-empty`、`highlighter-toggle` |
 | 数学 | `math`、`math-error` |
 | Mermaid | `mermaid`、`mermaid-header`、`mermaid-tabs`、`mermaid-actions`、`mermaid-action`、`mermaid-preview`、`mermaid-source`、`mermaid-pending`、`mermaid-error`、`mermaid-fallback`、`mermaid-fullscreen` |
-| 编辑器 | `editor`、`editor-pane`、`editor-divider`、`editor-preview`、`editor-diagnostics`、`editor-toolbar`、`editor-fullscreen` |
+| 编辑器 | `editor`、`editor-pane`、`editor-divider`、`editor-preview`、`editor-diagnostics`、`editor-empty`、`editor-toolbar`、`editor-fullscreen` |
 | 扩展节点 | `html`、`custom-tag`、`task-item`、`task-checkbox`、`footnote-reference`、`footnotes` |
 
 全屏状态使用 `data-fullscreen`；Mermaid 还使用 `data-status`、`data-view` 和
-`data-renderer`。
+`data-renderer`。目录侧栏布局在根元素上使用 `data-vmd-toc-placement` 和
+`data-vmd-toc-layout`。
 
 ## 替换组件
 
@@ -133,7 +134,7 @@ Preview/Source 分段标签。不需要图标包或额外标记；即使可见�
 
 ```vue
 <script setup lang="ts">
-import { MarkdownRenderer } from 'vue-markdown-suite'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
 
 const components = {
   h1: 'h2',

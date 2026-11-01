@@ -38,7 +38,7 @@ type MarkdownNode =
 
 ```ts
 import { computed, ref } from 'vue'
-import { useMarkdownDocument } from 'vue-markdown-suite/headless'
+import { useMarkdownDocument } from '@coderminer/vue-markdown/headless'
 
 const source = ref('# 你好\n\n一段 **加粗** 文字。')
 
@@ -57,7 +57,16 @@ const {
 `components`、`plugins`、`disablePlugins`、`remarkPlugins`、`rehypePlugins`、
 `remarkRehypeOptions`、`pipeline`、`slugger`、`allowedElements`、
 `disallowedElements`、`unwrapDisallowed`、`allowElement`、`urlTransform`、`baseUrl`、
-`idPrefix`。
+`idPrefix`、`search`。
+
+```ts
+const { document } = useMarkdownDocument(source, {
+  search: { query: 'install', caseSensitive: false },
+})
+```
+
+`search` 选项会在插件变换之后切分文本节点；渲染器也把它暴露为 `search` /
+`searchCaseSensitive` 属性，并触发带当前匹配数的 `search-change`。
 
 组合式函数还会暴露插件贡献：
 
@@ -77,7 +86,7 @@ const {
 
 ```vue [NodeView.vue]
 <script setup lang="ts">
-import type { MarkdownNode } from 'vue-markdown-suite/headless'
+import type { MarkdownNode } from '@coderminer/vue-markdown/headless'
 
 defineProps<{ node: MarkdownNode }>()
 </script>
@@ -98,7 +107,7 @@ defineProps<{ node: MarkdownNode }>()
 
 ```vue [App.vue]
 <script setup lang="ts">
-import { useMarkdownDocument } from 'vue-markdown-suite/headless'
+import { useMarkdownDocument } from '@coderminer/vue-markdown/headless'
 import NodeView from './NodeView.vue'
 
 const { document } = useMarkdownDocument(source)
@@ -131,7 +140,7 @@ import {
   countSearchMatches,
   defaultUrlTransform,
   walkNodes,
-} from 'vue-markdown-suite/headless'
+} from '@coderminer/vue-markdown/headless'
 
 walkNodes(document.value?.nodes ?? [], (node, parent) => {
   // 深度优先访问每个节点。

@@ -4,8 +4,8 @@ description: Public components, regions, rich nodes, and the component manifest 
 
 # Components
 
-Everything is exported from `vue-markdown-suite` and available through
-`vue-markdown-suite/components/*` for per-component entries. See the
+Everything is exported from `@coderminer/vue-markdown` and available through
+`@coderminer/vue-markdown/components/*` for per-component entries. See the
 [Public API](./api.md) for the full export index.
 
 ## Renderer and regions
@@ -65,15 +65,15 @@ Everything is exported from `vue-markdown-suite` and available through
 Optional engines stay in their own entries:
 
 ```ts
-import { highlightjs } from 'vue-markdown-suite/highlight'
-import { shiki } from 'vue-markdown-suite/highlight/shiki'
-import { mathPlugin, katexEngine } from 'vue-markdown-suite/math'
+import { highlightjs } from '@coderminer/vue-markdown/highlight'
+import { shiki } from '@coderminer/vue-markdown/highlight/shiki'
+import { mathPlugin, katexEngine } from '@coderminer/vue-markdown/math'
 import {
   mermaidPlugin,
   renderMermaid,
   sanitizeSvg,
-} from 'vue-markdown-suite/mermaid'
-import { createMermaidEditor } from 'vue-markdown-suite/editor'
+} from '@coderminer/vue-markdown/mermaid'
+import { createMermaidEditor } from '@coderminer/vue-markdown/editor'
 ```
 
 `MarkdownMermaid` forwards `renderer`, `theme`, `showErrors`, `enableZoom`,
@@ -120,7 +120,7 @@ import {
   COMPONENT_MANIFESTS,
   getComponentManifest,
   validateManifest,
-} from 'vue-markdown-suite'
+} from '@coderminer/vue-markdown'
 
 const code = getComponentManifest('CodeBlock')
 

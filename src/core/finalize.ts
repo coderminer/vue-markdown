@@ -10,6 +10,7 @@ import { createPluginContext } from '../plugins/define'
 import { createDiagnostic, errorMessage } from './diagnostics'
 import { buildDocument, withDerivedDocument } from './model'
 import { normalizeHast } from './normalize'
+import { searchDocument } from './search'
 
 export interface FinalizeDocumentOptions {
   source: string
@@ -75,6 +76,13 @@ export function finalizeMarkdownDocument(
       )
       plugin.onError?.(error, 'document', context)
     }
+  }
+
+  // The host-level search option is the renderer-friendly form of the search
+  // transform. Run it after plugin transforms so the explicit option wins when
+  // both are present.
+  if (options.search?.query?.trim()) {
+    documentValue = searchDocument(documentValue, options.search)
   }
 
   return withDerivedDocument(documentValue)

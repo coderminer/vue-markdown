@@ -31,7 +31,7 @@ The library SHALL render untrusted Markdown as Vue nodes and SHALL NOT use `v-ht
 
 ### Requirement: Raw HTML is opt-in and sanitized
 
-Raw HTML SHALL be dropped by default. It SHALL be enabled only through the official optional `vue-markdown-suite/html` entry, whose `htmlPlugin()` contributes `rehype-raw`. When the plugin is present, `rehype-sanitize` SHALL run immediately after `rehype-raw` and before any trusted transform or host rehype plugin. The default schema SHALL block `script`, `style`, `iframe`, `object`, and `embed`, strip event-handler attributes, and restrict URLs and attributes. A manual `rehype-raw` in `rehypePlugins` SHALL be ignored with a warning.
+Raw HTML SHALL be dropped by default. It SHALL be enabled only through the official optional `@coderminer/vue-markdown/html` entry, whose `htmlPlugin()` contributes `rehype-raw`. When the plugin is present, `rehype-sanitize` SHALL run immediately after `rehype-raw` and before any trusted transform or host rehype plugin. The default schema SHALL block `script`, `style`, `iframe`, `object`, and `embed`, strip event-handler attributes, and restrict URLs and attributes. A manual `rehype-raw` in `rehypePlugins` SHALL be ignored with a warning.
 
 #### Scenario: Default drop
 - **WHEN** raw HTML is not enabled
@@ -48,6 +48,10 @@ Raw HTML SHALL be dropped by default. It SHALL be enabled only through the offic
 #### Scenario: Manual parser ignored
 - **WHEN** a host adds `rehype-raw` to `rehypePlugins` instead of using `htmlPlugin()`
 - **THEN** the pipeline ignores the manual parser, reports a warning, and raw HTML remains dropped
+
+#### Scenario: Sanitizer extension
+- **WHEN** `htmlPlugin({ schema })` adds an extra tag or property
+- **THEN** the tag renders while the strip list, event-handler removal, and unsafe-URL rejection remain active
 
 ### Requirement: URL policy
 

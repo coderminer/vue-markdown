@@ -287,6 +287,62 @@ describe('TOC and heading navigation', () => {
     wrapper.unmount()
   })
 
+  it('supports stacked, left, right, and hidden TOC placement', async () => {
+    const source = '# One\n\n## Two'
+    const top = mount(MarkdownRenderer, { props: { source, toc: true } })
+    expect(top.find('[data-vmd-part="root"]').attributes('data-vmd-toc-placement')).toBe(
+      'top',
+    )
+    expect(top.find('[data-vmd-part="root"]').attributes('data-vmd-toc-layout')).toBe(
+      'stacked',
+    )
+    expect(top.find('[data-vmd-part="toc-column"]').exists()).toBe(true)
+    expect(top.find('[data-vmd-part="body"]').exists()).toBe(true)
+    expect(top.find('[data-vmd-part="body"] nav.vmd-toc').exists()).toBe(false)
+
+    const left = mount(MarkdownRenderer, {
+      props: { source, toc: true, tocPlacement: 'left' },
+    })
+    expect(left.find('[data-vmd-part="root"]').attributes('data-vmd-toc-layout')).toBe(
+      'side',
+    )
+    expect(
+      left
+        .find('[data-vmd-part="toc-column"]')
+        .find('nav.vmd-toc')
+        .exists(),
+    ).toBe(true)
+
+    const right = mount(MarkdownRenderer, {
+      props: { source, toc: true, tocPlacement: 'right' },
+    })
+    expect(right.find('[data-vmd-part="root"]').attributes('data-vmd-toc-placement')).toBe(
+      'right',
+    )
+
+    const hidden = mount(MarkdownRenderer, {
+      props: { source, toc: true, tocPlacement: 'hidden' },
+    })
+    expect(hidden.find('[data-vmd-part="toc-column"]').exists()).toBe(false)
+    expect(hidden.find('nav.vmd-toc').exists()).toBe(false)
+
+    const hiddenSlot = mount(MarkdownRenderer, {
+      props: { source, toc: true, tocPlacement: 'hidden' },
+      slots: {
+        toc: () => h('nav', { 'data-custom-toc': '' }, 'Custom TOC'),
+      },
+    })
+    expect(hiddenSlot.find('[data-custom-toc]').text()).toBe('Custom TOC')
+    expect(hiddenSlot.find('nav.vmd-toc').exists()).toBe(false)
+
+    const noToc = mount(MarkdownRenderer, {
+      props: { source, tocPlacement: 'left' },
+    })
+    expect(noToc.find('[data-vmd-part="root"]').attributes('data-vmd-toc-layout')).toBe(
+      'stacked',
+    )
+  })
+
   it('limits the TOC to tocDepth', async () => {
     const wrapper = mount(MarkdownRenderer, {
       props: {
@@ -403,6 +459,123 @@ describe('search and raw HTML', () => {
     expect(custom.findAll('em.vmd-search-match')).toHaveLength(2)
   })
 
+  it('applies the search prop and emits search-change when state changes', async () => {
+    const wrapper = renderer({ source: 'Hello hello', search: 'hello' })
+    await nextTick()
+    expect(wrapper.findAll('mark.vmd-search-match')).toHaveLength(2)
+
+    let events = wrapper.emitted('search-change') ?? []
+    expect(events[events.length - 1]?.[0]).toEqual({
+      query: 'hello',
+      caseSensitive: false,
+      matches: 2,
+    })
+
+    await wrapper.setProps({ search: 'Hello', searchCaseSensitive: true })
+    await nextTick()
+    expect(wrapper.findAll('mark.vmd-search-match')).toHaveLength(1)
+    events = wrapper.emitted('search-change') ?? []
+    expect(events[events.length - 1]?.[0]).toEqual({
+      query: 'Hello',
+      caseSensitive: true,
+      matches: 1,
+    })
+
+    await wrapper.setProps({ search: '' })
+    await nextTick()
+    expect(wrapper.findAll('mark.vmd-search-match')).toHaveLength(0)
+    events = wrapper.emitted('search-change') ?? []
+    expect(events[events.length - 1]?.[0]).toEqual({
+      query: '',
+      caseSensitive: true,
+      matches: 0,
+    })
+  })
+
+  it('reports a case-sensitivity change while the query is empty', async () => {
+    const wrapper = renderer({ source: 'Hello hello' })
+    await nextTick()
+    expect(wrapper.emitted('search-change')).toBeUndefined()
+
+    const initialTrue = renderer({
+      source: 'Hello hello',
+      searchCaseSensitive: true,
+    })
+    await nextTick()
+    expect(initialTrue.emitted('search-change')).toBeUndefined()
+
+    await wrapper.setProps({ searchCaseSensitive: true })
+    await nextTick()
+    expect(wrapper.emitted('search-change')?.slice(-1)[0]?.[0]).toEqual({
+      query: '',
+      caseSensitive: true,
+      matches: 0,
+    })
+
+    await wrapper.setProps({ searchCaseSensitive: false })
+    await nextTick()
+    expect(wrapper.emitted('search-change')?.slice(-1)[0]?.[0]).toEqual({
+      query: '',
+      caseSensitive: false,
+      matches: 0,
+    })
+  })
+
+  it('keeps search counts tied to the rendered document', async () => {
+    const official = createOfficialPipeline()
+    let fail = false
+    const pipeline: MarkdownPipeline = {
+      name: 'search-async',
+      process(source, ctx) {
+        if (fail) return Promise.reject(new Error('search run failed'))
+        return Promise.resolve(official.processSync!(source, ctx))
+      },
+    }
+
+    const wrapper = renderer({
+      source: 'Hello hello',
+      pipeline,
+      search: 'hello',
+    })
+    await flushPromises()
+    expect(wrapper.emitted('search-change')?.slice(-1)[0]?.[0]).toEqual({
+      query: 'hello',
+      caseSensitive: false,
+      matches: 2,
+    })
+
+    fail = true
+    await wrapper.setProps({ search: 'nothing' })
+    await flushPromises()
+    expect(wrapper.emitted('search-change')?.slice(-1)[0]?.[0]).toEqual({
+      query: 'hello',
+      caseSensitive: false,
+      matches: 2,
+    })
+
+    fail = false
+    let release: (() => void) | undefined
+    pipeline.process = (source: string, ctx: PipelineContext) =>
+      new Promise((resolve) => {
+        release = () => resolve(official.processSync!(source, ctx))
+      })
+    await wrapper.setProps({ search: 'other' })
+    await nextTick()
+    expect(wrapper.emitted('search-change')?.slice(-1)[0]?.[0]).toEqual({
+      query: 'hello',
+      caseSensitive: false,
+      matches: 2,
+    })
+
+    release?.()
+    await flushPromises()
+    expect(wrapper.emitted('search-change')?.slice(-1)[0]?.[0]).toEqual({
+      query: 'other',
+      caseSensitive: false,
+      matches: 0,
+    })
+  })
+
   it('renders raw HTML through element components without an html part', () => {
     const wrapper = renderer({
       source: '<b>bold</b>\n\nHello',
@@ -489,6 +662,25 @@ describe('component resolution and plugin contributions', () => {
 })
 
 describe('memoization and resilience', () => {
+  it('shows the error region by default and allows hiding it', async () => {
+    const failing: MarkdownPipeline = {
+      name: 'default-error-region',
+      process: async () => {
+        throw new Error('boom')
+      },
+      processSync() {
+        throw new Error('boom')
+      },
+    }
+    const visible = renderer({ source: 'x', pipeline: failing })
+    await nextTick()
+    expect(visible.find('[data-vmd-part="error"]').exists()).toBe(true)
+
+    const hidden = renderer({ source: 'x', pipeline: failing, showError: false })
+    await nextTick()
+    expect(hidden.find('[data-vmd-part="error"]').exists()).toBe(false)
+  })
+
   it('applies the theme mode to the root without re-parsing', async () => {
     const { pipeline, counter } = countingPipeline('memo-theme')
     const wrapper = renderer({ source: '# A', pipeline, theme: 'auto' })
@@ -516,6 +708,20 @@ describe('memoization and resilience', () => {
     await nextTick()
     expect(counter.calls).toBe(2)
     expect(wrapper.find('h2').text()).toBe('B')
+  })
+
+  it('re-parses when the search state changes', async () => {
+    const { pipeline, counter } = countingPipeline('memo-search')
+    const wrapper = renderer({
+      source: 'Hello hello',
+      pipeline,
+      search: 'hello',
+    })
+    expect(counter.calls).toBe(1)
+
+    await wrapper.setProps({ search: 'Hello', searchCaseSensitive: true })
+    await nextTick()
+    expect(counter.calls).toBe(2)
   })
 
   it('retains the last good document when an async run fails', async () => {

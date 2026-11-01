@@ -39,7 +39,7 @@ The package SHALL provide documented entries for the styled root, headless API, 
 
 ### Requirement: Dependency contract
 
-Vue SHALL be a peer dependency and SHALL NOT be bundled into the published output. The official `unified`/`remark` pipeline, `hast-util-*`, and `rehype-sanitize`/`hast-util-sanitize` SHALL be default dependencies. The default highlight.js adapter SHALL be isolated behind its documented entry, and the optional Shiki, KaTeX, Mermaid, CodeMirror, and `rehype-raw` ecosystems SHALL be optional peers or dynamic imports so they are installed only by consumers who select them. `rehype-raw` SHALL be required only by the `vue-markdown-suite/html` entry. The package SHALL NOT depend on `markdown-it`, `htmlparser2`, or an icon library.
+Vue SHALL be a peer dependency and SHALL NOT be bundled into the published output. The official `unified`/`remark` pipeline, `hast-util-*`, and `rehype-sanitize`/`hast-util-sanitize` SHALL be default dependencies. The default highlight.js adapter SHALL be isolated behind its documented entry, and the optional Shiki, KaTeX, Mermaid, CodeMirror, and `rehype-raw` ecosystems SHALL be optional peers or dynamic imports so they are installed only by consumers who select them. `rehype-raw` SHALL be required only by the `@coderminer/vue-markdown/html` entry. The package SHALL NOT depend on `markdown-it`, `htmlparser2`, or an icon library.
 
 #### Scenario: Single Vue instance
 - **WHEN** a Vue application installs the package

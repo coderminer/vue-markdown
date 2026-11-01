@@ -5,7 +5,7 @@ import {
   type MarkdownCodeNode,
   type MarkdownHighlighter,
   type MarkdownTheme,
-} from 'vue-markdown-suite'
+} from '@coderminer/vue-markdown'
 import ReviewCodeBlock from './ReviewCodeBlock.vue'
 
 const props = withDefaults(defineProps<{ locale?: 'en' | 'zh' }>(), {

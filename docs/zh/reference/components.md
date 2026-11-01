@@ -4,7 +4,7 @@ description: 公共组件、区域、富节点，以及组件清单注册表。
 
 # 组件
 
-所有组件都从 `vue-markdown-suite` 导出，也可以从 `vue-markdown-suite/components/*`
+所有组件都从 `@coderminer/vue-markdown` 导出，也可以从 `@coderminer/vue-markdown/components/*`
 单独引入。完整导出索引见[公共 API](./api.md)。
 
 ## 渲染器与区域
@@ -64,15 +64,15 @@ description: 公共组件、区域、富节点，以及组件清单注册表。
 可选引擎位于各自入口：
 
 ```ts
-import { highlightjs } from 'vue-markdown-suite/highlight'
-import { shiki } from 'vue-markdown-suite/highlight/shiki'
-import { katexEngine, mathPlugin } from 'vue-markdown-suite/math'
+import { highlightjs } from '@coderminer/vue-markdown/highlight'
+import { shiki } from '@coderminer/vue-markdown/highlight/shiki'
+import { katexEngine, mathPlugin } from '@coderminer/vue-markdown/math'
 import {
   mermaidPlugin,
   renderMermaid,
   sanitizeSvg,
-} from 'vue-markdown-suite/mermaid'
-import { createMermaidEditor } from 'vue-markdown-suite/editor'
+} from '@coderminer/vue-markdown/mermaid'
+import { createMermaidEditor } from '@coderminer/vue-markdown/editor'
 ```
 
 `MarkdownMermaid` 把 `renderer`、`theme`、`showErrors`、`enableZoom`、`allowFullscreen`
@@ -114,7 +114,7 @@ import {
   COMPONENT_MANIFESTS,
   getComponentManifest,
   validateManifest,
-} from 'vue-markdown-suite'
+} from '@coderminer/vue-markdown'
 
 const code = getComponentManifest('CodeBlock')
 

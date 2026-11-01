@@ -12,14 +12,14 @@ import {
   useMarkdownDocument,
   useActiveHeading,
   walkNodes,
-} from 'vue-markdown-suite/headless'
+} from '@coderminer/vue-markdown/headless'
 ```
 
 ## The composable
 
 ```ts
 import { ref } from 'vue'
-import { useMarkdownDocument } from 'vue-markdown-suite/headless'
+import { useMarkdownDocument } from '@coderminer/vue-markdown/headless'
 
 const source = ref('# Hello\n\nA **bold** paragraph.')
 const {
@@ -38,7 +38,7 @@ parse-affecting subset of the renderer props: `components`, `plugins`,
 `disablePlugins`, `remarkPlugins`, `rehypePlugins`, `remarkRehypeOptions`,
 `pipeline`, `slugger`, `allowedElements`, `disallowedElements`,
 `unwrapDisallowed`, `allowElement`, `urlTransform`, `linkTarget`,
-`externalLinkTarget`, `baseUrl`, and `idPrefix`.
+`externalLinkTarget`, `baseUrl`, `idPrefix`, and `search`.
 
 The composable also exposes plugin contributions for hosts that render their own
 markup:
@@ -84,7 +84,7 @@ type MarkdownNode =
 
 ```vue [NodeView.vue]
 <script setup lang="ts">
-import type { MarkdownNode } from 'vue-markdown-suite/headless'
+import type { MarkdownNode } from '@coderminer/vue-markdown/headless'
 
 defineProps<{ node: MarkdownNode }>()
 </script>
@@ -105,7 +105,7 @@ defineProps<{ node: MarkdownNode }>()
 
 ```vue [App.vue]
 <script setup lang="ts">
-import { useMarkdownDocument } from 'vue-markdown-suite/headless'
+import { useMarkdownDocument } from '@coderminer/vue-markdown/headless'
 import NodeView from './NodeView.vue'
 
 const { document } = useMarkdownDocument(source)
@@ -125,7 +125,7 @@ const { document } = useMarkdownDocument(source)
 ## Model helpers
 
 ```ts
-import { walkNodes } from 'vue-markdown-suite/headless'
+import { walkNodes } from '@coderminer/vue-markdown/headless'
 
 walkNodes(document.nodes, (node, parent) => {
   // Visit every node depth-first.
@@ -136,7 +136,7 @@ walkNodes(document.nodes, (node, parent) => {
 
 ```ts
 import { computed } from 'vue'
-import { useActiveHeading } from 'vue-markdown-suite/headless'
+import { useActiveHeading } from '@coderminer/vue-markdown/headless'
 
 const activeId = useActiveHeading(
   computed(() => toc.value.map((item) => item.id)),

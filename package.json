@@ -1,6 +1,6 @@
 {
-  "name": "vue-markdown-suite",
-  "version": "0.1.0",
+  "name": "@coderminer/vue-markdown",
+  "version": "1.0.0",
   "description": "A general-purpose, customizable, plugin-driven Vue 3 Markdown component suite.",
   "keywords": [
     "vue",
@@ -30,7 +30,8 @@
     "node": ">=20"
   },
   "files": [
-    "dist"
+    "dist",
+    "CHANGELOG.md"
   ],
   "sideEffects": [
     "**/*.css"

@@ -14,8 +14,8 @@ import type {
   MarkdownPipeline,
   PipelineContext,
   PipelineResult,
-} from 'vue-markdown-suite/pipeline'
-import { defineMarkdownPipeline } from 'vue-markdown-suite/pipeline'
+} from '@coderminer/vue-markdown/pipeline'
+import { defineMarkdownPipeline } from '@coderminer/vue-markdown/pipeline'
 
 export const myPipeline = defineMarkdownPipeline({
   name: 'my-pipeline',
@@ -49,7 +49,7 @@ import { unified } from 'unified'
 import remarkParse from 'remark-parse'
 import remarkRehype from 'remark-rehype'
 import type { Root } from 'hast'
-import { defineMarkdownPipeline } from 'vue-markdown-suite/pipeline'
+import { defineMarkdownPipeline } from '@coderminer/vue-markdown/pipeline'
 
 const processor = unified().use(remarkParse).use(remarkRehype, {
   allowDangerousHtml: true,
@@ -78,7 +78,7 @@ export const wrappedPipeline = defineMarkdownPipeline({
 管线。运行中失败的管线会保留上一份正常文档。
 
 ```ts
-import { resolvePipeline, validatePipeline } from 'vue-markdown-suite/pipeline'
+import { resolvePipeline, validatePipeline } from '@coderminer/vue-markdown/pipeline'
 ```
 
 ## 运行时选择管线

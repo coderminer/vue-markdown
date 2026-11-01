@@ -7,16 +7,16 @@ description: mathPlugin、KaTeX、分隔符、宏，以及优雅的回退行为�
 数学位于可选入口，KaTeX 不会进入核心包。
 
 ```ts
-import { defaultPlugins } from 'vue-markdown-suite/plugins'
-import { katexEngine, mathPlugin } from 'vue-markdown-suite/math'
-import 'vue-markdown-suite/styles/math-full.css'
+import { defaultPlugins } from '@coderminer/vue-markdown/plugins'
+import { katexEngine, mathPlugin } from '@coderminer/vue-markdown/math'
+import '@coderminer/vue-markdown/styles/math-full.css'
 
 const plugins = [...defaultPlugins, mathPlugin()]
 ```
 
 `styles/math-full.css` 同时引入 `katex/dist/katex.min.css` 和
 `styles/math.css`，一次引入即可完整显示块级公式。如果你已经自行加载 KaTeX 样式表，
-改用 `vue-markdown-suite/styles/math.css`。没有 KaTeX CSS 时，MathML 回退可能显示两次。
+改用 `@coderminer/vue-markdown/styles/math.css`。没有 KaTeX CSS 时，MathML 回退可能显示两次。
 
 保持插件实例稳定：在模块作用域或 `setup` 中创建一次，不要在响应式渲染中内联创建。
 
@@ -44,7 +44,7 @@ mathPlugin({
 strictness，并带渲染缓存。非法 TeX 会产生 `math-error` 诊断和可读的回退内容。
 
 ```ts
-import type { MathEngine } from 'vue-markdown-suite'
+import type { MathEngine } from '@coderminer/vue-markdown'
 
 const engine: MathEngine = {
   id: 'my-engine',

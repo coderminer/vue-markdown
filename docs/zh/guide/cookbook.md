@@ -37,7 +37,7 @@ description: 常见 Markdown 渲染任务的复制粘贴配方。
 ## 切换到 Shiki
 
 ```ts
-import { shiki } from 'vue-markdown-suite/highlight/shiki'
+import { shiki } from '@coderminer/vue-markdown/highlight/shiki'
 ```
 
 ```vue
@@ -47,9 +47,9 @@ import { shiki } from 'vue-markdown-suite/highlight/shiki'
 ## 启用数学
 
 ```ts
-import { defaultPlugins } from 'vue-markdown-suite/plugins'
-import { mathPlugin } from 'vue-markdown-suite/math'
-import 'vue-markdown-suite/styles/math-full.css'
+import { defaultPlugins } from '@coderminer/vue-markdown/plugins'
+import { mathPlugin } from '@coderminer/vue-markdown/math'
+import '@coderminer/vue-markdown/styles/math-full.css'
 
 const plugins = [...defaultPlugins, mathPlugin()]
 ```
@@ -58,9 +58,9 @@ const plugins = [...defaultPlugins, mathPlugin()]
 
 ```vue
 <script setup lang="ts">
-import { MarkdownRenderer } from 'vue-markdown-suite'
-import { defaultPlugins } from 'vue-markdown-suite/plugins'
-import { mermaidPlugin } from 'vue-markdown-suite/mermaid'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
+import { defaultPlugins } from '@coderminer/vue-markdown/plugins'
+import { mermaidPlugin } from '@coderminer/vue-markdown/mermaid'
 
 const plugins = [...defaultPlugins, mermaidPlugin()]
 </script>
@@ -70,14 +70,14 @@ const plugins = [...defaultPlugins, mermaidPlugin()]
 </template>
 ```
 
-Mermaid 围栏现在会渲染成图表。独立图表可以从 `vue-markdown-suite` 引入
+Mermaid 围栏现在会渲染成图表。独立图表可以从 `@coderminer/vue-markdown` 引入
 `MermaidBlock`，直接传 `source`。
 
 ## 提供自定义管线
 
 ```ts
-import type { MarkdownPipeline } from 'vue-markdown-suite'
-import { createOfficialPipeline } from 'vue-markdown-suite/pipeline'
+import type { MarkdownPipeline } from '@coderminer/vue-markdown'
+import { createOfficialPipeline } from '@coderminer/vue-markdown/pipeline'
 
 const official = createOfficialPipeline()
 
@@ -92,7 +92,7 @@ const pipeline: MarkdownPipeline = {
 
 ```vue [DecoratedLink.vue]
 <script setup lang="ts">
-import type { MarkdownNode } from 'vue-markdown-suite'
+import type { MarkdownNode } from '@coderminer/vue-markdown'
 
 defineOptions({ inheritAttrs: false })
 defineProps<{ node?: MarkdownNode }>()
@@ -107,7 +107,7 @@ defineProps<{ node?: MarkdownNode }>()
 
 ```vue [App.vue]
 <script setup lang="ts">
-import { MarkdownRenderer } from 'vue-markdown-suite'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
 import DecoratedLink from './DecoratedLink.vue'
 
 const nodeComponents = { a: DecoratedLink }
@@ -121,7 +121,7 @@ const nodeComponents = { a: DecoratedLink }
 ## 添加插件
 
 ```ts
-import { defineMarkdownPlugin } from 'vue-markdown-suite/plugins'
+import { defineMarkdownPlugin } from '@coderminer/vue-markdown/plugins'
 
 const stamp = defineMarkdownPlugin({
   name: 'stamp',

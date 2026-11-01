@@ -32,6 +32,7 @@ import type {
   MathEngine,
   MermaidRenderer,
   PluginInput,
+  SearchChangePayload,
   TocItem,
 } from '../core/types'
 import { DEFAULT_LABELS, resolveLabel } from '../core/labels'
@@ -47,6 +48,7 @@ import {
 } from '../core/adapters'
 import { createDiagnostic } from '../core/diagnostics'
 import { filterTocByDepth } from '../core/normalize'
+import { countSearchMatches } from '../core/search'
 import { useMarkdownDocument } from '../composables/useMarkdownDocument'
 import {
   findElementById,
@@ -106,6 +108,9 @@ const props = withDefaults(
     syncHash?: boolean
     toc?: boolean
     tocDepth?: number
+    tocPlacement?: 'top' | 'left' | 'right' | 'hidden'
+    search?: string
+    searchCaseSensitive?: boolean
     showError?: boolean
     tokens?: Record<string, string>
     theme?: MarkdownTheme
@@ -141,7 +146,10 @@ const props = withDefaults(
     syncHash: false,
     toc: false,
     tocDepth: 0,
-    showError: false,
+    tocPlacement: 'top',
+    search: '',
+    searchCaseSensitive: false,
+    showError: true,
     tokens: undefined,
     theme: undefined,
     as: 'div',
@@ -154,6 +162,8 @@ const emit = defineEmits<{
   'link-click': [payload: LinkClickPayload]
   'custom-tag-click': [payload: CustomTagClickPayload]
   'task-change': [payload: { checked: boolean; node: MarkdownNode }]
+  'search-change': [payload: SearchChangePayload]
+  'math-error': [diagnostic: MarkdownDiagnostic]
   'render-error': [diagnostic: MarkdownDiagnostic]
   ready: [document: MarkdownDocument]
 }>()
@@ -213,6 +223,10 @@ const invalidSource = computed(
 
 const effectiveSource = computed(() =>
   invalidSource.value ? '' : props.source || slotSource.value,
+)
+
+const searchQuery = computed(() =>
+  typeof props.search === 'string' ? props.search.trim() : '',
 )
 
 const providerConfig = useMarkdownConfig()
@@ -297,6 +311,9 @@ const parseOptions = computed<MarkdownDocumentOptions>(() => ({
   urlTransform: validUrlTransform.value,
   baseUrl: props.baseUrl,
   idPrefix: props.idPrefix,
+  search: searchQuery.value
+    ? { query: searchQuery.value, caseSensitive: props.searchCaseSensitive }
+    : undefined,
 }))
 
 const {
@@ -315,6 +332,43 @@ const {
 const visibleToc = computed(() =>
   filterTocByDepth(tocItems.value, props.tocDepth),
 )
+
+// `markdownDocument` only changes after a run settles. Track which search state
+// produced the current document so a pending or failed run cannot pair a new
+// query with the previous document's match count.
+const documentSearch = ref<{
+  query: string
+  caseSensitive: boolean
+} | null>(null)
+
+watch(
+  markdownDocument,
+  (value) => {
+    documentSearch.value = value
+      ? {
+          query: searchQuery.value,
+          caseSensitive: props.searchCaseSensitive,
+        }
+      : null
+  },
+  { immediate: true },
+)
+
+const documentMatchesCurrentSearch = computed(
+  () =>
+    documentSearch.value !== null &&
+    documentSearch.value.query === searchQuery.value &&
+    (!searchQuery.value ||
+      documentSearch.value.caseSensitive === props.searchCaseSensitive),
+)
+
+const searchState = computed<SearchChangePayload>(() => ({
+  query: searchQuery.value,
+  caseSensitive: props.searchCaseSensitive,
+  matches: documentMatchesCurrentSearch.value
+    ? countSearchMatches(markdownDocument.value?.nodes ?? [])
+    : 0,
+}))
 
 const effectiveLabels = computed<MarkdownLabels>(() => ({
   ...DEFAULT_LABELS,
@@ -354,6 +408,22 @@ const mergedRegions = computed(() => ({
   ...resolvedRegions.value,
   ...configRegions.value,
 }))
+
+const tocPlacement = computed(() => props.tocPlacement ?? 'top')
+const hasCustomToc = computed(() =>
+  Boolean(slots.toc || mergedRegions.value.toc),
+)
+const showToc = computed(
+  () =>
+    props.toc &&
+    visibleToc.value.length > 0 &&
+    (tocPlacement.value !== 'hidden' || hasCustomToc.value),
+)
+const sideToc = computed(
+  () =>
+    showToc.value &&
+    (tocPlacement.value === 'left' || tocPlacement.value === 'right'),
+)
 
 const effectiveTheme = computed<MarkdownTheme>(() => effectiveConfig.value.theme ?? 'light')
 
@@ -403,6 +473,9 @@ const renderContext = shallowReactive<RenderContext>({
   },
   onTaskChange(payload) {
     emit('task-change', payload)
+  },
+  onMathError(diagnostic) {
+    emit('math-error', diagnostic)
   },
   onRenderError(diagnostic) {
     emit('render-error', diagnostic)
@@ -460,7 +533,7 @@ provide(RENDER_CONTEXT, renderContext)
 
 const activeId = useActiveHeading(
   computed(() => visibleToc.value.map((item) => item.id)),
-  computed(() => props.toc),
+  computed(() => showToc.value),
   { root: rootElement },
 )
 
@@ -536,6 +609,26 @@ watch(
     if (signature === lastTocSignature) return
     lastTocSignature = signature
     emit('toc-change', value)
+  },
+  { immediate: true },
+)
+
+let lastSearchSignature: string | undefined
+watch(
+  searchState,
+  (value) => {
+    // Do not report a query until the rendered document actually belongs to it.
+    // Pending runs keep the previous document, and failed runs keep it by
+    // design; either would otherwise pair a new query with stale matches.
+    if (!documentMatchesCurrentSearch.value) return
+    const signature = `${value.query}\u001f${value.caseSensitive ? '1' : '0'}\u001f${value.matches}`
+    const previous = lastSearchSignature
+    lastSearchSignature = signature
+    if (previous === signature) return
+    // Suppress the mount-time event for an empty query regardless of case
+    // sensitivity. A later toggle is a real state change and still emits.
+    if (previous === undefined && !value.query) return
+    emit('search-change', value)
   },
   { immediate: true },
 )
@@ -661,8 +754,14 @@ defineExpose({
     :as="as"
     :tokens="mergedTokens"
     :theme="effectiveTheme"
+    :data-vmd-toc-placement="tocPlacement"
+    :data-vmd-toc-layout="sideToc ? 'side' : 'stacked'"
   >
-    <template v-if="toc && visibleToc && visibleToc.length > 0">
+    <div
+      v-if="showToc"
+      data-vmd-part="toc-column"
+      class="vmd-toc-column"
+    >
       <slot v-if="$slots.toc" name="toc" v-bind="tocSlotContext" />
       <component
         :is="regionToc"
@@ -678,53 +777,55 @@ defineExpose({
           <slot name="toc-item" v-bind="itemContext" />
         </template>
       </component>
-    </template>
+    </div>
 
-    <slot
-      v-if="$slots.content && markdownDocument && markdownDocument.nodes.length > 0"
-      name="content"
-      v-bind="contentSlotContext"
-    />
-    <component
-      :is="regionContent"
-      v-else-if="markdownDocument && markdownDocument.nodes.length > 0"
-      :nodes="markdownDocument.nodes"
-    >
-      <MarkdownChildren :nodes="markdownDocument.nodes" />
-    </component>
+    <div data-vmd-part="body" class="vmd-body">
+      <slot
+        v-if="$slots.content && markdownDocument && markdownDocument.nodes.length > 0"
+        name="content"
+        v-bind="contentSlotContext"
+      />
+      <component
+        :is="regionContent"
+        v-else-if="markdownDocument && markdownDocument.nodes.length > 0"
+        :nodes="markdownDocument.nodes"
+      >
+        <MarkdownChildren :nodes="markdownDocument.nodes" />
+      </component>
 
-    <slot
-      v-else-if="$slots.loading && status === 'pending'"
-      name="loading"
-      v-bind="loadingSlotContext"
-    />
-    <component
-      :is="regionLoading"
-      v-else-if="status === 'pending'"
-      :label="loadingLabel"
-    />
+      <slot
+        v-else-if="$slots.loading && status === 'pending'"
+        name="loading"
+        v-bind="loadingSlotContext"
+      />
+      <component
+        :is="regionLoading"
+        v-else-if="status === 'pending'"
+        :label="loadingLabel"
+      />
 
-    <slot
-      v-else-if="$slots.empty && status === 'ready'"
-      name="empty"
-      v-bind="emptySlotContext"
-    />
-    <component
-      :is="regionEmpty"
-      v-else-if="status === 'ready'"
-      :label="emptyLabel"
-    />
+      <slot
+        v-else-if="$slots.empty && status === 'ready'"
+        name="empty"
+        v-bind="emptySlotContext"
+      />
+      <component
+        :is="regionEmpty"
+        v-else-if="status === 'ready'"
+        :label="emptyLabel"
+      />
 
-    <slot
-      v-if="showError && status === 'error' && $slots.error"
-      name="error"
-      v-bind="errorSlotContext"
-    />
-    <component
-      :is="regionError"
-      v-else-if="showError && status === 'error'"
-      :diagnostics="diagnostics"
-      :label="errorLabel"
-    />
+      <slot
+        v-if="showError && status === 'error' && $slots.error"
+        name="error"
+        v-bind="errorSlotContext"
+      />
+      <component
+        :is="regionError"
+        v-else-if="showError && status === 'error'"
+        :diagnostics="diagnostics"
+        :label="errorLabel"
+      />
+    </div>
   </component>
 </template>

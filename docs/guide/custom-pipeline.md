@@ -14,8 +14,8 @@ import type {
   MarkdownPipeline,
   PipelineContext,
   PipelineResult,
-} from 'vue-markdown-suite/pipeline'
-import { defineMarkdownPipeline } from 'vue-markdown-suite/pipeline'
+} from '@coderminer/vue-markdown/pipeline'
+import { defineMarkdownPipeline } from '@coderminer/vue-markdown/pipeline'
 
 export const myPipeline = defineMarkdownPipeline({
   name: 'my-pipeline',
@@ -52,7 +52,7 @@ import { unified } from 'unified'
 import remarkParse from 'remark-parse'
 import remarkRehype from 'remark-rehype'
 import type { Root } from 'hast'
-import { defineMarkdownPipeline } from 'vue-markdown-suite/pipeline'
+import { defineMarkdownPipeline } from '@coderminer/vue-markdown/pipeline'
 
 const processor = unified().use(remarkParse).use(remarkRehype, {
   allowDangerousHtml: true,
@@ -82,7 +82,7 @@ reported with a diagnostic and replaced by the official pipeline. A failing
 pipeline keeps the last good document.
 
 ```ts
-import { validatePipeline, resolvePipeline } from 'vue-markdown-suite/pipeline'
+import { validatePipeline, resolvePipeline } from '@coderminer/vue-markdown/pipeline'
 ```
 
 ## Choosing a pipeline at runtime

@@ -3,7 +3,7 @@ import {
   COMPONENT_MANIFESTS,
   PART_NAMES,
   TOKEN_NAMES,
-} from 'vue-markdown-suite'
+} from '@coderminer/vue-markdown'
 import CodeSample from '../components/CodeSample.vue'
 import SectionShell from '../components/SectionShell.vue'
 
@@ -21,7 +21,7 @@ const props: Row[] = [
   { name: 'nodeComponents', type: 'Record<string, Component | string | NodeRenderer>', fallback: '{}', notes: 'Semantic overrides for code, math, mermaid, custom, and element tags.' },
   { name: 'labels', type: 'Partial<MarkdownLabels>', fallback: '{}', notes: 'String or context-aware functions for every built-in label.' },
   { name: 'preset', type: 'MarkdownPreset | MarkdownPreset[]', fallback: '—', notes: 'Applies one or more composed presets.' },
-  { name: 'plugins', type: 'PluginInput[]', fallback: 'defaultPlugins', notes: 'Replaces the default plugin set when provided. Add htmlPlugin() from vue-markdown-suite/html for sanitized raw HTML.' },
+  { name: 'plugins', type: 'PluginInput[]', fallback: 'defaultPlugins', notes: 'Replaces the default plugin set when provided. Add htmlPlugin() from @coderminer/vue-markdown/html for sanitized raw HTML.' },
   { name: 'disablePlugins', type: 'string[]', fallback: '[]', notes: 'Removes named plugins. Core markers cannot be disabled.' },
   { name: 'remarkPlugins', type: 'PluggableList', fallback: '[]', notes: 'Runs after library remark plugins.' },
   { name: 'rehypePlugins', type: 'PluggableList', fallback: '[]', notes: 'Runs after library rehype plugins and the built-in sanitizer.' },
@@ -43,7 +43,11 @@ const props: Row[] = [
   { name: 'idPrefix', type: 'string', fallback: "''", notes: 'Prefixes generated heading IDs.' },
   { name: 'syncHash', type: 'boolean', fallback: 'false', notes: 'Updates the URL hash when scrolling to a heading.' },
   { name: 'toc', type: 'boolean', fallback: 'false', notes: 'Renders the TOC region.' },
-  { name: 'showError', type: 'boolean', fallback: 'false', notes: 'Renders the error region when a run fails.' },
+  { name: 'tocDepth', type: 'number', fallback: '0', notes: 'Maximum heading level in the TOC; 0 includes every level.' },
+  { name: 'tocPlacement', type: "'top' | 'left' | 'right' | 'hidden'", fallback: "'top'", notes: 'Stacks, sides, or hides the TOC.' },
+  { name: 'search', type: 'string', fallback: "''", notes: 'Highlights matches and emits search-change.' },
+  { name: 'searchCaseSensitive', type: 'boolean', fallback: 'false', notes: 'Makes the search query case-sensitive.' },
+  { name: 'showError', type: 'boolean', fallback: 'true', notes: 'Renders the error region when a run fails.' },
   { name: 'tokens', type: 'Record<string, string>', fallback: '{}', notes: 'Inline --vmd-* custom properties on the root.' },
   { name: 'theme', type: "'light' | 'dark' | 'auto' | 'custom'", fallback: "'light'", notes: 'Writes data-vmd-theme on the root only.' },
   { name: 'as', type: 'string | Component', fallback: "'div'", notes: 'Root element or component.' },
@@ -55,6 +59,8 @@ const events = [
   { name: 'link-click', payload: '{ url, target, node, event }', notes: 'Fires after a rendered link is activated.' },
   { name: 'custom-tag-click', payload: '{ tag, props, node, event }', notes: 'Props are normalized and safe.' },
   { name: 'task-change', payload: '{ checked, node }', notes: 'Fires when a GFM task checkbox changes.' },
+  { name: 'search-change', payload: '{ query, caseSensitive, matches }', notes: 'Follows the search prop and its match count.' },
+  { name: 'math-error', payload: 'MarkdownDiagnostic', notes: 'Fires when math rendering produces a diagnostic.' },
   { name: 'render-error', payload: 'MarkdownDiagnostic', notes: 'Reports parse, plugin, adapter, and configuration failures.' },
   { name: 'ready', payload: 'MarkdownDocument', notes: 'Fires once for the first successful document.' },
 ]
@@ -68,20 +74,20 @@ const actions = [
 ]
 
 const entries = [
-  { entry: 'vue-markdown-suite', contents: 'Renderer, preset components, composables, core helpers, and export helpers.' },
-  { entry: 'vue-markdown-suite/headless', contents: 'Model, composables, and helpers without preset components or CSS.' },
-  { entry: 'vue-markdown-suite/pipeline', contents: 'Official pipeline, custom pipeline validation, and identity helpers.' },
-  { entry: 'vue-markdown-suite/plugins', contents: 'defineMarkdownPlugin, registry, built-in plugins, and search.' },
-  { entry: 'vue-markdown-suite/presets', contents: 'defineMarkdownPreset, composePresets, and configuration types.' },
-  { entry: 'vue-markdown-suite/highlight', contents: 'highlight.js adapter and normalization helpers.' },
-  { entry: 'vue-markdown-suite/highlight/shiki', contents: 'Optional Shiki adapter.' },
-  { entry: 'vue-markdown-suite/math', contents: 'mathPlugin, katexEngine, and math types.' },
-  { entry: 'vue-markdown-suite/mermaid', contents: 'Lazy Mermaid runtime and SVG sanitizer.' },
-  { entry: 'vue-markdown-suite/editor', contents: 'Lazy CodeMirror editor used by MermaidLiveEditor.' },
-  { entry: 'vue-markdown-suite/components/*', contents: 'One entry per public component.' },
-  { entry: 'vue-markdown-suite/style.css', contents: 'Full optional stylesheet.' },
-  { entry: 'vue-markdown-suite/styles/tokens.css', contents: 'Design tokens only.' },
-  { entry: 'vue-markdown-suite/styles/components.css', contents: 'Part-based component styles.' },
+  { entry: '@coderminer/vue-markdown', contents: 'Renderer, preset components, composables, core helpers, and export helpers.' },
+  { entry: '@coderminer/vue-markdown/headless', contents: 'Model, composables, and helpers without preset components or CSS.' },
+  { entry: '@coderminer/vue-markdown/pipeline', contents: 'Official pipeline, custom pipeline validation, and identity helpers.' },
+  { entry: '@coderminer/vue-markdown/plugins', contents: 'defineMarkdownPlugin, registry, built-in plugins, and search.' },
+  { entry: '@coderminer/vue-markdown/presets', contents: 'defineMarkdownPreset, composePresets, and configuration types.' },
+  { entry: '@coderminer/vue-markdown/highlight', contents: 'highlight.js adapter and normalization helpers.' },
+  { entry: '@coderminer/vue-markdown/highlight/shiki', contents: 'Optional Shiki adapter.' },
+  { entry: '@coderminer/vue-markdown/math', contents: 'mathPlugin, katexEngine, and math types.' },
+  { entry: '@coderminer/vue-markdown/mermaid', contents: 'Lazy Mermaid runtime and SVG sanitizer.' },
+  { entry: '@coderminer/vue-markdown/editor', contents: 'Lazy CodeMirror editor used by MermaidLiveEditor.' },
+  { entry: '@coderminer/vue-markdown/components/*', contents: 'One entry per public component.' },
+  { entry: '@coderminer/vue-markdown/style.css', contents: 'Full optional stylesheet.' },
+  { entry: '@coderminer/vue-markdown/styles/tokens.css', contents: 'Design tokens only.' },
+  { entry: '@coderminer/vue-markdown/styles/components.css', contents: 'Part-based component styles.' },
 ]
 
 const adapters = `import type {
@@ -90,7 +96,7 @@ const adapters = `import type {
   MermaidRenderer,
   MarkdownPlugin,
   MarkdownPipeline,
-} from 'vue-markdown-suite'
+} from '@coderminer/vue-markdown'
 
 const highlighter: MarkdownHighlighter = {
   id: 'my-highlighter',

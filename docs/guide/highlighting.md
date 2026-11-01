@@ -15,7 +15,7 @@ Markdown, Python, Go, Rust, SQL, YAML, and related aliases) and highlights
 synchronously. A document without code never loads it.
 
 ```ts
-import { highlightjs } from 'vue-markdown-suite/highlight'
+import { highlightjs } from '@coderminer/vue-markdown/highlight'
 ```
 
 ## Shiki
@@ -24,7 +24,7 @@ The optional Shiki entry preloads its highlighter, themes, and languages. Until
 it is ready, source renders as plain text.
 
 ```ts
-import { shiki } from 'vue-markdown-suite/highlight/shiki'
+import { shiki } from '@coderminer/vue-markdown/highlight/shiki'
 
 const highlighter = shiki
 ```
@@ -58,7 +58,7 @@ An adapter is an object with a unique `id` and a `highlight` method that returns
 normalized nodes, not an HTML string:
 
 ```ts
-import type { MarkdownHighlighter } from 'vue-markdown-suite'
+import type { MarkdownHighlighter } from '@coderminer/vue-markdown'
 
 export const myHighlighter: MarkdownHighlighter = {
   id: 'my-highlighter',

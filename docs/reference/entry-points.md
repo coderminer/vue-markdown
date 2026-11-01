@@ -10,42 +10,42 @@ complete export index.
 
 | Entry | Contents |
 | --- | --- |
-| `vue-markdown-suite` | Renderer, preset components, composables, core helpers, and export helpers |
-| `vue-markdown-suite/headless` | Types, model helpers, composables; no preset components or CSS |
-| `vue-markdown-suite/pipeline` | Official pipeline, custom pipeline validation, identity helpers |
-| `vue-markdown-suite/plugins` | `defineMarkdownPlugin`, registry, built-in plugins |
-| `vue-markdown-suite/presets` | `defineMarkdownPreset`, `composePresets`, configuration types |
-| `vue-markdown-suite/node-components` | The node component catalog only |
-| `vue-markdown-suite/highlight` | highlight.js adapter and normalization helpers |
-| `vue-markdown-suite/highlight/shiki` | Optional Shiki adapter |
-| `vue-markdown-suite/math` | `mathPlugin`, `katexEngine`, math types |
-| `vue-markdown-suite/mermaid` | `mermaidPlugin`, lazy Mermaid runtime, and SVG sanitizer |
-| `vue-markdown-suite/editor` | Lazy CodeMirror integration |
-| `vue-markdown-suite/html` | `htmlPlugin()` for sanitized raw HTML |
-| `vue-markdown-suite/components/*` | One entry per public component |
-| `vue-markdown-suite/style.css` | Full optional stylesheet |
-| `vue-markdown-suite/styles/tokens.css` | Design tokens only |
-| `vue-markdown-suite/styles/components.css` | Part-based component styles |
-| `vue-markdown-suite/styles/math.css` | Math container styles; import KaTeX CSS separately |
-| `vue-markdown-suite/styles/math-full.css` | KaTeX CSS plus the suite's math container styles |
+| `@coderminer/vue-markdown` | Renderer, preset components, composables, core helpers, and export helpers |
+| `@coderminer/vue-markdown/headless` | Types, model helpers, composables; no preset components or CSS |
+| `@coderminer/vue-markdown/pipeline` | Official pipeline, custom pipeline validation, identity helpers |
+| `@coderminer/vue-markdown/plugins` | `defineMarkdownPlugin`, registry, built-in plugins |
+| `@coderminer/vue-markdown/presets` | `defineMarkdownPreset`, `composePresets`, configuration types |
+| `@coderminer/vue-markdown/node-components` | The node component catalog only |
+| `@coderminer/vue-markdown/highlight` | highlight.js adapter and normalization helpers |
+| `@coderminer/vue-markdown/highlight/shiki` | Optional Shiki adapter |
+| `@coderminer/vue-markdown/math` | `mathPlugin`, `katexEngine`, math types |
+| `@coderminer/vue-markdown/mermaid` | `mermaidPlugin`, lazy Mermaid runtime, and SVG sanitizer |
+| `@coderminer/vue-markdown/editor` | Lazy CodeMirror integration |
+| `@coderminer/vue-markdown/html` | `htmlPlugin()` for sanitized raw HTML |
+| `@coderminer/vue-markdown/components/*` | One entry per public component |
+| `@coderminer/vue-markdown/style.css` | Full optional stylesheet |
+| `@coderminer/vue-markdown/styles/tokens.css` | Design tokens only |
+| `@coderminer/vue-markdown/styles/components.css` | Part-based component styles |
+| `@coderminer/vue-markdown/styles/math.css` | Math container styles; import KaTeX CSS separately |
+| `@coderminer/vue-markdown/styles/math-full.css` | KaTeX CSS plus the suite's math container styles |
 
 ## Examples
 
 ```ts
 // Renderer and helpers
-import { MarkdownRenderer, exportMarkdownHtmlSync } from 'vue-markdown-suite'
+import { MarkdownRenderer, exportMarkdownHtmlSync } from '@coderminer/vue-markdown'
 
 // Headless document API
-import { useMarkdownDocument, walkNodes } from 'vue-markdown-suite/headless'
+import { useMarkdownDocument, walkNodes } from '@coderminer/vue-markdown/headless'
 
 // Plugin authoring
-import { defineMarkdownPlugin, gfmPlugin } from 'vue-markdown-suite/plugins'
+import { defineMarkdownPlugin, gfmPlugin } from '@coderminer/vue-markdown/plugins'
 
 // Optional engines
-import { shiki } from 'vue-markdown-suite/highlight/shiki'
-import { mathPlugin } from 'vue-markdown-suite/math'
-import { mermaidPlugin, renderMermaid } from 'vue-markdown-suite/mermaid'
-import { htmlPlugin } from 'vue-markdown-suite/html'
+import { shiki } from '@coderminer/vue-markdown/highlight/shiki'
+import { mathPlugin } from '@coderminer/vue-markdown/math'
+import { mermaidPlugin, renderMermaid } from '@coderminer/vue-markdown/mermaid'
+import { htmlPlugin } from '@coderminer/vue-markdown/html'
 ```
 
 ## Bundle boundaries
@@ -60,13 +60,13 @@ own entries or dynamic chunks.
 - A document without math never loads KaTeX.
 - Mermaid loads only when a Mermaid component renders.
 - The Mermaid editor loads CodeMirror only when mounted.
-- The HTML parser loads only when `vue-markdown-suite/html` is imported.
+- The HTML parser loads only when `@coderminer/vue-markdown/html` is imported.
 - The core is DOM-free and Vue-free; the Vue adapter depends downward on it.
 
 ## Styles
 
 ```ts
-import 'vue-markdown-suite/style.css'
+import '@coderminer/vue-markdown/style.css'
 ```
 
 `style.css` imports tokens and component styles. Load it before your own

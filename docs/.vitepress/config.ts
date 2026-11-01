@@ -170,20 +170,20 @@ function seoHead(context: {
 }
 
 const aliases = [
-  { find: /^vue-markdown-suite\/style\.css$/, replacement: src('style.css') },
-  { find: 'vue-markdown-suite/styles/', replacement: `${src('styles')}/` },
-  { find: /^vue-markdown-suite\/highlight\/shiki$/, replacement: src('highlight/shiki.ts') },
-  { find: /^vue-markdown-suite\/highlight$/, replacement: src('highlight/index.ts') },
-  { find: /^vue-markdown-suite\/math$/, replacement: src('math/index.ts') },
-  { find: /^vue-markdown-suite\/mermaid$/, replacement: src('mermaid/index.ts') },
-  { find: /^vue-markdown-suite\/editor$/, replacement: src('editor/index.ts') },
-  { find: /^vue-markdown-suite\/html$/, replacement: src('html/index.ts') },
-  { find: /^vue-markdown-suite\/headless$/, replacement: src('headless.ts') },
-  { find: /^vue-markdown-suite\/pipeline$/, replacement: src('pipeline.ts') },
-  { find: /^vue-markdown-suite\/plugins$/, replacement: src('plugins.ts') },
-  { find: /^vue-markdown-suite\/presets$/, replacement: src('presets.ts') },
-  { find: /^vue-markdown-suite\/node-components$/, replacement: src('node-components.ts') },
-  { find: /^vue-markdown-suite$/, replacement: src('index.ts') },
+  { find: /^@coderminer\/vue-markdown\/style\.css$/, replacement: src('style.css') },
+  { find: '@coderminer/vue-markdown/styles/', replacement: `${src('styles')}/` },
+  { find: /^@coderminer\/vue-markdown\/highlight\/shiki$/, replacement: src('highlight/shiki.ts') },
+  { find: /^@coderminer\/vue-markdown\/highlight$/, replacement: src('highlight/index.ts') },
+  { find: /^@coderminer\/vue-markdown\/math$/, replacement: src('math/index.ts') },
+  { find: /^@coderminer\/vue-markdown\/mermaid$/, replacement: src('mermaid/index.ts') },
+  { find: /^@coderminer\/vue-markdown\/editor$/, replacement: src('editor/index.ts') },
+  { find: /^@coderminer\/vue-markdown\/html$/, replacement: src('html/index.ts') },
+  { find: /^@coderminer\/vue-markdown\/headless$/, replacement: src('headless.ts') },
+  { find: /^@coderminer\/vue-markdown\/pipeline$/, replacement: src('pipeline.ts') },
+  { find: /^@coderminer\/vue-markdown\/plugins$/, replacement: src('plugins.ts') },
+  { find: /^@coderminer\/vue-markdown\/presets$/, replacement: src('presets.ts') },
+  { find: /^@coderminer\/vue-markdown\/node-components$/, replacement: src('node-components.ts') },
+  { find: /^@coderminer\/vue-markdown$/, replacement: src('index.ts') },
 ]
 
 export default defineConfig({
@@ -212,6 +212,7 @@ export default defineConfig({
       { text: 'Guide', link: '/guide/getting-started', activeMatch: '/guide/' },
       { text: 'Reference', link: '/reference/api', activeMatch: '/reference/' },
       { text: 'Examples', link: '/examples/playground', activeMatch: '/examples/' },
+      { text: 'Release notes', link: '/release-notes' },
     ],
     sidebar: {
       '/guide/': [
@@ -280,7 +281,7 @@ export default defineConfig({
     },
     socialLinks: [
       { icon: 'github', link: 'https://github.com/coderminer/vue-markdown' },
-      { icon: 'npm', link: 'https://www.npmjs.com/package/vue-markdown-suite' },
+      { icon: 'npm', link: 'https://www.npmjs.com/package/@coderminer/vue-markdown' },
     ],
     search: {
       provider: 'local',
@@ -328,6 +329,7 @@ export default defineConfig({
           { text: '指南', link: '/zh/guide/getting-started', activeMatch: '/zh/guide/' },
           { text: '参考', link: '/zh/reference/api', activeMatch: '/zh/reference/' },
           { text: '示例', link: '/zh/examples/playground', activeMatch: '/zh/examples/' },
+          { text: '发布说明', link: '/zh/release-notes' },
         ],
         sidebar: {
           '/zh/guide/': [
@@ -396,7 +398,7 @@ export default defineConfig({
         },
         socialLinks: [
           { icon: 'github', link: 'https://github.com/coderminer/vue-markdown' },
-          { icon: 'npm', link: 'https://www.npmjs.com/package/vue-markdown-suite' },
+          { icon: 'npm', link: 'https://www.npmjs.com/package/@coderminer/vue-markdown' },
         ],
         search: {
           provider: 'local',

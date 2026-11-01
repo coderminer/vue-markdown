@@ -1,10 +1,10 @@
 ---
-description: 在 Vue 3 中安装 vue-markdown-suite，并渲染第一份 Markdown 文档。
+description: 在 Vue 3 中安装 @coderminer/vue-markdown，并渲染第一份 Markdown 文档。
 ---
 
 # 快速开始
 
-`vue-markdown-suite` 通过官方 `unified` 管线把 Markdown 直接渲染成 Vue VNode。
+`@coderminer/vue-markdown` 通过官方 `unified` 管线把 Markdown 直接渲染成 Vue VNode。
 它同时提供带样式的渲染器、无头文档 API、类型化插件，以及可选的代码、数学和图表引擎。
 
 ## 环境要求
@@ -18,19 +18,19 @@ description: 在 Vue 3 中安装 vue-markdown-suite，并渲染第一份 Markdow
 ::: code-group
 
 ```bash [npm]
-npm install vue-markdown-suite
+npm install @coderminer/vue-markdown
 ```
 
 ```bash [pnpm]
-pnpm add vue-markdown-suite
+pnpm add @coderminer/vue-markdown
 ```
 
 ```bash [yarn]
-yarn add vue-markdown-suite
+yarn add @coderminer/vue-markdown
 ```
 
 ```bash [bun]
-bun add vue-markdown-suite
+bun add @coderminer/vue-markdown
 ```
 
 :::
@@ -67,15 +67,15 @@ Mermaid 可视化编辑器还需要 CodeMirror：
 npm install @codemirror/state @codemirror/view @codemirror/language @codemirror/commands
 ```
 
-原始 HTML 只在从 `vue-markdown-suite/html` 导入 `htmlPlugin()` 时需要 `rehype-raw`。
+原始 HTML 只在从 `@coderminer/vue-markdown/html` 导入 `htmlPlugin()` 时需要 `rehype-raw`。
 
 ## 渲染第一份文档
 
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue'
-import { MarkdownRenderer } from 'vue-markdown-suite'
-import 'vue-markdown-suite/style.css'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
+import '@coderminer/vue-markdown/style.css'
 
 const source = ref(`
 # 你好，Markdown

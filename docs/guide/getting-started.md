@@ -1,10 +1,10 @@
 ---
-description: Install vue-markdown-suite and render your first Markdown document in Vue 3.
+description: Install @coderminer/vue-markdown and render your first Markdown document in Vue 3.
 ---
 
 # Getting started
 
-`vue-markdown-suite` renders Markdown directly into Vue VNodes through the
+`@coderminer/vue-markdown` renders Markdown directly into Vue VNodes through the
 official `unified` pipeline. It ships a styled renderer, a headless document API,
 typed plugins, and optional engines for code, math, and diagrams.
 
@@ -19,19 +19,19 @@ typed plugins, and optional engines for code, math, and diagrams.
 ::: code-group
 
 ```bash [npm]
-npm install vue-markdown-suite
+npm install @coderminer/vue-markdown
 ```
 
 ```bash [pnpm]
-pnpm add vue-markdown-suite
+pnpm add @coderminer/vue-markdown
 ```
 
 ```bash [yarn]
-yarn add vue-markdown-suite
+yarn add @coderminer/vue-markdown
 ```
 
 ```bash [bun]
-bun add vue-markdown-suite
+bun add @coderminer/vue-markdown
 ```
 
 :::
@@ -69,15 +69,15 @@ npm install @codemirror/state @codemirror/view @codemirror/language @codemirror/
 ```
 
 Raw HTML requires `rehype-raw` only when you import `htmlPlugin()` from
-`vue-markdown-suite/html`.
+`@coderminer/vue-markdown/html`.
 
 ## Render your first document
 
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue'
-import { MarkdownRenderer } from 'vue-markdown-suite'
-import 'vue-markdown-suite/style.css'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
+import '@coderminer/vue-markdown/style.css'
 
 const source = ref(`
 # Hello, Markdown

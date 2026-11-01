@@ -10,16 +10,19 @@ import {
   shallowRef,
   useSlots,
   watch,
+  type VNodeChild,
 } from 'vue'
 import type {
   DiagnosticFormatter,
   MarkdownDiagnostic,
   MarkdownTheme,
+  MermaidRenderResult,
   MermaidRenderer,
 } from '../core/types'
 import { createDiagnostic } from '../core/diagnostics'
 import { resolveLabel } from '../core/labels'
 import { isEmptySlotContent, useRenderContext } from './context'
+import { lockPageScroll, unlockPageScroll } from './scroll-lock'
 import MermaidBlock from './MermaidBlock.vue'
 import { createMermaidEditor, type MermaidEditorHandle } from '../editor/codemirror'
 
@@ -31,6 +34,8 @@ const props = withDefaults(
     renderer?: MermaidRenderer
     diagnosticsFormatter?: DiagnosticFormatter
     compact?: boolean
+    rawDetails?: boolean
+    autoFocus?: boolean
     initialRatio?: number
     minRatio?: number
   }>(),
@@ -41,6 +46,8 @@ const props = withDefaults(
     renderer: undefined,
     diagnosticsFormatter: undefined,
     compact: false,
+    rawDetails: false,
+    autoFocus: false,
     initialRatio: 0.5,
     minRatio: 0.2,
   },
@@ -52,15 +59,23 @@ const emit = defineEmits<{
   error: [diagnostic: MarkdownDiagnostic]
 }>()
 
+function asSource(value: unknown): string {
+  return typeof value === 'string' ? value : ''
+}
+
+const initialValue = asSource(props.modelValue)
+
 const context = useRenderContext()
 const ownSlots = useSlots()
 const resolvedTheme = computed<MarkdownTheme>(
   () => props.theme ?? context.theme ?? 'light',
 )
-const value = ref(props.modelValue)
-const previewSource = ref(props.modelValue)
+const value = ref(initialValue)
+const previewSource = ref(initialValue)
 const ratio = ref(props.initialRatio)
-const status = ref<'idle' | 'pending' | 'ready' | 'error'>('idle')
+const status = ref<'idle' | 'pending' | 'ready' | 'error'>(
+  initialValue.trim() ? 'pending' : 'idle',
+)
 const diagnostics = shallowRef<MarkdownDiagnostic[]>([])
 const fullscreen = ref(false)
 const root = ref<HTMLElement>()
@@ -68,19 +83,56 @@ const editorHost = ref<HTMLElement>()
 let handle: MermaidEditorHandle | undefined
 let previewTimer: ReturnType<typeof setTimeout> | undefined
 
-const hasEditorSlot = computed(
-  () => Boolean(ownSlots.editor || context.slots?.editor),
+const previewResult = shallowRef<MermaidRenderResult | null>(null)
+const previewError = ref<string | undefined>()
+const isEmptyPreview = computed(() => previewSource.value.trim() === '')
+const hasFullscreenSlot = computed(() =>
+  Boolean(ownSlots.fullscreen || context.slots?.fullscreen),
 )
 
+function renderSlot(
+  name: string,
+  slotProps: Record<string, unknown>,
+  fallback: () => VNodeChild,
+): VNodeChild {
+  return context.renderHostSlot(name, slotProps, () => {
+    const slot = ownSlots[name]
+    if (!slot) return fallback()
+    const output = slot(slotProps)
+    return isEmptySlotContent(output) ? fallback() : output
+  })
+}
+
+let scrollLocked = false
+let nativeFullscreen = false
+let active = true
+
+function lockScroll(): void {
+  if (scrollLocked) return
+  scrollLocked = true
+  lockPageScroll()
+}
+
+function unlockScroll(): void {
+  if (!scrollLocked) return
+  scrollLocked = false
+  unlockPageScroll()
+}
+
 function setFullscreen(next: boolean): void {
+  if (!active) return
+  if (next) lockScroll()
   fullscreen.value = next
   if (next) {
     root.value?.focus?.()
     if (typeof document !== 'undefined') {
       document.addEventListener('keydown', onKeydown)
     }
-  } else if (typeof document !== 'undefined') {
-    document.removeEventListener('keydown', onKeydown)
+  } else {
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('keydown', onKeydown)
+    }
+    unlockScroll()
   }
 }
 
@@ -88,24 +140,72 @@ async function toggleFullscreen(): Promise<void> {
   const element = root.value
   if (typeof document === 'undefined') return
   if (!fullscreen.value) {
+    nativeFullscreen = false
     try {
       await element?.requestFullscreen?.()
+      if (!active) return
+      nativeFullscreen = Boolean(element) && document.fullscreenElement === element
     } catch {
       // CSS fallback.
     }
+    if (!active) return
     setFullscreen(true)
   } else {
     try {
-      if (document.fullscreenElement) await document.exitFullscreen()
+      if (element && document.fullscreenElement === element) {
+        await document.exitFullscreen()
+      }
     } catch {
       // Ignore.
     }
+    if (!active) return
+    nativeFullscreen = false
     setFullscreen(false)
   }
 }
 
 function onKeydown(event: KeyboardEvent): void {
-  if (event.key === 'Escape' && fullscreen.value) setFullscreen(false)
+  if (!fullscreen.value) return
+  if (event.key === 'Escape') {
+    setFullscreen(false)
+    return
+  }
+  if (event.key !== 'Tab') return
+
+  const focusables = Array.from(
+    root.value?.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    ) ?? [],
+  ).filter((element) => !element.closest('[aria-hidden="true"]'))
+  if (focusables.length === 0) {
+    event.preventDefault()
+    root.value?.focus()
+    return
+  }
+  const first = focusables[0]
+  const last = focusables[focusables.length - 1]
+  if (!first || !last) return
+  if (event.shiftKey) {
+    if (document.activeElement === first || document.activeElement === root.value) {
+      event.preventDefault()
+      last.focus()
+    }
+  } else if (document.activeElement === last) {
+    event.preventDefault()
+    first.focus()
+  }
+}
+
+function onFullscreenChange(): void {
+  if (!active) return
+  const element = root.value
+  if (element && document.fullscreenElement === element) {
+    nativeFullscreen = true
+    return
+  }
+  if (!nativeFullscreen) return
+  nativeFullscreen = false
+  setFullscreen(false)
 }
 
 function diagnosticFromError(message: string): MarkdownDiagnostic {
@@ -119,32 +219,46 @@ function diagnosticFromError(message: string): MarkdownDiagnostic {
   }
   const match = /line\s+(\d+)/i.exec(message)
   const line = match?.[1] ? Number(match[1]) : undefined
-  return createDiagnostic('mermaid-error', message, {
-    phase: 'render',
-    source: line
-      ? {
-          start: { line, column: 1 },
-          end: { line, column: 1 },
-        }
-      : undefined,
-  })
+  return createDiagnostic(
+    'mermaid-error',
+    line
+      ? resolveLabel(context.labels.editorSyntaxError, { line })
+      : resolveLabel(context.labels.editorParseError),
+    {
+      phase: 'render',
+      details: message,
+      source: line
+        ? {
+            start: { line, column: 1 },
+            end: { line, column: 1 },
+          }
+        : undefined,
+    },
+  )
 }
 
 function onError(message: string): void {
   status.value = 'error'
   const diagnostic = diagnosticFromError(message)
+  previewError.value = message
   diagnostics.value = [diagnostic]
   emit('error', diagnostic)
+  if (props.autoFocus && diagnostic.source?.start?.line) {
+    void nextTick(() => focusLine(diagnostic.source?.start.line))
+  }
 }
 
-function onRendered(): void {
+function onRendered(result: MermaidRenderResult): void {
+  previewResult.value = result
+  previewError.value = undefined
   status.value = 'ready'
   diagnostics.value = []
 }
 
 function updateValue(next: string): void {
-  value.value = next
-  emit('update:modelValue', next)
+  const source = asSource(next)
+  value.value = source
+  emit('update:modelValue', source)
 }
 
 function schedulePreview(next: string): void {
@@ -158,15 +272,29 @@ function schedulePreview(next: string): void {
 watch(
   () => props.modelValue,
   (next) => {
-    if (next === value.value) return
-    value.value = next
-    handle?.setValue(next)
-    schedulePreview(next)
+    const source = asSource(next)
+    if (source === value.value) return
+    value.value = source
+    handle?.setValue(source)
+    schedulePreview(source)
   },
 )
 
 watch(value, (next) => {
   schedulePreview(next)
+})
+
+watch(previewSource, (next) => {
+  if (next.trim()) {
+    status.value = 'pending'
+    previewError.value = undefined
+    diagnostics.value = []
+    return
+  }
+  previewResult.value = null
+  previewError.value = undefined
+  diagnostics.value = []
+  status.value = 'idle'
 })
 
 function focusLine(line?: number): void {
@@ -207,8 +335,8 @@ function startDrag(event: MouseEvent): void {
 }
 
 onMounted(async () => {
-  if (hasEditorSlot.value) {
-    return
+  if (typeof document !== 'undefined') {
+    document.addEventListener('fullscreenchange', onFullscreenChange)
   }
   await nextTick()
   if (!editorHost.value) return
@@ -225,12 +353,15 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  active = false
   if (previewTimer) clearTimeout(previewTimer)
   dragCleanup?.()
   handle?.destroy()
   if (typeof document !== 'undefined') {
     document.removeEventListener('keydown', onKeydown)
+    document.removeEventListener('fullscreenchange', onFullscreenChange)
   }
+  unlockScroll()
 })
 
 function focus(): void {
@@ -251,10 +382,90 @@ defineExpose({
   getDiagnostics: (): MarkdownDiagnostic[] => diagnostics.value,
 })
 
+const FullscreenSlot = defineComponent({
+  setup() {
+    return () => {
+      const label = resolveLabel(
+        fullscreen.value
+          ? context.labels.exitFullscreen
+          : context.labels.fullscreen,
+      )
+      return renderSlot(
+        'fullscreen',
+        {
+          fullscreen: fullscreen.value,
+          label,
+          toggle: toggleFullscreen,
+        },
+        () =>
+          h(
+            'button',
+            {
+              type: 'button',
+              'aria-pressed': fullscreen.value ? 'true' : 'false',
+              onClick: toggleFullscreen,
+            },
+            label,
+          ),
+      )
+    }
+  },
+})
+
+const ToolbarSlot = defineComponent({
+  setup() {
+    function defaultToolbar(): VNodeChild[] {
+      return [
+        h(
+          'span',
+          { class: 'vmd-editor-title' },
+          resolveLabel(context.labels.editor),
+        ),
+        h(FullscreenSlot),
+        h(
+          'button',
+          {
+            type: 'button',
+            onClick: () => {
+              ratio.value = props.initialRatio
+            },
+          },
+          resolveLabel(context.labels.editorReset),
+        ),
+      ]
+    }
+
+    return () => {
+      const slotProps = {
+        ratio: ratio.value,
+        fullscreen: fullscreen.value,
+        compact: props.compact,
+        actions: {
+          toggleFullscreen,
+          resetRatio: () => {
+            ratio.value = props.initialRatio
+          },
+          setRatio: (next: number) => {
+            ratio.value = Math.min(
+              1 - props.minRatio,
+              Math.max(props.minRatio, next),
+            )
+          },
+        },
+      }
+      const slot = context.slots?.toolbar ?? ownSlots.toolbar
+      if (!slot) return defaultToolbar()
+      const output = slot(slotProps)
+      if (isEmptySlotContent(output)) return defaultToolbar()
+      return hasFullscreenSlot.value ? [output, h(FullscreenSlot)] : output
+    }
+  },
+})
+
 const EditorSlot = defineComponent({
   setup() {
     return () =>
-      context.renderHostSlot(
+      renderSlot(
         'editor',
         {
           value: value.value,
@@ -270,74 +481,121 @@ const EditorSlot = defineComponent({
             fullscreen: toggleFullscreen,
           },
         },
-        () => {
-          const slot = ownSlots.editor
-          if (slot) {
-            const output = slot({
-              value: value.value,
-              update: updateValue,
-              diagnostics: diagnostics.value,
-              status: status.value,
-              actions: {
-                focus: () => handle?.focus(),
-                reset: () => updateValue(''),
-                fullscreen: toggleFullscreen,
-              },
-            })
-            if (!isEmptySlotContent(output)) return output
-          }
-          return h('div', {
+        () =>
+          h('div', {
             ref: editorHost,
             class: 'vmd-editor-host',
             'data-vmd-part': 'editor-pane',
-          })
-        },
+          }),
       )
+  },
+})
+
+const PreviewSlot = defineComponent({
+  setup() {
+    function emptyPreview(): VNodeChild {
+      return renderSlot(
+        'empty',
+        {
+          source: previewSource.value,
+          actions: {
+            focus: () => handle?.focus(),
+            refresh: refreshPreview,
+          },
+        },
+        () =>
+          h(
+            'p',
+            {
+              class: 'vmd-editor-empty',
+              'data-vmd-part': 'editor-empty',
+            },
+            resolveLabel(context.labels.editorEmpty),
+          ),
+      )
+    }
+
+    return () => {
+      const slotProps = {
+        source: previewSource.value,
+        status: status.value,
+        error: previewError.value,
+        nodes: previewResult.value?.nodes ?? [],
+        actions: {
+          refresh: refreshPreview,
+          fullscreen: toggleFullscreen,
+          focus: () => handle?.focus(),
+        },
+      }
+      const slot = context.slots?.preview ?? ownSlots.preview
+      const output = slot ? slot(slotProps) : undefined
+      const hasSlotOutput = slot ? !isEmptySlotContent(output) : false
+      const renderer = isEmptyPreview.value
+        ? null
+        : h(MermaidBlock, {
+            source: previewSource.value,
+            renderer: props.renderer,
+            theme: resolvedTheme.value,
+            showErrors: true,
+            compact: props.compact,
+            style: hasSlotOutput ? { display: 'none' } : undefined,
+            'aria-hidden': hasSlotOutput ? 'true' : undefined,
+            onError,
+            onRendered,
+          })
+      const content = hasSlotOutput
+        ? output
+        : isEmptyPreview.value
+          ? emptyPreview()
+          : null
+      return [renderer, content]
+    }
   },
 })
 
 const DiagnosticsContent = defineComponent({
   setup() {
     return () =>
-      context.renderHostSlot(
+      renderSlot(
         'editor-diagnostics',
         {
           diagnostics: diagnostics.value,
           focusLine,
         },
         () => {
-          const slot = ownSlots['editor-diagnostics']
-          if (slot) {
-            const output = slot({
-              diagnostics: diagnostics.value,
-              focusLine,
-            })
-            if (!isEmptySlotContent(output)) return output
-          }
           if (diagnostics.value.length === 0) return null
           return h(
             'ul',
             { class: 'vmd-editor-diagnostic-list', role: 'status' },
-            diagnostics.value.map((diagnostic) =>
-              h('li', { key: diagnostic.message }, [
+            diagnostics.value.map((diagnostic) => {
+              const line = diagnostic.source?.start?.line
+              return h('li', { key: diagnostic.message }, [
                 h('span', diagnostic.message),
-                diagnostic.source?.start?.line
+                props.rawDetails && diagnostic.details
+                  ? h(
+                      'pre',
+                      { class: 'vmd-editor-diagnostic-details' },
+                      diagnostic.details,
+                    )
+                  : null,
+                line
                   ? h(
                       'button',
                       {
                         type: 'button',
-                        onClick: () => focusLine(diagnostic.source?.start.line),
+                        onClick: () => focusLine(line),
                       },
-                      `Line ${diagnostic.source.start.line}`,
+                      resolveLabel(context.labels.editorLine, { line }),
                     )
                   : null,
-              ]),
-            ),
+              ])
+            }),
           )
         },
       )
   },
 })
+
 </script>
 
 <template>
@@ -348,53 +606,58 @@ const DiagnosticsContent = defineComponent({
     :data-vmd-theme="resolvedTheme"
     :data-fullscreen="fullscreen ? 'true' : undefined"
     :data-compact="compact ? 'true' : undefined"
+    :aria-label="resolveLabel(context.labels.editor)"
+    role="group"
     tabindex="-1"
   >
-    <div data-vmd-part="editor-toolbar" class="vmd-editor-toolbar">
-      <span class="vmd-editor-title">Mermaid</span>
-      <button type="button" @click="toggleFullscreen">
-        {{ fullscreen ? resolveLabel(context.labels.exitFullscreen) : resolveLabel(context.labels.fullscreen) }}
-      </button>
-      <button type="button" @click="ratio = initialRatio">
-        {{ resolveLabel(context.labels.reset) }}
-      </button>
-    </div>
-
-    <div class="vmd-editor-body">
-      <div
-        data-vmd-part="editor-pane"
-        class="vmd-editor-pane"
-        :style="{ flexBasis: `${ratio * 100}%` }"
-      >
-        <EditorSlot />
+    <div
+      class="vmd-editor-surface"
+      :data-vmd-part="fullscreen ? 'editor-fullscreen' : undefined"
+    >
+      <div data-vmd-part="editor-toolbar" class="vmd-editor-toolbar">
+        <ToolbarSlot />
       </div>
-      <div
-        data-vmd-part="editor-divider"
-        class="vmd-editor-divider"
-        role="separator"
-        aria-orientation="vertical"
-        tabindex="0"
-        :aria-valuenow="Math.round(ratio * 100)"
-        aria-valuemin="20"
-        aria-valuemax="80"
-        @mousedown="startDrag"
-        @keydown="onDividerKeydown"
-      />
-      <div data-vmd-part="editor-preview" class="vmd-editor-preview">
-        <MermaidBlock
-          :source="previewSource"
-          :renderer="renderer"
-          :theme="resolvedTheme"
-          :show-errors="true"
-          :compact="compact"
-          @error="onError"
-          @rendered="onRendered"
+
+      <div class="vmd-editor-body">
+        <div
+          data-vmd-part="editor-pane"
+          class="vmd-editor-pane"
+          :style="{ flexBasis: `${ratio * 100}%` }"
+        >
+          <EditorSlot />
+        </div>
+        <div
+          data-vmd-part="editor-divider"
+          class="vmd-editor-divider"
+          role="separator"
+          aria-orientation="vertical"
+          tabindex="0"
+          :aria-label="resolveLabel(context.labels.editorSplitter)"
+          :aria-valuenow="Math.round(ratio * 100)"
+          :aria-valuemin="Math.round(minRatio * 100)"
+          :aria-valuemax="Math.round((1 - minRatio) * 100)"
+          @mousedown="startDrag"
+          @keydown="onDividerKeydown"
         />
+        <div
+          data-vmd-part="editor-preview"
+          class="vmd-editor-preview"
+          role="region"
+          :aria-label="resolveLabel(context.labels.preview)"
+        >
+          <PreviewSlot />
+        </div>
       </div>
-    </div>
 
-    <div data-vmd-part="editor-diagnostics" class="vmd-editor-diagnostics">
-      <DiagnosticsContent />
+      <div
+        data-vmd-part="editor-diagnostics"
+        class="vmd-editor-diagnostics"
+        :data-compact="compact ? 'true' : undefined"
+        role="group"
+        :aria-label="resolveLabel(context.labels.editorDiagnostics)"
+      >
+        <DiagnosticsContent />
+      </div>
     </div>
   </div>
 </template>

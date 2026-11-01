@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, defineComponent, h, ref, type VNodeChild } from 'vue'
-import { useMarkdownDocument } from 'vue-markdown-suite/headless'
-import type { MarkdownNode } from 'vue-markdown-suite/headless'
+import { useMarkdownDocument } from '@coderminer/vue-markdown/headless'
+import type { MarkdownNode } from '@coderminer/vue-markdown/headless'
 import SectionShell from '../components/SectionShell.vue'
 import SourceEditor from '../components/SourceEditor.vue'
 import OutputPane from '../components/OutputPane.vue'

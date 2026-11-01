@@ -92,6 +92,15 @@ describe('static export parity', () => {
       '<strong>bold</strong>',
     )
   })
+
+  it('exports search segments with the rendered match markup', () => {
+    const html = exportMarkdownHtmlSync('Hello hello', {
+      search: { query: 'hello' },
+    })
+    expect(html.match(/<mark/g)).toHaveLength(2)
+    expect(html).toContain('data-vmd-part="search-match"')
+    expect(html).toContain('class="vmd-search-match"')
+  })
 })
 
 describe('static export plugin nodes', () => {

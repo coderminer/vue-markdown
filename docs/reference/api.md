@@ -1,5 +1,5 @@
 ---
-description: Complete public API index for vue-markdown-suite, including the renderer, TOC, components, configuration, plugins, pipelines, headless helpers, adapters, export, and design-system contracts.
+description: Complete public API index for @coderminer/vue-markdown, including the renderer, TOC, components, configuration, plugins, pipelines, headless helpers, adapters, export, and design-system contracts.
 ---
 
 # Public API
@@ -12,38 +12,38 @@ the detailed behavior.
 
 | Import | Contents |
 | --- | --- |
-| `vue-markdown-suite` | Renderer, components, composables, core helpers, plugin/pipeline helpers, export helpers, and `version` |
-| `vue-markdown-suite/headless` | Types, model helpers, composables; no preset components or CSS |
-| `vue-markdown-suite/pipeline` | Official pipeline, custom pipeline contract, identity helpers |
-| `vue-markdown-suite/plugins` | Plugin definition, registry, built-in plugins |
-| `vue-markdown-suite/presets` | Preset helpers and configuration types |
-| `vue-markdown-suite/node-components` | The node component catalog |
-| `vue-markdown-suite/highlight` | highlight.js adapter and normalization helpers |
-| `vue-markdown-suite/highlight/shiki` | Optional Shiki adapter |
-| `vue-markdown-suite/math` | `mathPlugin`, `katexEngine`, math types |
-| `vue-markdown-suite/mermaid` | `mermaidPlugin`, lazy Mermaid runtime, SVG sanitizer |
-| `vue-markdown-suite/editor` | Lazy CodeMirror Mermaid editor |
-| `vue-markdown-suite/html` | `htmlPlugin`, sanitized raw HTML, schema extension |
-| `vue-markdown-suite/components/*` | One entry per public component |
-| `vue-markdown-suite/style.css` | Full optional stylesheet |
-| `vue-markdown-suite/styles/*.css` | Token, component, and math styles |
+| `@coderminer/vue-markdown` | Renderer, components, composables, core helpers, plugin/pipeline helpers, export helpers, and `version` |
+| `@coderminer/vue-markdown/headless` | Types, model helpers, composables; no preset components or CSS |
+| `@coderminer/vue-markdown/pipeline` | Official pipeline, custom pipeline contract, identity helpers |
+| `@coderminer/vue-markdown/plugins` | Plugin definition, registry, built-in plugins |
+| `@coderminer/vue-markdown/presets` | Preset helpers and configuration types |
+| `@coderminer/vue-markdown/node-components` | The node component catalog |
+| `@coderminer/vue-markdown/highlight` | highlight.js adapter and normalization helpers |
+| `@coderminer/vue-markdown/highlight/shiki` | Optional Shiki adapter |
+| `@coderminer/vue-markdown/math` | `mathPlugin`, `katexEngine`, math types |
+| `@coderminer/vue-markdown/mermaid` | `mermaidPlugin`, lazy Mermaid runtime, SVG sanitizer |
+| `@coderminer/vue-markdown/editor` | Lazy CodeMirror Mermaid editor |
+| `@coderminer/vue-markdown/html` | `htmlPlugin`, sanitized raw HTML, schema extension |
+| `@coderminer/vue-markdown/components/*` | One entry per public component |
+| `@coderminer/vue-markdown/style.css` | Full optional stylesheet |
+| `@coderminer/vue-markdown/styles/*.css` | Token, component, and math styles |
 
 ```ts
-import { MarkdownRenderer, exportMarkdownHtmlSync } from 'vue-markdown-suite'
-import { useMarkdownDocument, walkNodes } from 'vue-markdown-suite/headless'
-import { defineMarkdownPlugin, gfmPlugin } from 'vue-markdown-suite/plugins'
-import { mathPlugin } from 'vue-markdown-suite/math'
-import { mermaidPlugin } from 'vue-markdown-suite/mermaid'
-import { htmlPlugin } from 'vue-markdown-suite/html'
-import { shiki } from 'vue-markdown-suite/highlight/shiki'
+import { MarkdownRenderer, exportMarkdownHtmlSync } from '@coderminer/vue-markdown'
+import { useMarkdownDocument, walkNodes } from '@coderminer/vue-markdown/headless'
+import { defineMarkdownPlugin, gfmPlugin } from '@coderminer/vue-markdown/plugins'
+import { mathPlugin } from '@coderminer/vue-markdown/math'
+import { mermaidPlugin } from '@coderminer/vue-markdown/mermaid'
+import { htmlPlugin } from '@coderminer/vue-markdown/html'
+import { shiki } from '@coderminer/vue-markdown/highlight/shiki'
 ```
 
 ## Quick start
 
 ```vue
 <script setup lang="ts">
-import { MarkdownRenderer } from 'vue-markdown-suite'
-import 'vue-markdown-suite/style.css'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
+import '@coderminer/vue-markdown/style.css'
 
 const source = '# Hello\n\nA **bold** paragraph.'
 </script>
@@ -91,7 +91,10 @@ renders the normalized document.
 | `syncHash` | `boolean` | Updates the URL hash on heading navigation. |
 | `toc` | `boolean` | Renders the TOC region. |
 | `tocDepth` | `number` | Maximum heading level in the TOC. `0` means every level. |
-| `showError` | `boolean` | Renders the error region on failure. |
+| `tocPlacement` | `'top' \| 'left' \| 'right' \| 'hidden'` | Stacks, sides, or hides the TOC. Default `'top'`. |
+| `search` | `string` | Highlights matches and emits `search-change`. |
+| `searchCaseSensitive` | `boolean` | Makes `search` case-sensitive. |
+| `showError` | `boolean` | Renders the error region on failure. Default `true`. |
 | `tokens` | `Record<string, string>` | Inline `--vmd-*` custom properties. |
 | `theme` | `'light' \| 'dark' \| 'auto' \| 'custom'` | Sets `data-vmd-theme`. |
 | `as` | `string \| Component` | Root element or component. |
@@ -105,14 +108,19 @@ renders the normalized document.
 | `link-click` | `{ url, target, node, event }` |
 | `custom-tag-click` | `{ tag, props, node, event }` |
 | `task-change` | `{ checked, node }` |
+| `search-change` | `{ query, caseSensitive, matches }` |
+| `math-error` | `MarkdownDiagnostic` |
 | `render-error` | `MarkdownDiagnostic` |
 | `ready` | `MarkdownDocument` |
+
+`search-change` reflects the document currently rendered; pending or failed
+runs do not emit a stale match count.
 
 ### Exposed actions
 
 ```ts
 import { ref } from 'vue'
-import type { MarkdownRendererInstance } from 'vue-markdown-suite'
+import type { MarkdownRendererInstance } from '@coderminer/vue-markdown'
 
 const renderer = ref<MarkdownRendererInstance>()
 
@@ -140,12 +148,12 @@ renderer.value?.updateSource('# New source')
 | `toc-item` | `{ item, active, navigate }` |
 | `content` | `{ nodes, document }` |
 | `error` | `{ diagnostics, label, retry }` |
-| `empty` | `{ label }` |
+| `empty` | Renderer: `{ label }`; MermaidLiveEditor: `{ source, actions: { focus, refresh } }` |
 | `loading` | `{ label }` |
 | `code` | `{ node, source, language, highlighted, nodes, lines, visibleLines, actions: { copy, download } }` |
 | `code-actions` | `{ source, language, fileName, title, highlighted, nodes, actions: { copy, download } }` |
 | `header` | CodeBlock: `{ source, language, label, fileName, title, highlighted, nodes, actions }`; MermaidBlock: `{ source, label, view, status, copied, fullscreen, compact, actions, showPreview, showSource }`; VueSyntaxHighlighter: `{ source, language, highlighted, nodes, lines, actions: { copy } }` |
-| `toolbar` | `{ source, language, fileName, title, highlighted, nodes, actions: { copy, download } }` |
+| `toolbar` | CodeBlock: `{ source, language, fileName, title, highlighted, nodes, actions: { copy, download } }`; MermaidLiveEditor: `{ ratio, fullscreen, compact, actions: { toggleFullscreen, resetRatio, setRatio } }` |
 | `tabs` | `{ view, status, actions: { preview, source } }` |
 | `actions` | `{ source, status, copied, fullscreen, enableZoom, allowFullscreen, compact, actions }` |
 | `footer` | `{ source, language, highlighted, nodes, lines, actions: { copy } }` |
@@ -156,6 +164,8 @@ renderer.value?.updateSource('# New source')
 | `mermaid-error` | `{ source, error, retry, focusSource }` |
 | `editor` | `{ value, update, diagnostics, status, actions: { focus, reset, fullscreen } }` |
 | `editor-diagnostics` | `{ diagnostics, focusLine }` |
+| `preview` | MermaidLiveEditor: `{ source, status, error, nodes, actions: { refresh, fullscreen, focus } }` |
+| `fullscreen` | MermaidLiveEditor: `{ fullscreen, label, toggle }` |
 
 An absent or empty slot keeps the default rendering.
 
@@ -229,7 +239,7 @@ interface TocItem {
 
 ```ts
 import { ref } from 'vue'
-import type { MarkdownRendererInstance, TocItem } from 'vue-markdown-suite'
+import type { MarkdownRendererInstance, TocItem } from '@coderminer/vue-markdown'
 
 const renderer = ref<MarkdownRendererInstance>()
 const toc = ref<TocItem[]>([])
@@ -244,12 +254,14 @@ function goTo(id: string) {
 ```
 
 `tocDepth` is a maximum level, not a count. `3` includes `h1`–`h3` and excludes
-`h4`–`h6`. `0` or an omitted value includes every level.
+`h4`–`h6`. `0` or an omitted value includes every level. `tocPlacement` selects
+`top` (default), `left`, `right`, or `hidden`.
 
 | API | Purpose |
 | --- | --- |
 | `toc` | Shows the TOC region. |
 | `tocDepth` | Includes headings up to this level; `0` means every level. |
+| `tocPlacement` | `top`, `left`, `right`, or `hidden` layout for the TOC. |
 | `toc-change` | Emits the filtered `TocItem[]` when its signature changes. |
 | `getToc()` | Reads the current TOC imperatively. |
 | `scrollToHeading(id, options?)` | Scrolls to a heading inside the renderer root. |
@@ -312,8 +324,8 @@ your own layout around the document model.
 
 ```vue
 <script setup lang="ts">
-import { MarkdownToc } from 'vue-markdown-suite'
-import type { TocItem } from 'vue-markdown-suite'
+import { MarkdownToc } from '@coderminer/vue-markdown'
+import type { TocItem } from '@coderminer/vue-markdown'
 
 const items: TocItem[] = [
   { id: 'install', text: 'Install', level: 1 },
@@ -343,7 +355,7 @@ function navigate(id: string) {
 ### Track the active heading outside the renderer
 
 ```ts
-import { useActiveHeading } from 'vue-markdown-suite'
+import { useActiveHeading } from '@coderminer/vue-markdown'
 
 const ids = computed(() => toc.value.map((item) => item.id))
 const activeId = useActiveHeading(ids, true, { root: myRootElement })
@@ -393,7 +405,7 @@ SSR-safe.
 | `CodeBlock` | `node`, `code`, `language`, `highlighter`, `theme`, `actions`, `showActions`, `showDownload`, `title`, `fileName`, `lineNumbers`, `highlightLines`, `maxLines`, `virtual`, `virtualThreshold`, `lineHeight`, `delay`, `standalone`, `ignoreRegion` | `copy`, `download`, `action`, `error` | `code`, `code-actions`, `header`, `toolbar` | `copy`, `download`, `getHighlighted`, `highlighted` |
 | `VueSyntaxHighlighter` | `source`, `language`, `theme`, `highlighter`, `lineNumbers`, `highlightLines`, `maxLines`, `virtual`, `virtualThreshold`, `lineHeight`, `delay` | `copy`, `error` | `header`, `footer`, `empty`, `actions`, `highlighter` | `copy`, `getHighlighted`, `highlighted` |
 | `MermaidBlock` | `node`, `source`, `renderer`, `theme`, `showErrors`, `enableZoom`, `allowFullscreen`, `compact`, `actions` | `rendered`, `error`, `copy`, `export`, `fullscreen`, `action` | `header`, `tabs`, `actions`, `mermaid`, `mermaid-error` | `render`, `copy`, `exportPng`, `downloadSvg`, `toggleFullscreen` |
-| `MermaidLiveEditor` | `modelValue`, `debounce`, `theme`, `renderer`, `diagnosticsFormatter`, `compact`, `initialRatio`, `minRatio` | `update:modelValue`, `preview`, `error` | `editor`, `editor-diagnostics` | `focus`, `refreshPreview`, `toggleFullscreen`, `getDiagnostics` |
+| `MermaidLiveEditor` | `modelValue`, `debounce`, `theme`, `renderer`, `diagnosticsFormatter`, `compact`, `rawDetails`, `autoFocus`, `initialRatio`, `minRatio` | `update:modelValue`, `preview`, `error` | `toolbar`, `editor`, `preview`, `editor-diagnostics`, `empty`, `fullscreen` | `focus`, `refreshPreview`, `toggleFullscreen`, `getDiagnostics` |
 | `MarkdownMath` | `node`, `tex`, `displayMode`, `rendered`, `error`, `mathEngine` | — | `math`, `math-error` | — |
 
 `CodeBlock` and `MermaidBlock` ship styled headers and inline-SVG icon actions.
@@ -450,7 +462,7 @@ Local renderer props beat the nearest provider.
 | `mergeMarkdownPreset(base, next)` | Merges presets and appends plugins |
 
 ```ts
-import { composePresets, defineMarkdownPreset } from 'vue-markdown-suite/presets'
+import { composePresets, defineMarkdownPreset } from '@coderminer/vue-markdown/presets'
 
 const docs = defineMarkdownPreset({
   name: 'docs',
@@ -527,11 +539,11 @@ interface MarkdownPlugin {
 }
 ```
 
-`htmlPlugin()` from `vue-markdown-suite/html` sets `html: true`; its
+`htmlPlugin()` from `@coderminer/vue-markdown/html` sets `html: true`; its
 `HtmlSchemaExtension` adds `tags` and `attributes` for the raw HTML sanitizer.
 
 ```ts
-import { defineMarkdownPlugin } from 'vue-markdown-suite/plugins'
+import { defineMarkdownPlugin } from '@coderminer/vue-markdown/plugins'
 
 export const myPlugin = defineMarkdownPlugin({
   name: 'my-plugin',
@@ -580,7 +592,7 @@ interface MarkdownPipeline {
 import {
   createOfficialPipeline,
   defineMarkdownPipeline,
-} from 'vue-markdown-suite/pipeline'
+} from '@coderminer/vue-markdown/pipeline'
 
 const official = createOfficialPipeline()
 
@@ -612,7 +624,7 @@ See [Custom pipeline](../guide/custom-pipeline.md).
 ## Headless
 
 ```ts
-import { useMarkdownDocument } from 'vue-markdown-suite/headless'
+import { useMarkdownDocument } from '@coderminer/vue-markdown/headless'
 
 const {
   document,
@@ -663,7 +675,7 @@ const {
 | Pipeline | `createOfficialPipeline`, `defineMarkdownPipeline`, `validatePipeline`, `resolvePipeline`, `assertPipelineResult` |
 
 ```ts
-import { walkNodes } from 'vue-markdown-suite/headless'
+import { walkNodes } from '@coderminer/vue-markdown/headless'
 
 walkNodes(document.value?.nodes ?? [], (node, parent) => {
   // Visit every node depth-first.
@@ -682,7 +694,7 @@ walkNodes(document.value?.nodes ?? [], (node, parent) => {
 | `MarkdownUrlTransform` | `(url, key, node) => string \| null \| undefined` |
 
 ```ts
-import type { MarkdownHighlighter } from 'vue-markdown-suite'
+import type { MarkdownHighlighter } from '@coderminer/vue-markdown'
 
 const highlighter: MarkdownHighlighter = {
   id: 'my-highlighter',
@@ -703,7 +715,7 @@ See [Adapters](./adapters.md) for every contract and built-in adapter.
 import {
   exportMarkdownHtml,
   exportMarkdownHtmlSync,
-} from 'vue-markdown-suite'
+} from '@coderminer/vue-markdown'
 
 const html = exportMarkdownHtmlSync('# Hello')
 const asyncHtml = await exportMarkdownHtml(source, {
@@ -733,7 +745,7 @@ See [SSR and export](../guide/ssr.md).
 | `validateManifest(entry, snapshot)` / `validateManifestRegistry()` | Manifest validation |
 
 ```ts
-import { partAttrs, getComponentManifest } from 'vue-markdown-suite'
+import { partAttrs, getComponentManifest } from '@coderminer/vue-markdown'
 
 const manifest = getComponentManifest('CodeBlock')
 const attrs = partAttrs('code')
@@ -748,7 +760,7 @@ See [Styling and themes](../guide/styling.md) and
 | --- | --- |
 | Document | `MarkdownDocument`, `MarkdownNode`, `MarkdownTextNode`, `MarkdownElementNode`, `MarkdownCodeNode`, `MarkdownMathNode`, `MarkdownMermaidNode`, `MarkdownCustomTagNode`, `MarkdownPluginNode`, `TocItem`, `MarkdownTextSegment`, `MarkdownElementLike`, `CustomTagInstance`, `SourceRange`, `SourcePosition` |
 | Configuration | `MarkdownConfig`, `MarkdownDocumentOptions`, `MarkdownPreset`, `MarkdownTheme`, `MarkdownLabels`, `MarkdownLabelValue`, `MarkdownLabelContext`, `MarkdownComponentValue`, `MarkdownTagComponents`, `MarkdownNodeComponents`, `MarkdownRegionComponents` |
-| Vue adapter | `MarkdownRendererInstance`, `VueMarkdownTagComponents`, `VueMarkdownNodeComponents`, `VueMarkdownRegionComponents`, `MarkdownNodeRenderer`, `MarkdownNodeRenderContext`, `RenderContext`, `LinkClickPayload`, `CustomTagClickPayload`, `TaskChangePayload` |
+| Vue adapter | `MarkdownRendererInstance`, `VueMarkdownTagComponents`, `VueMarkdownNodeComponents`, `VueMarkdownRegionComponents`, `MarkdownNodeRenderer`, `MarkdownNodeRenderContext`, `RenderContext`, `LinkClickPayload`, `CustomTagClickPayload`, `TaskChangePayload`, `SearchChangePayload` |
 | Plugins | `MarkdownPlugin`, `PluginInput`, `MarkdownPluginFactory`, `PluginContext`, `ResolvedPlugins` |
 | Pipeline | `MarkdownPipeline`, `PipelineResult`, `PipelineContext`, `PipelineCapabilities`, `PipelineIdentityInput`, `OfficialPipelineOptions` |
 | Adapters | `MarkdownHighlighter`, `HighlightOptions`, `HighlightResult`, `MathEngine`, `MathRenderOptions`, `MathRenderResult`, `MermaidRenderer`, `MermaidRenderOptions`, `MermaidRenderResult`, `DiagnosticFormatter`, `MarkdownSlugger`, `MarkdownUrlTransform`, `AllowElement` |

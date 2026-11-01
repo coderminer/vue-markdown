@@ -8,8 +8,8 @@ import {
   VueSyntaxHighlighter,
   gfmPlugin,
   type MarkdownCodeNode,
-} from 'vue-markdown-suite'
-import { mathPlugin } from 'vue-markdown-suite/math'
+} from '@coderminer/vue-markdown'
+import { mathPlugin } from '@coderminer/vue-markdown/math'
 import SectionShell from '../components/SectionShell.vue'
 
 const codeNode: MarkdownCodeNode = {

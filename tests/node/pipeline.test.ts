@@ -521,6 +521,29 @@ describe('built-in plugins', () => {
     expect(segments?.filter((segment) => segment.match)).toHaveLength(2)
   })
 
+  it('applies the renderer-level search option', () => {
+    const result = useMarkdownDocument('Hello hello world', {
+      search: { query: 'hello', caseSensitive: true },
+    })
+    const segments = result.document.value?.nodes
+      .flatMap((node) =>
+        node.kind === 'element' ? node.children : [node],
+      )
+      .flatMap((node) => (node.kind === 'text' ? node.segments ?? [] : []))
+
+    expect(segments?.filter((segment) => segment.match)).toHaveLength(1)
+
+    const insensitive = useMarkdownDocument('Hello hello world', {
+      search: { query: 'hello' },
+    })
+    const matched = insensitive.document.value?.nodes
+      .flatMap((node) =>
+        node.kind === 'element' ? node.children : [node],
+      )
+      .flatMap((node) => (node.kind === 'text' ? node.segments ?? [] : []))
+    expect(matched?.filter((segment) => segment.match)).toHaveLength(2)
+  })
+
   it('extracts GFM tables, strikethrough, and task lists', () => {
     const source = [
       '| a | b |',

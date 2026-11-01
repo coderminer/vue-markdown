@@ -35,9 +35,9 @@ so a wrapped or minified manual parser has no effect either.
 ## Use it directly
 
 ```ts
-import { createOfficialPipeline } from 'vue-markdown-suite/pipeline'
+import { createOfficialPipeline } from '@coderminer/vue-markdown/pipeline'
 import GithubSlugger from 'github-slugger'
-import { defaultPlugins } from 'vue-markdown-suite/plugins'
+import { defaultPlugins } from '@coderminer/vue-markdown/plugins'
 
 const pipeline = createOfficialPipeline()
 const result = await pipeline.process('# Hello', {
@@ -77,7 +77,7 @@ identities, and parse-affecting options. Presentation-only changes — tokens,
 labels, active heading — do not re-parse.
 
 ```ts
-import { memoClear, memoSize } from 'vue-markdown-suite'
+import { memoClear, memoSize } from '@coderminer/vue-markdown'
 ```
 
 `memoClear()` is useful in tests and benchmarks. `memoSize()` reports the

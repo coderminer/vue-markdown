@@ -27,11 +27,11 @@ description: 编辑 Markdown 并检查真实渲染器的输出，包括 GFM 和�
 ```vue
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { MarkdownRenderer } from 'vue-markdown-suite'
-import { fullPlugins } from 'vue-markdown-suite/plugins'
-import { mathPlugin } from 'vue-markdown-suite/math'
-import { mermaidPlugin } from 'vue-markdown-suite/mermaid'
-import { htmlPlugin } from 'vue-markdown-suite/html'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
+import { fullPlugins } from '@coderminer/vue-markdown/plugins'
+import { mathPlugin } from '@coderminer/vue-markdown/math'
+import { mermaidPlugin } from '@coderminer/vue-markdown/mermaid'
+import { htmlPlugin } from '@coderminer/vue-markdown/html'
 
 const source = ref(samples['全部元素'])
 const theme = computed(() => (isDark.value ? 'dark' : 'light'))

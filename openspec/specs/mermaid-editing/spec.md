@@ -1,7 +1,7 @@
 # mermaid-editing Specification
 
 ## Purpose
-Provides a live Mermaid source editor with debounced preview, injectable diagnostics, a resizable split layout, and fullscreen editing, with every region and message customizable by the host. Ships in v1.x.
+Provides a live Mermaid source editor with debounced preview, injectable diagnostics, a resizable split layout, and fullscreen editing, with every region and message customizable by the host.
 
 ## Requirements
 
@@ -39,7 +39,7 @@ The editor SHALL accept a diagnostics formatter that converts parser failures in
 
 ### Requirement: Diagnostic presentation and navigation
 
-The editor SHALL show a diagnostic panel, SHALL mark the affected line when a position is known, SHALL preserve the last successful preview, and SHALL allow the host to enable raw parser details, automatic scrolling to the error, and a compact diagnostic mode. All user-facing diagnostics text SHALL be overridable through labels.
+The editor SHALL show a diagnostic panel, SHALL mark the affected line when a position is known, SHALL preserve the last successful preview, and SHALL allow the host to enable raw parser details through `rawDetails`, automatic focus/scroll to the error through `autoFocus`, and a compact diagnostic mode through `compact`. All user-facing diagnostics text SHALL be overridable through labels.
 
 #### Scenario: Syntax error is located
 - **WHEN** the source contains a syntax error with a determinable line
@@ -87,7 +87,7 @@ The editor SHALL support a fullscreen mode that shows the editor and preview tog
 
 ### Requirement: Customization and parts
 
-The editor SHALL expose documented tokens, stable parts for the root, editor pane, divider, preview pane, diagnostics, toolbar, and fullscreen surface, slots for the toolbar, editor, preview, diagnostics, empty state, and fullscreen controls, and labels for all controls and status messages. The editor SHALL accept the same highlighter and Mermaid renderer injection as the standalone Mermaid block.
+The editor SHALL expose documented tokens, stable parts for the root, editor pane, divider, preview pane, diagnostics, toolbar, empty state, and fullscreen state, slots named `toolbar`, `editor`, `preview`, `editor-diagnostics`, `empty`, and `fullscreen`, and labels for all controls and status messages. The editor SHALL accept the same Mermaid renderer injection as the standalone Mermaid block; code editing syntax is provided by CodeMirror.
 
 #### Scenario: Replace the preview pane
 - **WHEN** a host provides a preview slot

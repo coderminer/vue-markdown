@@ -8,7 +8,7 @@ Mermaid support is lazy and client-only. The runtime is requested only when a
 Mermaid block or the live editor renders.
 
 ```ts
-import { mermaidPlugin, renderMermaid } from 'vue-markdown-suite/mermaid'
+import { mermaidPlugin, renderMermaid } from '@coderminer/vue-markdown/mermaid'
 ```
 
 `MermaidBlock` is exported from the package root. It renders a deterministic
@@ -21,9 +21,9 @@ Add `mermaidPlugin()` to the renderer plugin set to turn ` ```mermaid ` (and
 
 ```vue
 <script setup lang="ts">
-import { MarkdownRenderer } from 'vue-markdown-suite'
-import { defaultPlugins } from 'vue-markdown-suite/plugins'
-import { mermaidPlugin } from 'vue-markdown-suite/mermaid'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
+import { defaultPlugins } from '@coderminer/vue-markdown/plugins'
+import { mermaidPlugin } from '@coderminer/vue-markdown/mermaid'
 
 const plugins = [...defaultPlugins, mermaidPlugin()]
 </script>
@@ -39,7 +39,7 @@ renderer, the block keeps the source available and reports a
 `mermaid-unavailable` diagnostic instead of collapsing to an empty region.
 
 <script setup>
-import { MermaidBlock } from 'vue-markdown-suite'
+import { MermaidBlock } from '@coderminer/vue-markdown'
 
 const diagram = `flowchart LR
   Markdown --> Pipeline
@@ -99,14 +99,21 @@ and invalid renderer output is reported while the last good preview is retained.
 `MermaidLiveEditor` binds `v-model`, syncs external values, debounces previews
 (300 ms by default), and loads CodeMirror 6 only after mount. Its `theme` applies
 to both CodeMirror and the `MermaidBlock` preview, and `compact` hides the
-preview block's duplicate toolbar.
+preview block's duplicate toolbar while tightening the diagnostics panel.
 
 ```vue
 <MermaidLiveEditor v-model="source" theme="dark" :renderer="renderer" compact />
 ```
 
 The split layout enforces minimum pane sizes, supports keyboard resizing
-(ArrowLeft/ArrowRight, Home to reset), and fullscreen with a CSS fallback. The
-`editor` slot receives `{ value, update, diagnostics, status, actions }`; the
-`editor-diagnostics` slot receives `{ diagnostics, focusLine }`. The optional
-`./editor` entry exposes the CodeMirror creation helper.
+(ArrowLeft/ArrowRight, Home to reset), and fullscreen with a CSS fallback.
+Fullscreen locks page scrolling, contains focus, and restores the previous
+scroll and fullscreen state on exit or unmount.
+`rawDetails` shows the original parser message next to the friendly diagnostic,
+and `autoFocus` focuses the mapped error line. Slots: `toolbar`, `editor`,
+`preview`, `editor-diagnostics`, `empty`, and `fullscreen`. The `editor` slot
+receives `{ value, update, diagnostics, status, actions }`; `preview` receives
+`{ source, status, error, nodes, actions }`; `editor-diagnostics` receives
+`{ diagnostics, focusLine }`. An empty source renders the `empty` placeholder
+instead of a stale diagram. The optional `./editor` entry exposes the CodeMirror
+creation helper.

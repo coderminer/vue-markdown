@@ -49,7 +49,7 @@ features:
       width: 24
       height: 24
     title: 默认安全
-    details: 原始 HTML 默认丢弃；从 vue-markdown-suite/html 加入 htmlPlugin() 后，内置净化器会紧接着运行。
+    details: 原始 HTML 默认丢弃；从 @coderminer/vue-markdown/html 加入 htmlPlugin() 后，内置净化器会紧接着运行。
   - icon:
       src: /icons/brackets.svg
       alt: 无头内核
@@ -112,19 +112,19 @@ features:
 
 ::: code-group
 ```bash [npm]
-npm install vue-markdown-suite
+npm install @coderminer/vue-markdown
 ```
 
 ```bash [pnpm]
-pnpm add vue-markdown-suite
+pnpm add @coderminer/vue-markdown
 ```
 
 ```bash [yarn]
-yarn add vue-markdown-suite
+yarn add @coderminer/vue-markdown
 ```
 
 ```bash [bun]
-bun add vue-markdown-suite
+bun add @coderminer/vue-markdown
 ```
 :::
 
@@ -133,8 +133,8 @@ bun add vue-markdown-suite
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue'
-import { MarkdownRenderer } from 'vue-markdown-suite'
-import 'vue-markdown-suite/style.css'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
+import '@coderminer/vue-markdown/style.css'
 
 const source = ref('# 你好\n\n一段带 **加粗** 和 [链接](https://example.com) 的文字。')
 </script>

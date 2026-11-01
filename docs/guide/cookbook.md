@@ -37,7 +37,7 @@ Each recipe uses a published entry.
 ## Switch to Shiki
 
 ```ts
-import { shiki } from 'vue-markdown-suite/highlight/shiki'
+import { shiki } from '@coderminer/vue-markdown/highlight/shiki'
 ```
 
 ```vue
@@ -47,9 +47,9 @@ import { shiki } from 'vue-markdown-suite/highlight/shiki'
 ## Enable math
 
 ```ts
-import { defaultPlugins } from 'vue-markdown-suite/plugins'
-import { mathPlugin } from 'vue-markdown-suite/math'
-import 'vue-markdown-suite/styles/math-full.css'
+import { defaultPlugins } from '@coderminer/vue-markdown/plugins'
+import { mathPlugin } from '@coderminer/vue-markdown/math'
+import '@coderminer/vue-markdown/styles/math-full.css'
 
 const plugins = [...defaultPlugins, mathPlugin()]
 ```
@@ -58,9 +58,9 @@ const plugins = [...defaultPlugins, mathPlugin()]
 
 ```vue
 <script setup lang="ts">
-import { MarkdownRenderer } from 'vue-markdown-suite'
-import { defaultPlugins } from 'vue-markdown-suite/plugins'
-import { mermaidPlugin } from 'vue-markdown-suite/mermaid'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
+import { defaultPlugins } from '@coderminer/vue-markdown/plugins'
+import { mermaidPlugin } from '@coderminer/vue-markdown/mermaid'
 
 const plugins = [...defaultPlugins, mermaidPlugin()]
 </script>
@@ -71,12 +71,12 @@ const plugins = [...defaultPlugins, mermaidPlugin()]
 ```
 
 Mermaid fences now render as diagrams. For a standalone diagram, import
-`MermaidBlock` from `vue-markdown-suite` and pass `source` directly.
+`MermaidBlock` from `@coderminer/vue-markdown` and pass `source` directly.
 
 ## Supply a custom pipeline
 
 ```ts
-import type { MarkdownPipeline } from 'vue-markdown-suite'
+import type { MarkdownPipeline } from '@coderminer/vue-markdown'
 
 const pipeline: MarkdownPipeline = {
   name: 'my-pipeline',
@@ -89,7 +89,7 @@ const pipeline: MarkdownPipeline = {
 
 ```vue [DecoratedLink.vue]
 <script setup lang="ts">
-import type { MarkdownNode } from 'vue-markdown-suite'
+import type { MarkdownNode } from '@coderminer/vue-markdown'
 
 defineOptions({ inheritAttrs: false })
 defineProps<{ node?: MarkdownNode }>()
@@ -104,7 +104,7 @@ defineProps<{ node?: MarkdownNode }>()
 
 ```vue [App.vue]
 <script setup lang="ts">
-import { MarkdownRenderer } from 'vue-markdown-suite'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
 import DecoratedLink from './DecoratedLink.vue'
 
 const nodeComponents = { a: DecoratedLink }
@@ -118,7 +118,7 @@ const nodeComponents = { a: DecoratedLink }
 ## Add a plugin
 
 ```ts
-import { defineMarkdownPlugin } from 'vue-markdown-suite/plugins'
+import { defineMarkdownPlugin } from '@coderminer/vue-markdown/plugins'
 
 const stamp = defineMarkdownPlugin({
   name: 'stamp',

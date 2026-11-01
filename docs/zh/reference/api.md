@@ -1,5 +1,5 @@
 ---
-description: vue-markdown-suite 的公共 API 索引，覆盖渲染器、目录、组件、配置、插件、管线、无头辅助、适配器、导出和设计系统契约。
+description: '@coderminer/vue-markdown 的公共 API 索引，覆盖渲染器、目录、组件、配置、插件、管线、无头辅助、适配器、导出和设计系统契约。'
 ---
 
 # 公共 API
@@ -11,38 +11,38 @@ description: vue-markdown-suite 的公共 API 索引，覆盖渲染器、目录�
 
 | 导入 | 内容 |
 | --- | --- |
-| `vue-markdown-suite` | 渲染器、组件、组合式函数、内核辅助、插件/管线辅助、导出辅助和 `version` |
-| `vue-markdown-suite/headless` | 类型、模型辅助、组合式函数；不含预设组件和 CSS |
-| `vue-markdown-suite/pipeline` | 官方管线、自定义管线契约、身份辅助 |
-| `vue-markdown-suite/plugins` | 插件定义、注册表、内置插件 |
-| `vue-markdown-suite/presets` | 预设辅助和配置类型 |
-| `vue-markdown-suite/node-components` | 节点组件目录 |
-| `vue-markdown-suite/highlight` | highlight.js 适配器和归一化辅助 |
-| `vue-markdown-suite/highlight/shiki` | 可选的 Shiki 适配器 |
-| `vue-markdown-suite/math` | `mathPlugin`、`katexEngine`、数学类型 |
-| `vue-markdown-suite/mermaid` | `mermaidPlugin`、按需加载的 Mermaid 运行时、SVG 净化器 |
-| `vue-markdown-suite/editor` | 按需加载的 CodeMirror Mermaid 编辑器 |
-| `vue-markdown-suite/html` | `htmlPlugin`、净化后的原始 HTML、schema 扩展 |
-| `vue-markdown-suite/components/*` | 每个公共组件一个入口 |
-| `vue-markdown-suite/style.css` | 完整可选样式表 |
-| `vue-markdown-suite/styles/*.css` | 令牌、组件和数学样式 |
+| `@coderminer/vue-markdown` | 渲染器、组件、组合式函数、内核辅助、插件/管线辅助、导出辅助和 `version` |
+| `@coderminer/vue-markdown/headless` | 类型、模型辅助、组合式函数；不含预设组件和 CSS |
+| `@coderminer/vue-markdown/pipeline` | 官方管线、自定义管线契约、身份辅助 |
+| `@coderminer/vue-markdown/plugins` | 插件定义、注册表、内置插件 |
+| `@coderminer/vue-markdown/presets` | 预设辅助和配置类型 |
+| `@coderminer/vue-markdown/node-components` | 节点组件目录 |
+| `@coderminer/vue-markdown/highlight` | highlight.js 适配器和归一化辅助 |
+| `@coderminer/vue-markdown/highlight/shiki` | 可选的 Shiki 适配器 |
+| `@coderminer/vue-markdown/math` | `mathPlugin`、`katexEngine`、数学类型 |
+| `@coderminer/vue-markdown/mermaid` | `mermaidPlugin`、按需加载的 Mermaid 运行时、SVG 净化器 |
+| `@coderminer/vue-markdown/editor` | 按需加载的 CodeMirror Mermaid 编辑器 |
+| `@coderminer/vue-markdown/html` | `htmlPlugin`、净化后的原始 HTML、schema 扩展 |
+| `@coderminer/vue-markdown/components/*` | 每个公共组件一个入口 |
+| `@coderminer/vue-markdown/style.css` | 完整可选样式表 |
+| `@coderminer/vue-markdown/styles/*.css` | 令牌、组件和数学样式 |
 
 ```ts
-import { MarkdownRenderer, exportMarkdownHtmlSync } from 'vue-markdown-suite'
-import { useMarkdownDocument, walkNodes } from 'vue-markdown-suite/headless'
-import { defineMarkdownPlugin, gfmPlugin } from 'vue-markdown-suite/plugins'
-import { mathPlugin } from 'vue-markdown-suite/math'
-import { mermaidPlugin } from 'vue-markdown-suite/mermaid'
-import { htmlPlugin } from 'vue-markdown-suite/html'
-import { shiki } from 'vue-markdown-suite/highlight/shiki'
+import { MarkdownRenderer, exportMarkdownHtmlSync } from '@coderminer/vue-markdown'
+import { useMarkdownDocument, walkNodes } from '@coderminer/vue-markdown/headless'
+import { defineMarkdownPlugin, gfmPlugin } from '@coderminer/vue-markdown/plugins'
+import { mathPlugin } from '@coderminer/vue-markdown/math'
+import { mermaidPlugin } from '@coderminer/vue-markdown/mermaid'
+import { htmlPlugin } from '@coderminer/vue-markdown/html'
+import { shiki } from '@coderminer/vue-markdown/highlight/shiki'
 ```
 
 ## 快速开始
 
 ```vue
 <script setup lang="ts">
-import { MarkdownRenderer } from 'vue-markdown-suite'
-import 'vue-markdown-suite/style.css'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
+import '@coderminer/vue-markdown/style.css'
 
 const source = '# 你好\n\n一段 **加粗** 文字。'
 </script>
@@ -89,7 +89,10 @@ const source = '# 你好\n\n一段 **加粗** 文字。'
 | `syncHash` | `boolean` | 标题导航时更新 URL hash。 |
 | `toc` | `boolean` | 渲染目录区域。 |
 | `tocDepth` | `number` | 目录包含的最大标题层级；`0` 表示全部层级。 |
-| `showError` | `boolean` | 失败时渲染错误区域。 |
+| `tocPlacement` | `'top' \| 'left' \| 'right' \| 'hidden'` | 目录置顶、放左侧/右侧或隐藏；默认 `'top'`。 |
+| `search` | `string` | 高亮匹配项并触发 `search-change`。 |
+| `searchCaseSensitive` | `boolean` | 让 `search` 区分大小写。 |
+| `showError` | `boolean` | 失败时渲染错误区域；默认 `true`。 |
 | `tokens` | `Record<string, string>` | 内联 `--vmd-*` 自定义属性。 |
 | `theme` | `'light' \| 'dark' \| 'auto' \| 'custom'` | 设置 `data-vmd-theme`。 |
 | `as` | `string \| Component` | 根元素或根组件。 |
@@ -103,14 +106,18 @@ const source = '# 你好\n\n一段 **加粗** 文字。'
 | `link-click` | `{ url, target, node, event }` |
 | `custom-tag-click` | `{ tag, props, node, event }` |
 | `task-change` | `{ checked, node }` |
+| `search-change` | `{ query, caseSensitive, matches }` |
+| `math-error` | `MarkdownDiagnostic` |
 | `render-error` | `MarkdownDiagnostic` |
 | `ready` | `MarkdownDocument` |
+
+`search-change` 反映当前实际渲染的文档；等待中或失败的运行不会报告旧的匹配数。
 
 ### 实例方法
 
 ```ts
 import { ref } from 'vue'
-import type { MarkdownRendererInstance } from 'vue-markdown-suite'
+import type { MarkdownRendererInstance } from '@coderminer/vue-markdown'
 
 const renderer = ref<MarkdownRendererInstance>()
 
@@ -138,12 +145,12 @@ renderer.value?.updateSource('# 新的源码')
 | `toc-item` | `{ item, active, navigate }` |
 | `content` | `{ nodes, document }` |
 | `error` | `{ diagnostics, label, retry }` |
-| `empty` | `{ label }` |
+| `empty` | 渲染器：`{ label }`；MermaidLiveEditor：`{ source, actions: { focus, refresh } }` |
 | `loading` | `{ label }` |
 | `code` | `{ node, source, language, highlighted, nodes, lines, visibleLines, actions: { copy, download } }` |
 | `code-actions` | `{ source, language, fileName, title, highlighted, nodes, actions: { copy, download } }` |
 | `header` | CodeBlock：`{ source, language, label, fileName, title, highlighted, nodes, actions }`；MermaidBlock：`{ source, label, view, status, copied, fullscreen, compact, actions, showPreview, showSource }`；VueSyntaxHighlighter：`{ source, language, highlighted, nodes, lines, actions: { copy } }` |
-| `toolbar` | `{ source, language, fileName, title, highlighted, nodes, actions: { copy, download } }` |
+| `toolbar` | CodeBlock：`{ source, language, fileName, title, highlighted, nodes, actions: { copy, download } }`；MermaidLiveEditor：`{ ratio, fullscreen, compact, actions: { toggleFullscreen, resetRatio, setRatio } }` |
 | `tabs` | `{ view, status, actions: { preview, source } }` |
 | `actions` | `{ source, status, copied, fullscreen, enableZoom, allowFullscreen, compact, actions }` |
 | `footer` | `{ source, language, highlighted, nodes, lines, actions: { copy } }` |
@@ -154,6 +161,8 @@ renderer.value?.updateSource('# 新的源码')
 | `mermaid-error` | `{ source, error, retry, focusSource }` |
 | `editor` | `{ value, update, diagnostics, status, actions: { focus, reset, fullscreen } }` |
 | `editor-diagnostics` | `{ diagnostics, focusLine }` |
+| `preview` | MermaidLiveEditor：`{ source, status, error, nodes, actions: { refresh, fullscreen, focus } }` |
+| `fullscreen` | MermaidLiveEditor：`{ fullscreen, label, toggle }` |
 
 插槽不存在或内容为空时保留默认渲染。
 
@@ -226,7 +235,7 @@ interface TocItem {
 
 ```ts
 import { ref } from 'vue'
-import type { MarkdownRendererInstance, TocItem } from 'vue-markdown-suite'
+import type { MarkdownRendererInstance, TocItem } from '@coderminer/vue-markdown'
 
 const renderer = ref<MarkdownRendererInstance>()
 const toc = ref<TocItem[]>([])
@@ -241,12 +250,13 @@ function goTo(id: string) {
 ```
 
 `tocDepth` 是最大层级，不是数量。`3` 包含 `h1`–`h3`，排除 `h4`–`h6`；`0` 或省略表示
-包含全部层级。
+包含全部层级。`tocPlacement` 选择 `top`（默认）、`left`、`right` 或 `hidden`。
 
 | API | 作用 |
 | --- | --- |
 | `toc` | 显示目录区域。 |
 | `tocDepth` | 包含到这一层级的标题；`0` 表示全部。 |
+| `tocPlacement` | 目录布局：`top`、`left`、`right` 或 `hidden`。 |
 | `toc-change` | 目录签名变化时触发过滤后的 `TocItem[]`。 |
 | `getToc()` | 命令式读取当前目录。 |
 | `scrollToHeading(id, options?)` | 滚动到渲染器根内的标题。 |
@@ -307,8 +317,8 @@ const regions = {
 
 ```vue
 <script setup lang="ts">
-import { MarkdownToc } from 'vue-markdown-suite'
-import type { TocItem } from 'vue-markdown-suite'
+import { MarkdownToc } from '@coderminer/vue-markdown'
+import type { TocItem } from '@coderminer/vue-markdown'
 
 const items: TocItem[] = [
   { id: 'install', text: '安装', level: 1 },
@@ -338,7 +348,7 @@ function navigate(id: string) {
 ### 在渲染器外跟踪当前标题
 
 ```ts
-import { useActiveHeading } from 'vue-markdown-suite'
+import { useActiveHeading } from '@coderminer/vue-markdown'
 
 const ids = computed(() => toc.value.map((item) => item.id))
 const activeId = useActiveHeading(ids, true, { root: myRootElement })
@@ -387,7 +397,7 @@ const activeId = useActiveHeading(ids, true, { root: myRootElement })
 | `CodeBlock` | `node`、`code`、`language`、`highlighter`、`theme`、`actions`、`showActions`、`showDownload`、`title`、`fileName`、`lineNumbers`、`highlightLines`、`maxLines`、`virtual`、`virtualThreshold`、`lineHeight`、`delay`、`standalone`、`ignoreRegion` | `copy`、`download`、`action`、`error` | `code`、`code-actions`、`header`、`toolbar` | `copy`、`download`、`getHighlighted`、`highlighted` |
 | `VueSyntaxHighlighter` | `source`、`language`、`theme`、`highlighter`、`lineNumbers`、`highlightLines`、`maxLines`、`virtual`、`virtualThreshold`、`lineHeight`、`delay` | `copy`、`error` | `header`、`footer`、`empty`、`actions`、`highlighter` | `copy`、`getHighlighted`、`highlighted` |
 | `MermaidBlock` | `node`、`source`、`renderer`、`theme`、`showErrors`、`enableZoom`、`allowFullscreen`、`compact`、`actions` | `rendered`、`error`、`copy`、`export`、`fullscreen`、`action` | `header`、`tabs`、`actions`、`mermaid`、`mermaid-error` | `render`、`copy`、`exportPng`、`downloadSvg`、`toggleFullscreen` |
-| `MermaidLiveEditor` | `modelValue`、`debounce`、`theme`、`renderer`、`diagnosticsFormatter`、`compact`、`initialRatio`、`minRatio` | `update:modelValue`、`preview`、`error` | `editor`、`editor-diagnostics` | `focus`、`refreshPreview`、`toggleFullscreen`、`getDiagnostics` |
+| `MermaidLiveEditor` | `modelValue`、`debounce`、`theme`、`renderer`、`diagnosticsFormatter`、`compact`、`rawDetails`、`autoFocus`、`initialRatio`、`minRatio` | `update:modelValue`、`preview`、`error` | `toolbar`、`editor`、`preview`、`editor-diagnostics`、`empty`、`fullscreen` | `focus`、`refreshPreview`、`toggleFullscreen`、`getDiagnostics` |
 | `MarkdownMath` | `node`、`tex`、`displayMode`、`rendered`、`error`、`mathEngine` | — | `math`、`math-error` | — |
 
 `CodeBlock` 和 `MermaidBlock` 自带样式化头部和内联 SVG 图标操作。图标按钮保留可访问
@@ -442,7 +452,7 @@ interface MarkdownConfig {
 | `mergeMarkdownPreset(base, next)` | 合并预设并追加插件 |
 
 ```ts
-import { composePresets, defineMarkdownPreset } from 'vue-markdown-suite/presets'
+import { composePresets, defineMarkdownPreset } from '@coderminer/vue-markdown/presets'
 
 const docs = defineMarkdownPreset({
   name: 'docs',
@@ -517,11 +527,11 @@ interface MarkdownPlugin {
 }
 ```
 
-来自 `vue-markdown-suite/html` 的 `htmlPlugin()` 会设置 `html: true`；它的
+来自 `@coderminer/vue-markdown/html` 的 `htmlPlugin()` 会设置 `html: true`；它的
 `HtmlSchemaExtension` 可以为原始 HTML 净化器增加 `tags` 和 `attributes`。
 
 ```ts
-import { defineMarkdownPlugin } from 'vue-markdown-suite/plugins'
+import { defineMarkdownPlugin } from '@coderminer/vue-markdown/plugins'
 
 export const myPlugin = defineMarkdownPlugin({
   name: 'my-plugin',
@@ -570,7 +580,7 @@ interface MarkdownPipeline {
 import {
   createOfficialPipeline,
   defineMarkdownPipeline,
-} from 'vue-markdown-suite/pipeline'
+} from '@coderminer/vue-markdown/pipeline'
 
 const official = createOfficialPipeline()
 
@@ -602,7 +612,7 @@ const pipeline = defineMarkdownPipeline({
 ## 无头
 
 ```ts
-import { useMarkdownDocument } from 'vue-markdown-suite/headless'
+import { useMarkdownDocument } from '@coderminer/vue-markdown/headless'
 
 const {
   document,
@@ -653,7 +663,7 @@ const {
 | 管线 | `createOfficialPipeline`、`defineMarkdownPipeline`、`validatePipeline`、`resolvePipeline`、`assertPipelineResult` |
 
 ```ts
-import { walkNodes } from 'vue-markdown-suite/headless'
+import { walkNodes } from '@coderminer/vue-markdown/headless'
 
 walkNodes(document.value?.nodes ?? [], (node, parent) => {
   // 深度优先访问每个节点。
@@ -672,7 +682,7 @@ walkNodes(document.value?.nodes ?? [], (node, parent) => {
 | `MarkdownUrlTransform` | `(url, key, node) => string \| null \| undefined` |
 
 ```ts
-import type { MarkdownHighlighter } from 'vue-markdown-suite'
+import type { MarkdownHighlighter } from '@coderminer/vue-markdown'
 
 const highlighter: MarkdownHighlighter = {
   id: 'my-highlighter',
@@ -693,7 +703,7 @@ const highlighter: MarkdownHighlighter = {
 import {
   exportMarkdownHtml,
   exportMarkdownHtmlSync,
-} from 'vue-markdown-suite'
+} from '@coderminer/vue-markdown'
 
 const html = exportMarkdownHtmlSync('# 你好')
 const asyncHtml = await exportMarkdownHtml(source, {
@@ -723,7 +733,7 @@ const asyncHtml = await exportMarkdownHtml(source, {
 | `validateManifest(entry, snapshot)` / `validateManifestRegistry()` | 清单校验 |
 
 ```ts
-import { getComponentManifest, partAttrs } from 'vue-markdown-suite'
+import { getComponentManifest, partAttrs } from '@coderminer/vue-markdown'
 
 const manifest = getComponentManifest('CodeBlock')
 const attrs = partAttrs('code')
@@ -737,7 +747,7 @@ const attrs = partAttrs('code')
 | --- | --- |
 | 文档 | `MarkdownDocument`、`MarkdownNode`、`MarkdownTextNode`、`MarkdownElementNode`、`MarkdownCodeNode`、`MarkdownMathNode`、`MarkdownMermaidNode`、`MarkdownCustomTagNode`、`MarkdownPluginNode`、`TocItem`、`MarkdownTextSegment`、`MarkdownElementLike`、`CustomTagInstance`、`SourceRange`、`SourcePosition` |
 | 配置 | `MarkdownConfig`、`MarkdownDocumentOptions`、`MarkdownPreset`、`MarkdownTheme`、`MarkdownLabels`、`MarkdownLabelValue`、`MarkdownLabelContext`、`MarkdownComponentValue`、`MarkdownTagComponents`、`MarkdownNodeComponents`、`MarkdownRegionComponents` |
-| Vue 适配 | `MarkdownRendererInstance`、`VueMarkdownTagComponents`、`VueMarkdownNodeComponents`、`VueMarkdownRegionComponents`、`MarkdownNodeRenderer`、`MarkdownNodeRenderContext`、`RenderContext`、`LinkClickPayload`、`CustomTagClickPayload`、`TaskChangePayload` |
+| Vue 适配 | `MarkdownRendererInstance`、`VueMarkdownTagComponents`、`VueMarkdownNodeComponents`、`VueMarkdownRegionComponents`、`MarkdownNodeRenderer`、`MarkdownNodeRenderContext`、`RenderContext`、`LinkClickPayload`、`CustomTagClickPayload`、`TaskChangePayload`、`SearchChangePayload` |
 | 插件 | `MarkdownPlugin`、`PluginInput`、`MarkdownPluginFactory`、`PluginContext`、`ResolvedPlugins` |
 | 管线 | `MarkdownPipeline`、`PipelineResult`、`PipelineContext`、`PipelineCapabilities`、`PipelineIdentityInput`、`OfficialPipelineOptions` |
 | 适配器 | `MarkdownHighlighter`、`HighlightOptions`、`HighlightResult`、`MathEngine`、`MathRenderOptions`、`MathRenderResult`、`MermaidRenderer`、`MermaidRenderOptions`、`MermaidRenderResult`、`DiagnosticFormatter`、`MarkdownSlugger`、`MarkdownUrlTransform`、`AllowElement` |

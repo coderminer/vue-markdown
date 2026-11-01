@@ -11,7 +11,7 @@ setup/cleanup。
 ## 定义一个插件
 
 ```ts
-import { defineMarkdownPlugin } from 'vue-markdown-suite/plugins'
+import { defineMarkdownPlugin } from '@coderminer/vue-markdown/plugins'
 
 export const myPlugin = defineMarkdownPlugin({
   name: 'my-plugin',        // 必填且唯一
@@ -43,8 +43,8 @@ export const myPlugin = defineMarkdownPlugin({
 也支持工厂写法：
 
 ```ts
-import { searchDocument } from 'vue-markdown-suite/headless'
-import { defineMarkdownPlugin } from 'vue-markdown-suite/plugins'
+import { searchDocument } from '@coderminer/vue-markdown/headless'
+import { defineMarkdownPlugin } from '@coderminer/vue-markdown/plugins'
 
 export const search = defineMarkdownPlugin((options: { query: string }) => ({
   name: 'search',
@@ -136,7 +136,7 @@ const rehypePlugins = [rehypeHighlight]
 
 宿主 remark 插件在库内置 remark 插件之后运行，宿主 rehype 插件在库内置 rehype 插件
 以及内置净化器之后运行。原始 HTML 不通过 `rehypePlugins` 启用：请使用
-`vue-markdown-suite/html` 的 `htmlPlugin()`，让解析器和净化器保持成对。
+`@coderminer/vue-markdown/html` 的 `htmlPlugin()`，让解析器和净化器保持成对。
 
 ## 内置插件
 
@@ -149,12 +149,15 @@ const rehypePlugins = [rehypeHighlight]
 | `customTagsPlugin({ tags })` | 把指定标签转换为自定义节点；真实文档变换。 |
 | `gfmPlugin` | `remark-gfm`。 |
 | `frontmatterPlugin` | `remark-frontmatter` + YAML 捕获。 |
-| `htmlPlugin()` | 可选的 `vue-markdown-suite/html` 入口；净化后的原始 HTML。 |
+| `htmlPlugin()` | 可选的 `@coderminer/vue-markdown/html` 入口；净化后的原始 HTML。 |
 
 `defaultPlugins` 是 `[toc, code, link, search, custom-tags]`。前三个是内核不变标记：
 它们会保留在解析后的集合中用于排序和诊断，`disablePlugins` 只会报告警告而不会移除。
 `search` 和 `custom-tags` 是真实变换，可以禁用。`fullPlugins` 在此之上加入 GFM 和
 frontmatter。
+
+渲染器级的 `search` 属性是 `searchPlugin()` 之外的内核便利入口。两者同时存在时，显式
+属性优先；禁用 `search` 插件不会禁用显式属性。
 
 ## 条件组合
 

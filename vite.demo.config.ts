@@ -13,55 +13,55 @@ export default defineConfig({
   resolve: {
     alias: [
       {
-        find: 'vue-markdown-suite/styles/',
+        find: '@coderminer/vue-markdown/styles/',
         replacement: `${resolveSrc('./src/styles')}/`,
       },
       {
-        find: /^vue-markdown-suite\/style\.css$/,
+        find: /^@coderminer\/vue-markdown\/style\.css$/,
         replacement: resolveSrc('./src/style.css'),
       },
       {
-        find: 'vue-markdown-suite/node-components',
+        find: '@coderminer/vue-markdown/node-components',
         replacement: resolveSrc('./src/node-components.ts'),
       },
       {
-        find: 'vue-markdown-suite/headless',
+        find: '@coderminer/vue-markdown/headless',
         replacement: resolveSrc('./src/headless.ts'),
       },
       {
-        find: 'vue-markdown-suite/pipeline',
+        find: '@coderminer/vue-markdown/pipeline',
         replacement: resolveSrc('./src/pipeline.ts'),
       },
       {
-        find: 'vue-markdown-suite/plugins',
+        find: '@coderminer/vue-markdown/plugins',
         replacement: resolveSrc('./src/plugins.ts'),
       },
       {
-        find: 'vue-markdown-suite/math',
+        find: '@coderminer/vue-markdown/math',
         replacement: resolveSrc('./src/math/index.ts'),
       },
       {
-        find: 'vue-markdown-suite/highlight/shiki',
+        find: '@coderminer/vue-markdown/highlight/shiki',
         replacement: resolveSrc('./src/highlight/shiki.ts'),
       },
       {
-        find: 'vue-markdown-suite/highlight',
+        find: '@coderminer/vue-markdown/highlight',
         replacement: resolveSrc('./src/highlight/index.ts'),
       },
       {
-        find: 'vue-markdown-suite/mermaid',
+        find: '@coderminer/vue-markdown/mermaid',
         replacement: resolveSrc('./src/mermaid/index.ts'),
       },
       {
-        find: 'vue-markdown-suite/editor',
+        find: '@coderminer/vue-markdown/editor',
         replacement: resolveSrc('./src/editor/index.ts'),
       },
       {
-        find: 'vue-markdown-suite/html',
+        find: '@coderminer/vue-markdown/html',
         replacement: resolveSrc('./src/html/index.ts'),
       },
       {
-        find: 'vue-markdown-suite',
+        find: '@coderminer/vue-markdown',
         replacement: resolveSrc('./src/index.ts'),
       },
     ],

@@ -17,15 +17,15 @@ import {
   MarkdownRenderer,
   defineMarkdownPreset,
   defineMarkdownPlugin,
-} from 'vue-markdown-suite'
+} from '@coderminer/vue-markdown'
 import {
   defaultPlugins,
   gfmPlugin,
   searchPlugin,
-} from 'vue-markdown-suite/plugins'
-import { mathPlugin } from 'vue-markdown-suite/math'
-import 'vue-markdown-suite/style.css'
-import 'vue-markdown-suite/styles/math-full.css'
+} from '@coderminer/vue-markdown/plugins'
+import { mathPlugin } from '@coderminer/vue-markdown/math'
+import '@coderminer/vue-markdown/style.css'
+import '@coderminer/vue-markdown/styles/math-full.css'
 
 const docsPlugin = defineMarkdownPlugin({
   name: 'docs',
@@ -67,7 +67,7 @@ A plugin can contribute remark/rehype plugins, conversion options, source and
 document transforms, components, labels, tokens, and lifecycle hooks:
 
 ```ts
-import { defineMarkdownPlugin } from 'vue-markdown-suite/plugins'
+import { defineMarkdownPlugin } from '@coderminer/vue-markdown/plugins'
 
 export const brandPlugin = defineMarkdownPlugin({
   name: 'brand',
@@ -101,7 +101,7 @@ Presets bundle configuration under a name. Later presets override earlier ones,
 and their plugin lists are appended:
 
 ```ts
-import { composePresets, defineMarkdownPreset } from 'vue-markdown-suite/presets'
+import { composePresets, defineMarkdownPreset } from '@coderminer/vue-markdown/presets'
 
 const brand = defineMarkdownPreset({
   name: 'brand',
@@ -123,8 +123,8 @@ built-ins. Applying a preset never mutates global state.
 ## Syntax highlighting
 
 ```ts
-import { highlightjs } from 'vue-markdown-suite/highlight'
-import { shiki } from 'vue-markdown-suite/highlight/shiki'
+import { highlightjs } from '@coderminer/vue-markdown/highlight'
+import { shiki } from '@coderminer/vue-markdown/highlight/shiki'
 ```
 
 ```vue
@@ -142,9 +142,9 @@ Read [Syntax highlighting](./highlighting.md) for adapter details, or
 ## Math
 
 ```ts
-import { defaultPlugins } from 'vue-markdown-suite/plugins'
-import { mathPlugin, katexEngine } from 'vue-markdown-suite/math'
-import 'vue-markdown-suite/styles/math-full.css'
+import { defaultPlugins } from '@coderminer/vue-markdown/plugins'
+import { mathPlugin, katexEngine } from '@coderminer/vue-markdown/math'
+import '@coderminer/vue-markdown/styles/math-full.css'
 
 const plugins = [...defaultPlugins, mathPlugin()]
 ```
@@ -167,12 +167,12 @@ Read [Math](./math.md), or [Rich components](./rich-components.md) for the
 ## Mermaid
 
 ```ts
-import { renderMermaid, sanitizeSvg } from 'vue-markdown-suite/mermaid'
+import { renderMermaid, sanitizeSvg } from '@coderminer/vue-markdown/mermaid'
 ```
 
 ```vue
 <script setup lang="ts">
-import { MermaidBlock } from 'vue-markdown-suite'
+import { MermaidBlock } from '@coderminer/vue-markdown'
 
 const diagram = `flowchart LR
   Markdown --> Pipeline
@@ -197,7 +197,7 @@ Read [Mermaid](./mermaid.md), or [Rich components](./rich-components.md) for
 When the preset markup does not fit, own the output:
 
 ```ts
-import { useMarkdownDocument } from 'vue-markdown-suite/headless'
+import { useMarkdownDocument } from '@coderminer/vue-markdown/headless'
 
 const {
   document,
@@ -221,7 +221,7 @@ Read [Headless rendering](./headless.md).
 ## SSR and static export
 
 ```ts
-import { exportMarkdownHtml, exportMarkdownHtmlSync } from 'vue-markdown-suite'
+import { exportMarkdownHtml, exportMarkdownHtmlSync } from '@coderminer/vue-markdown'
 
 const html = exportMarkdownHtmlSync(source)
 const asyncHtml = await exportMarkdownHtml(source, { plugins })

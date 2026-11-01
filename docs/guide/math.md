@@ -7,16 +7,16 @@ description: mathPlugin, KaTeX, delimiters, macros, and graceful fallbacks.
 Math ships as an optional entry so KaTeX is not part of the core bundle.
 
 ```ts
-import { defaultPlugins } from 'vue-markdown-suite/plugins'
-import { mathPlugin, katexEngine } from 'vue-markdown-suite/math'
-import 'vue-markdown-suite/styles/math-full.css'
+import { defaultPlugins } from '@coderminer/vue-markdown/plugins'
+import { mathPlugin, katexEngine } from '@coderminer/vue-markdown/math'
+import '@coderminer/vue-markdown/styles/math-full.css'
 
 const plugins = [...defaultPlugins, mathPlugin()]
 ```
 
 `styles/math-full.css` imports `katex/dist/katex.min.css` and
 `styles/math.css`, so display math is complete with one import. If you already
-load KaTeX's stylesheet, import `vue-markdown-suite/styles/math.css` instead.
+load KaTeX's stylesheet, import `@coderminer/vue-markdown/styles/math.css` instead.
 Without KaTeX CSS, the MathML fallback can appear twice.
 
 Keep the plugin instance stable. Create it once in module scope or in `setup`,
@@ -48,7 +48,7 @@ strictness, and a render cache. Invalid TeX produces a `math-error` diagnostic
 and a readable fallback.
 
 ```ts
-import type { MathEngine } from 'vue-markdown-suite'
+import type { MathEngine } from '@coderminer/vue-markdown'
 
 const engine: MathEngine = {
   id: 'my-engine',
