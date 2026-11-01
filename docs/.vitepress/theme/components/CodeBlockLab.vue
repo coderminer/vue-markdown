@@ -8,6 +8,54 @@ import {
 } from 'vue-markdown-suite'
 import ReviewCodeBlock from './ReviewCodeBlock.vue'
 
+const props = withDefaults(defineProps<{ locale?: 'en' | 'zh' }>(), {
+  locale: 'en',
+})
+
+const text = computed(() =>
+  props.locale === 'zh'
+    ? {
+        kicker: 'CodeBlock 功能实验室',
+        theme: '主题',
+        language: '语言',
+        highlighter: '高亮器',
+        useNode: '使用 node 属性',
+        showActions: 'showActions（默认按钮）',
+        plain: '使用 #code 插槽（纯文本）',
+        customToolbar: '使用 #code-actions 插槽',
+        copyRef: '通过 ref 调用 copy()',
+        downloadRef: '通过 ref 调用 download()',
+        inspect: '检查高亮结果',
+        defaultHighlighter: 'default (highlight.js)',
+        uppercaseAdapter: '大写适配器',
+        brokenLoader: '故障加载器',
+        note: '自定义操作通过 actions 属性传入。关闭默认按钮后，自定义操作仍然保留。',
+        events: '事件',
+        empty: '操作工具栏或使用 ref 按钮。',
+        logSource: '打印源码',
+      }
+    : {
+        kicker: 'CodeBlock feature lab',
+        theme: 'Theme',
+        language: 'Language',
+        highlighter: 'Highlighter',
+        useNode: 'Use node prop',
+        showActions: 'showActions (default buttons)',
+        plain: 'Use #code slot (plain)',
+        customToolbar: 'Use #code-actions slot',
+        copyRef: 'copy() via ref',
+        downloadRef: 'download() via ref',
+        inspect: 'inspect highlighted',
+        defaultHighlighter: 'default (highlight.js)',
+        uppercaseAdapter: 'uppercase adapter',
+        brokenLoader: 'broken loader',
+        note: 'The custom action is passed through the actions prop. Toggle the default buttons off and the custom action remains.',
+        events: 'Events',
+        empty: 'Interact with the toolbar or use the ref buttons.',
+        logSource: 'Log source',
+      },
+)
+
 const code = ref(`interface User {
   id: string
   name: string
@@ -67,7 +115,7 @@ const highlighter = computed(() => {
 const actions: CodeBlockAction[] = [
   {
     key: 'log',
-    label: 'Log source',
+    label: text.value.logSource,
     run({ code: value }) {
       log('action:log', `${value.length} characters`)
     },
@@ -101,10 +149,10 @@ function inspectHighlighted(): void {
 <template>
   <div class="vmd-code-lab">
     <aside class="vmd-code-lab-controls">
-      <p class="vmd-code-lab-kicker">CodeBlock feature lab</p>
+      <p class="vmd-code-lab-kicker">{{ text.kicker }}</p>
 
       <label>
-        <span>Theme</span>
+        <span>{{ text.theme }}</span>
         <select v-model="theme">
           <option value="light">light</option>
           <option value="dark">dark</option>
@@ -114,7 +162,7 @@ function inspectHighlighted(): void {
       </label>
 
       <label>
-        <span>Language</span>
+        <span>{{ text.language }}</span>
         <select v-model="language">
           <option value="ts">ts</option>
           <option value="js">js</option>
@@ -124,46 +172,45 @@ function inspectHighlighted(): void {
       </label>
 
       <label>
-        <span>Highlighter</span>
+        <span>{{ text.highlighter }}</span>
         <select v-model="highlighterId">
-          <option value="default">default (highlight.js)</option>
-          <option value="uppercase">uppercase adapter</option>
-          <option value="broken">broken loader</option>
+          <option value="default">{{ text.defaultHighlighter }}</option>
+          <option value="uppercase">{{ text.uppercaseAdapter }}</option>
+          <option value="broken">{{ text.brokenLoader }}</option>
         </select>
       </label>
 
       <label class="vmd-code-lab-check">
         <input v-model="useNode" type="checkbox" />
-        <span>Use node prop</span>
+        <span>{{ text.useNode }}</span>
       </label>
       <label class="vmd-code-lab-check">
         <input v-model="showActions" type="checkbox" />
-        <span>showActions (default buttons)</span>
+        <span>{{ text.showActions }}</span>
       </label>
       <label class="vmd-code-lab-check">
         <input v-model="plain" type="checkbox" />
-        <span>Use #code slot (plain)</span>
+        <span>{{ text.plain }}</span>
       </label>
       <label class="vmd-code-lab-check">
         <input v-model="customToolbar" type="checkbox" />
-        <span>Use #code-actions slot</span>
+        <span>{{ text.customToolbar }}</span>
       </label>
 
       <div class="vmd-code-lab-actions">
         <button type="button" class="vmd-code-lab-button" @click="copy">
-          copy() via ref
+          {{ text.copyRef }}
         </button>
         <button type="button" class="vmd-code-lab-button" @click="download">
-          download() via ref
+          {{ text.downloadRef }}
         </button>
         <button type="button" class="vmd-code-lab-button" @click="inspectHighlighted">
-          inspect highlighted
+          {{ text.inspect }}
         </button>
       </div>
 
       <p class="vmd-code-lab-note">
-        The custom action is passed through the <code>actions</code> prop. Toggle
-        the default buttons off and the custom action remains.
+        {{ text.note }}
       </p>
     </aside>
 
@@ -187,9 +234,9 @@ function inspectHighlighted(): void {
     </div>
 
     <div class="vmd-code-lab-events">
-      <span class="vmd-code-lab-kicker">Events</span>
+      <span class="vmd-code-lab-kicker">{{ text.events }}</span>
       <span v-if="events.length === 0" class="vmd-code-lab-note">
-        Interact with the toolbar or use the ref buttons.
+        {{ text.empty }}
       </span>
       <code v-for="entry in events" :key="entry">{{ entry }}</code>
     </div>

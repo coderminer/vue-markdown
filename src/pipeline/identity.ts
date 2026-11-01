@@ -23,7 +23,6 @@ export function createPipelineIdentity(input: PipelineIdentityInput): string {
     identityOf(options.slugger),
     options.idPrefix ?? '',
     options.baseUrl ?? '',
-    options.skipHtml ? '1' : '0',
     (options.allowedElements ?? []).join('\u001f'),
     (options.disallowedElements ?? []).join('\u001f'),
     options.unwrapDisallowed ? '1' : '0',

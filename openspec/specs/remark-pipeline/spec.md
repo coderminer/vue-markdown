@@ -19,14 +19,14 @@ The library SHALL use `unified` with `remark-parse` and `remark-rehype` as the d
 
 ### Requirement: Pipeline stage order
 
-The library SHALL execute stages in a documented, deterministic order: `remark-parse`; library remark plugins; host `remarkPlugins`; `remark-rehype` with `allowDangerousHtml: true`; `rehype-raw` only when raw HTML is enabled; `rehype-sanitize` immediately after `rehype-raw`; library rehype plugins; host `rehypePlugins`; hast capture and model construction. Library defaults SHALL run before host plugins so hosts can post-process them.
+The library SHALL execute stages in a documented, deterministic order: `remark-parse`; library remark plugins; host `remarkPlugins`; `remark-rehype` with `allowDangerousHtml: true`; `rehype-raw` only when the html plugin is enabled; `rehype-sanitize` immediately after `rehype-raw`; library rehype plugins; host `rehypePlugins`; hast capture and model construction. Library defaults SHALL run before host plugins so hosts can post-process them.
 
 #### Scenario: Host plugin runs after library defaults
 - **WHEN** a host supplies a rehype plugin that modifies heading elements
 - **THEN** it sees the output of the library's slug and TOC stage
 
 #### Scenario: Sanitizer position
-- **WHEN** raw HTML is enabled and a host rehype plugin is present
+- **WHEN** the html plugin is enabled and a host rehype plugin is present
 - **THEN** sanitization runs after `rehype-raw` and before the host plugin
 
 ### Requirement: remark and rehype interoperability
@@ -89,21 +89,21 @@ The library SHALL provide a `gfmPlugin` that composes `remark-gfm`. With the plu
 - **WHEN** a host does not enable `gfmPlugin`
 - **THEN** GFM-only syntax degrades to readable CommonMark output rather than throwing
 
-### Requirement: Raw HTML and `skipHtml`
+### Requirement: Raw HTML and the html plugin
 
-`remark-rehype` SHALL run with `allowDangerousHtml: true` so raw HTML survives as `raw` nodes. By default the model builder SHALL drop raw nodes. `skipHtml` SHALL remove them explicitly. Raw HTML SHALL be rendered only when the host adds `rehype-raw` to `rehypePlugins`; sanitization SHALL run immediately after it. No component prop SHALL implicitly enable raw HTML.
+`remark-rehype` SHALL run with `allowDangerousHtml: true` so raw HTML survives as `raw` nodes. By default the model builder SHALL drop raw nodes. Raw HTML SHALL be rendered only when a plugin declares `html: true` and contributes `rehype-raw`, as `htmlPlugin()` from the official `vue-markdown-suite/html` entry does. Sanitization SHALL run immediately after it. No renderer prop SHALL implicitly enable raw HTML, and a manual `rehype-raw` in `rehypePlugins` SHALL be ignored with a warning.
 
 #### Scenario: Raw HTML dropped
-- **WHEN** Markdown contains `<div>hi</div>` and raw HTML is not enabled
+- **WHEN** Markdown contains `<div>hi</div>` and the html plugin is not enabled
 - **THEN** the HTML is not rendered
 
-#### Scenario: `skipHtml`
-- **WHEN** `skipHtml` is true
-- **THEN** raw HTML nodes are removed from the model
-
 #### Scenario: Raw HTML enabled
-- **WHEN** a host adds `rehype-raw` and a document contains safe HTML
+- **WHEN** a host adds `htmlPlugin()` and a document contains safe HTML
 - **THEN** the HTML is sanitized and rendered as nodes
+
+#### Scenario: Manual parser ignored
+- **WHEN** a host adds `rehype-raw` to `rehypePlugins` without the html plugin
+- **THEN** the parser is ignored, a warning is reported, and the HTML is not rendered
 
 ### Requirement: Frontmatter
 
@@ -167,7 +167,7 @@ Pipeline instances SHALL be created per renderer or provider scope, reused acros
 
 ### Requirement: Pipeline tests
 
-The repository SHALL include tests for stage order, plugin tuples, duplicate detection, error isolation, raw HTML and `skipHtml`, frontmatter, async ordering, custom pipelines, model normalization, CommonMark and GFM conformance, and server rendering.
+The repository SHALL include tests for stage order, plugin tuples, duplicate detection, error isolation, raw HTML, frontmatter, async ordering, custom pipelines, model normalization, CommonMark and GFM conformance, and server rendering.
 
 #### Scenario: Contract suite
 - **WHEN** the pipeline test suite runs

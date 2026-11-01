@@ -158,7 +158,7 @@ import type { MarkdownPipeline } from 'vue-markdown-suite/pipeline'
 
 const pipeline: MarkdownPipeline = {
   name: 'my-pipeline',
-  capabilities: { html: false, sync: true },
+  capabilities: { sync: true },
   process(source, ctx) {
     return Promise.resolve({
       hast: { type: 'root', children: [] },

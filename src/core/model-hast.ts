@@ -177,14 +177,18 @@ function nodeToHast(node: MarkdownNode): ElementContent | undefined {
       const children = (node.children ?? [])
         .map(nodeToHast)
         .filter((child): child is ElementContent => Boolean(child))
-      if (children.length > 0) {
-        return element(
-          'span',
-          { 'data-vmd-part': 'plugin', 'data-plugin-type': node.type },
-          children,
-        )
+      const properties: Properties = {
+        'data-vmd-part': 'plugin',
+        'data-plugin-type': node.type,
+        'data-plugin-key': node.key,
       }
-      return undefined
+      if (children.length === 0) {
+        // A plugin node may render entirely through a host component. Static
+        // export cannot serialize component output, so emit an addressable
+        // placeholder instead of dropping the node from the document.
+        properties['data-plugin-unrendered'] = ''
+      }
+      return element('span', properties, children)
     }
     default:
       return undefined

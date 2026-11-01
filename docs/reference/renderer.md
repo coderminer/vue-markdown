@@ -29,10 +29,10 @@ import 'vue-markdown-suite/style.css'
 | `nodeComponents` | `Record<string, Component \| string \| NodeRenderer>` | Default `{}`. Semantic node overrides and function renderers. |
 | `labels` | `Partial<MarkdownLabels>` | Default `{}`. String or function labels for built-in text. |
 | `preset` | `MarkdownPreset \| MarkdownPreset[]` | Applies one or more presets. |
-| `plugins` | `PluginInput[]` | Default `defaultPlugins`. Replaces the default plugin set when provided. |
+| `plugins` | `PluginInput[]` | Default `defaultPlugins`. Replaces the default plugin set when provided. Add `htmlPlugin()` from `vue-markdown-suite/html` for sanitized raw HTML. |
 | `disablePlugins` | `string[]` | Default `[]`. Removes named plugins from the resolved set. |
 | `remarkPlugins` | `PluggableList` | Default `[]`. Runs after library remark plugins. |
-| `rehypePlugins` | `PluggableList` | Default `[]`. Runs after library rehype plugins. Adding `rehype-raw` enables raw HTML. |
+| `rehypePlugins` | `PluggableList` | Default `[]`. Runs after library rehype plugins and the built-in sanitizer. |
 | `remarkRehypeOptions` | `Record<string, unknown>` | Default `{}`. Merged into the conversion step. |
 | `pipeline` | `MarkdownPipeline` | Default `official`. Advanced escape hatch; must return hast. |
 | `slugger` | `MarkdownSlugger` | Default `github-slugger`. Heading ID generator. |
@@ -50,7 +50,6 @@ import 'vue-markdown-suite/style.css'
 | `baseUrl` | `string` | Resolves relative URLs before `urlTransform`. |
 | `idPrefix` | `string` | Default `''`. Prefixes generated heading IDs. Use a unique prefix when one page contains multiple renderers. |
 | `syncHash` | `boolean` | Default `false`. Updates the URL hash on heading activation. |
-| `skipHtml` | `boolean` | Default `false`. Removes raw HTML nodes. |
 | `toc` | `boolean` | Default `false`. Renders the TOC region. |
 | `tocDepth` | `number` | Default `0` (all levels). Maximum heading level to include, from `1` to `6`. |
 | `showError` | `boolean` | Default `false`. Renders the error region on failure. |

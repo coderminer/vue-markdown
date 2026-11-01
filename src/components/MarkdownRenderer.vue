@@ -104,7 +104,6 @@ const props = withDefaults(
     baseUrl?: string
     idPrefix?: string
     syncHash?: boolean
-    skipHtml?: boolean
     toc?: boolean
     tocDepth?: number
     showError?: boolean
@@ -140,7 +139,6 @@ const props = withDefaults(
     baseUrl: undefined,
     idPrefix: '',
     syncHash: false,
-    skipHtml: false,
     toc: false,
     tocDepth: 0,
     showError: false,
@@ -299,7 +297,6 @@ const parseOptions = computed<MarkdownDocumentOptions>(() => ({
   urlTransform: validUrlTransform.value,
   baseUrl: props.baseUrl,
   idPrefix: props.idPrefix,
-  skipHtml: props.skipHtml,
 }))
 
 const {

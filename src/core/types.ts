@@ -350,12 +350,23 @@ export interface PipelineResult {
 }
 
 export interface PipelineCapabilities {
-  /** The pipeline can parse raw HTML into elements. */
-  html?: boolean
   /** The pipeline exposes a synchronous path. */
   sync?: boolean
   /** The pipeline reports plugin names. */
   plugins?: boolean
+}
+
+/**
+ * Add-only extension for the built-in raw HTML sanitizer. Property names use
+ * hast property casing (for example `srcSet`, `dateTime`). Extensions cannot
+ * remove the built-in strip list, change the URL policy, or bypass the core
+ * attribute policy.
+ */
+export interface HtmlSchemaExtension {
+  /** Extra tag names to allow. Dangerous tags remain stripped. */
+  tags?: string[]
+  /** Extra properties per tag; `'*'` applies to every tag. */
+  attributes?: Record<string, string[]>
 }
 
 export interface PluginContext {
@@ -374,6 +385,13 @@ export interface MarkdownPlugin {
    */
   core?: boolean
   phase?: 'pre' | 'normal' | 'post'
+  /**
+   * This plugin enables raw HTML parsing. Its rehype plugins run before the
+   * built-in sanitizer, and the official pipeline always sanitizes the result.
+   */
+  html?: boolean
+  /** Add-only extension for the built-in raw HTML sanitizer. */
+  htmlSchema?: HtmlSchemaExtension
   remarkPlugins?: PluggableList
   rehypePlugins?: PluggableList
   remarkRehypeOptions?: Record<string, unknown>
@@ -406,7 +424,6 @@ export interface PipelineContext {
   remarkRehypeOptions: Record<string, unknown>
   slugger: MarkdownSlugger
   idPrefix: string
-  allowHtml: boolean
   diagnostics: MarkdownDiagnostic[]
 }
 
@@ -440,5 +457,4 @@ export interface MarkdownDocumentOptions {
   externalLinkTarget?: string
   baseUrl?: string
   idPrefix?: string
-  skipHtml?: boolean
 }

@@ -30,7 +30,6 @@ import { createDiagnostic, errorMessage } from '../core/diagnostics'
 import { finalizeMarkdownDocument } from '../core/finalize'
 import { identityOf } from '../core/identity'
 import { memoGet, memoSet } from '../core/memo'
-import { detectRawPlugin } from '../core/run'
 import { withUniqueSlugs } from '../core/slugger'
 import { createPluginContext } from '../plugins/define'
 import { applySourceTransforms } from '../plugins/source'
@@ -109,11 +108,6 @@ export function useMarkdownDocument(
   const baseSlugger = computed(() => optionsRef.value.slugger ?? defaultSlugger)
   const slugger = computed(() => withUniqueSlugs(baseSlugger.value))
   const idPrefix = computed(() => optionsRef.value.idPrefix ?? '')
-  const allowHtml = computed(
-    () =>
-      detectRawPlugin(rehypePlugins.value) ||
-      pipeline.value.capabilities?.html === true,
-  )
 
   const pipelineIdentity = computed(() =>
     createPipelineIdentity({
@@ -201,7 +195,6 @@ export function useMarkdownDocument(
     remarkRehypeOptions: remarkRehypeOptions.value,
     slugger: slugger.value,
     idPrefix: idPrefix.value,
-    allowHtml: allowHtml.value,
     diagnostics: nextDiagnostics,
   })
 
@@ -216,7 +209,6 @@ export function useMarkdownDocument(
       options: optionsRef.value,
       plugins: resolved.value,
       pipelineName: pipeline.value.name,
-      allowHtml: allowHtml.value,
       slugger: slugger.value,
       idPrefix: idPrefix.value,
       diagnostics: nextDiagnostics,

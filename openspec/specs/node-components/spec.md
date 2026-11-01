@@ -79,7 +79,7 @@ The catalog SHALL include specialized components with documented behavior beyond
 - `MarkdownMath`: delegates to the math component and math engine.
 - `MarkdownMermaid`: delegates to the Mermaid block.
 - `MarkdownFootnoteReference` / `MarkdownFootnotes`: superscript references, ordered notes, and back-links.
-- `MarkdownHtml`: standalone component for host use; raw HTML enabled through `rehype-raw` renders as normal element components and is not routed through `MarkdownHtml`.
+- `MarkdownHtml`: standalone component for host use; raw HTML enabled through `htmlPlugin()` renders as normal element components and is not routed through `MarkdownHtml`.
 - `MarkdownCustomTag`: host component mapping with normalized props.
 
 Async components SHALL be supported through Vue `Suspense` or the renderer's pending state without changing the catalog contract.
@@ -89,7 +89,7 @@ Async components SHALL be supported through Vue `Suspense` or the renderer's pen
 - **THEN** it includes a link to `#id` using the documented `heading-anchor` part and `headingAnchor` label
 
 #### Scenario: Raw HTML path
-- **WHEN** `rehype-raw` is configured and raw HTML is rendered
+- **WHEN** the html plugin is enabled and raw HTML is rendered
 - **THEN** the HTML becomes normal element nodes rendered through the element components, and `MarkdownHtml` is not used
 
 #### Scenario: Standalone MarkdownHtml
@@ -130,11 +130,16 @@ The catalog SHALL include `MarkdownMath` for inline and display math. The math n
 
 ### Requirement: Plugin-defined nodes
 
-Plugins SHALL be able to add node kinds and register their default components, including function renderers. Plugin-defined nodes SHALL participate in the same catalog, resolution, manifest, SSR, and styling rules as built-in nodes. An unregistered plugin node SHALL render a documented fallback instead of crashing.
+Plugins SHALL be able to add node kinds and register their default components, including function renderers. Plugin-defined nodes SHALL participate in the same catalog, resolution, manifest, SSR, and styling rules as built-in nodes. An unregistered plugin node SHALL render a documented fallback instead of crashing. Static export SHALL preserve plugin node identity even when the node renders only through a component.
 
 #### Scenario: Plugin adds a node
 - **WHEN** a plugin adds a callout node and registers its component
 - **THEN** callouts render through that component and can be overridden by the host
+
+#### Scenario: Static export of a plugin node
+- **WHEN** a plugin node is exported to static HTML
+- **THEN** its children serialize inside a `data-vmd-part="plugin"` wrapper carrying `data-plugin-type` and `data-plugin-key`
+- **AND** a node without children serializes as an empty placeholder marked `data-plugin-unrendered` instead of being dropped
 
 #### Scenario: Missing renderer
 - **WHEN** a plugin adds a node kind without registering a component or function renderer

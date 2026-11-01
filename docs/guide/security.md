@@ -17,32 +17,56 @@ text.
 <MarkdownRenderer source="<b>bold</b>" />
 ```
 
-### `skipHtml`
-
-`skipHtml` removes raw nodes entirely, including their text:
-
-```vue
-<MarkdownRenderer :source="source" skip-html />
-```
-
 ### Enable sanitized HTML
 
-Add `rehype-raw` to `rehypePlugins`. The suite detects it by name and runs
-`rehype-sanitize` immediately after it.
+Install `rehype-raw` and add `htmlPlugin()` from `vue-markdown-suite/html`:
+
+```bash
+npm install rehype-raw
+```
 
 ```vue
 <script setup lang="ts">
-import rehypeRaw from 'rehype-raw'
+import { MarkdownRenderer } from 'vue-markdown-suite'
+import { defaultPlugins } from 'vue-markdown-suite/plugins'
+import { htmlPlugin } from 'vue-markdown-suite/html'
+
+const plugins = [...defaultPlugins, htmlPlugin()]
 </script>
 
 <template>
-  <MarkdownRenderer :source="source" :rehype-plugins="[rehypeRaw]" />
+  <MarkdownRenderer :source="source" :plugins="plugins" />
 </template>
 ```
 
-Sanitization is not optional when raw HTML is enabled. The model also applies
-the tag/attribute allowlist and URL policy after sanitization, so a host rehype
-plugin that runs later cannot inject handlers or unsafe URLs.
+`htmlPlugin()` is the only supported way to enable raw HTML. The official
+pipeline runs `rehype-raw` before the built-in sanitizer; a manual `rehype-raw`
+in `rehypePlugins` is ignored with a warning. Sanitization is not optional.
+
+The plugin entry is separate so applications that do not render raw HTML never
+bundle the HTML parser.
+
+### Extend the sanitizer
+
+`htmlPlugin({ schema })` adds tags and properties. It cannot remove
+the built-in strip list, change the URL policy, or bypass the attribute rules.
+
+```ts
+const plugins = [
+  htmlPlugin({
+    schema: {
+      tags: ['video'],
+      attributes: { video: ['src', 'controls', 'poster'] },
+    },
+  }),
+]
+```
+
+Property names use hast casing (`srcSet`, `dateTime`). `script`, `style`,
+`iframe`, `object`, and `embed` remain stripped. `on*`, `style`, and `srcdoc`
+properties are ignored even when listed by an extension. Unsafe URLs are removed
+by the core model builder even when a host rehype plugin runs later. The URL
+protocol policy is a core invariant and is not extensible.
 
 ## URL policy
 
@@ -106,10 +130,11 @@ The default render path:
 - Sets attributes through Vue's DOM property/attribute bindings.
 
 A strict CSP such as `default-src 'self'; script-src 'self'` works. If you
-enable raw HTML, keep `rehype-raw` + the built-in sanitizer and avoid allowing
-inline scripts. For Trusted Types, avoid sinks that require HTML strings; the
-renderer never creates one. `exportMarkdownHtml` returns a string for static
-output, so apply your own Trusted Types policy where that string is inserted.
+enable raw HTML with `htmlPlugin()`, keep the built-in sanitizer and avoid
+allowing inline scripts. For Trusted Types, avoid sinks that require HTML
+strings; the renderer never creates one. `exportMarkdownHtml` returns a string
+for static output, so apply your own Trusted Types policy where that string is
+inserted.
 
 ## Diagnostics
 

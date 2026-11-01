@@ -1,41 +1,44 @@
 import { describe, expect, it } from 'vitest'
 import GithubSlugger from 'github-slugger'
-import rehypeRaw from 'rehype-raw'
 import { createOfficialPipeline } from '../../src/pipeline'
 import { normalizeHast } from '../../src/core/normalize'
 import {
   propertiesToAttrs,
   sanitizeStyleValue,
+  sanitizeUrlValue,
 } from '../../src/core/security'
 import { defaultUrlTransform } from '../../src/core/url'
 import { defaultPlugins } from '../../src/plugins/builtin'
+import { resolvePlugins } from '../../src/plugins/registry'
+import { htmlPlugin } from '../../src/html'
 import type { MarkdownUrlTransform, PipelineContext } from '../../src/core/types'
 
 function parse(
   source: string,
   options: {
+    plugins?: PipelineContext['plugins']
     rehypePlugins?: PipelineContext['rehypePlugins']
-    allowHtml?: boolean
-    skipHtml?: boolean
     urlTransform?: MarkdownUrlTransform
   } = {},
 ) {
+  const resolved = resolvePlugins(options.plugins ?? defaultPlugins)
   const ctx: PipelineContext = {
     source,
-    plugins: defaultPlugins,
-    remarkPlugins: [],
-    rehypePlugins: options.rehypePlugins ?? [],
+    options: {},
+    plugins: resolved.plugins,
+    remarkPlugins: resolved.remarkPlugins,
+    rehypePlugins: [
+      ...resolved.rehypePlugins,
+      ...(options.rehypePlugins ?? []),
+    ],
     remarkRehypeOptions: {},
     slugger: new GithubSlugger(),
     idPrefix: '',
-    allowHtml: options.allowHtml ?? false,
     diagnostics: [],
   }
   const result = createOfficialPipeline().processSync!(source, ctx)
   return normalizeHast(result.hast, {
     slugger: new GithubSlugger(),
-    allowHtml: options.allowHtml,
-    skipHtml: options.skipHtml,
     urlTransform: options.urlTransform,
   })
 }
@@ -87,23 +90,21 @@ describe('URL protocol policy', () => {
 })
 
 describe('sanitization and raw HTML', () => {
-  it('drops raw HTML by default and honors skipHtml', () => {
+  it('drops raw HTML by default', () => {
     const dropped = parse('<b>bold</b><script>alert(1)</script>')
     expect(serialized(dropped.nodes)).not.toContain('<b')
     expect(serialized(dropped.nodes)).not.toContain('<script')
-
-    const kept = parse('<b>bold</b>\n\nHello', { allowHtml: true })
-    expect(serialized(kept.nodes)).toContain('<b>')
-
-    const skipped = parse('<b>bold</b>\n\nHello', {
-      skipHtml: true,
-      allowHtml: true,
-    })
-    expect(serialized(skipped.nodes)).not.toContain('<b')
-    expect(serialized(skipped.nodes)).toContain('Hello')
   })
 
-  it('sanitizes event handlers, scripts, and unsafe URLs after rehype-raw', () => {
+  it('renders sanitized HTML through the html plugin', () => {
+    const kept = parse('<b>bold</b>\n\nHello', {
+      plugins: [...defaultPlugins, htmlPlugin()],
+    })
+    expect(serialized(kept.nodes)).toContain('bold')
+    expect(serialized(kept.nodes)).toContain('"tag":"b"')
+  })
+
+  it('sanitizes event handlers, scripts, and unsafe URLs after raw parsing', () => {
     const source = [
       '<img src="x" onerror="alert(1)">',
       '<a href="javascript:alert(1)">click</a>',
@@ -111,14 +112,124 @@ describe('sanitization and raw HTML', () => {
       '<style>body{display:none}</style>',
       '<iframe src="https://example.com"></iframe>',
     ].join('')
-    const result = parse(source, { rehypePlugins: [rehypeRaw], allowHtml: true })
+    const result = parse(source, { plugins: [...defaultPlugins, htmlPlugin()] })
     const json = serialized(result.nodes)
     expect(json).not.toContain('onerror')
     expect(json).not.toContain('javascript:')
     expect(json).not.toContain('alert(1)')
+    expect(json).not.toContain('display:none')
     expect(json).not.toContain('<script')
     expect(json).not.toContain('<style')
     expect(json).not.toContain('iframe')
+  })
+
+  it('keeps class, data, ARIA, and role scaffolding on raw HTML', () => {
+    const result = parse(
+      '<div class="note" data-kind="tip" aria-label="Note" role="note"><b>bold</b></div>',
+      { plugins: [...defaultPlugins, htmlPlugin()] },
+    )
+    expect(serialized(result.nodes)).toContain('"class":"note"')
+    expect(serialized(result.nodes)).toContain('"data-kind":"tip"')
+    expect(serialized(result.nodes)).toContain('"aria-label":"Note"')
+    expect(serialized(result.nodes)).toContain('"role":"note"')
+  })
+
+  it('extends the sanitizer without weakening safety', () => {
+    const result = parse(
+      [
+        '<video src="/a.mp4" controls onclick="alert(1)"></video>',
+        '<x-note data-x="1">hi</x-note>',
+        '<a href="javascript:alert(1)">x</a>',
+      ].join(''),
+      {
+        plugins: [
+          ...defaultPlugins,
+          htmlPlugin({
+            schema: {
+              tags: ['video', 'x-note'],
+              attributes: {
+                video: ['src', 'controls'],
+                'x-note': ['data*'],
+              },
+            },
+          }),
+        ],
+      },
+    )
+    const json = serialized(result.nodes)
+    expect(json).toContain('"tag":"video"')
+    expect(json).toContain('"tag":"x-note"')
+    expect(json).toContain('"data-x":"1"')
+    expect(json).not.toContain('onclick')
+    expect(json).not.toContain('javascript:')
+  })
+
+  it('cannot re-enable stripped tags through the schema extension', () => {
+    const result = parse('<script>alert(1)</script><b>ok</b>', {
+      plugins: [
+        ...defaultPlugins,
+        htmlPlugin({ schema: { tags: ['script'] } }),
+      ],
+    })
+    const json = serialized(result.nodes)
+    expect(json).not.toContain('alert(1)')
+    expect(json).toContain('"tag":"b"')
+  })
+
+  it('keeps class on raw links, lists, and code', () => {
+    const result = parse(
+      '<a class="btn" href="/x">x</a><ul class="list"><li class="item">i</li></ul><code class="lang">c</code>',
+      { plugins: [...defaultPlugins, htmlPlugin()] },
+    )
+    const json = serialized(result.nodes)
+    expect(json).toContain('"class":"btn"')
+    expect(json).toContain('"class":"list"')
+    expect(json).toContain('"class":"item"')
+    expect(json).toContain('"class":"lang"')
+  })
+
+  it('converts multi-word ARIA properties to valid attribute names', () => {
+    expect(
+      propertiesToAttrs('div', {
+        ariaLabelledBy: ['heading'],
+        ariaDescribedBy: ['note'],
+      }),
+    ).toEqual({
+      'aria-labelledby': 'heading',
+      'aria-describedby': 'note',
+    })
+  })
+
+  it('keeps raster image data URLs and rejects SVG data URLs', () => {
+    const result = parse(
+      '<img src="data:image/png;base64,abc"><img src="data:image/svg+xml,<svg/>">',
+      { plugins: [...defaultPlugins, htmlPlugin()] },
+    )
+    const json = serialized(result.nodes)
+    expect(json).toContain('data:image/png;base64,abc')
+    expect(json).not.toContain('data:image/svg+xml')
+  })
+
+  it('keeps commas inside data URLs when validating srcset', () => {
+    expect(
+      sanitizeUrlValue('data:image/png;base64,AAAA 1x', 'srcset'),
+    ).toBe('data:image/png;base64,AAAA 1x')
+    expect(
+      sanitizeUrlValue('data:image/svg+xml,<svg/> 1x', 'srcset'),
+    ).toBeUndefined()
+    expect(
+      sanitizeUrlValue('a.png 1x, https://example.com/b.png 2x', 'srcset'),
+    ).toBe('a.png 1x, https://example.com/b.png 2x')
+  })
+
+  it('keeps a data URL intact in raw srcset output', () => {
+    const result = parse(
+      '<img srcset="data:image/png;base64,AAAA 1x">',
+      { plugins: [...defaultPlugins, htmlPlugin()] },
+    )
+    expect(serialized(result.nodes)).toContain(
+      'data:image/png;base64,AAAA 1x',
+    )
   })
 
   it('removes unsafe attributes even when a host plugin runs after sanitize', () => {
@@ -284,8 +395,7 @@ describe('malformed input corpus', () => {
     for (const source of corpus) {
       check(
         parse(source, {
-          rehypePlugins: [rehypeRaw],
-          allowHtml: true,
+          plugins: [...defaultPlugins, htmlPlugin()],
         }).nodes,
       )
     }

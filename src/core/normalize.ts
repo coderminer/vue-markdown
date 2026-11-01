@@ -23,8 +23,6 @@ export interface NormalizeOptions {
   disallowedElements?: string[]
   unwrapDisallowed?: boolean
   allowElement?: AllowElement
-  skipHtml?: boolean
-  allowHtml?: boolean
   diagnostics?: MarkdownDiagnostic[]
 }
 
@@ -228,18 +226,21 @@ function normalizeUrlAttribute(
   const resolved = resolveUrl(value, state.options.baseUrl)
   const transform = state.options.urlTransform
 
-  if (!transform) {
-    const transformed = defaultUrlTransform(resolved, key)
+  // `srcset` is a candidate list; validate each candidate with the image URL
+  // policy instead of running the whole string through defaultUrlTransform.
+  const applyDefaultPolicy = (candidate: string): string | undefined => {
+    if (key === 'srcset') return sanitizeUrlValue(candidate, 'srcset')
+    const transformed = defaultUrlTransform(candidate, key)
     if (transformed !== '') return transformed
-    return resolved.trim() === '' ? '' : undefined
+    return candidate.trim() === '' ? '' : undefined
   }
+
+  if (!transform) return applyDefaultPolicy(resolved)
 
   try {
     const result = transform(resolved, key, { tag, attrs })
     if (result === null) return undefined
-    if (typeof result !== 'string') {
-      return sanitizeUrlValue(defaultUrlTransform(resolved, key), key)
-    }
+    if (typeof result !== 'string') return applyDefaultPolicy(resolved)
     // A custom transform must not be able to introduce an unsafe URL.
     return sanitizeUrlValue(result, key)
   } catch (error) {
@@ -251,7 +252,7 @@ function normalizeUrlAttribute(
         }),
       )
     }
-    return sanitizeUrlValue(defaultUrlTransform(resolved, key), key)
+    return applyDefaultPolicy(resolved)
   }
 }
 
@@ -334,6 +335,12 @@ function convertElement(
     else attrs[key] = transformed
   }
 
+  // Keep static export and rendered links in sync: a raw `_blank` link without
+  // an explicit rel gets the same default the link component applies.
+  if (element.tagName === 'a' && attrs.target === '_blank' && !attrs.rel) {
+    attrs.rel = 'noopener noreferrer'
+  }
+
   if (/^h[1-6]$/.test(element.tagName) && !attrs.id) {
     const text = textContent(children)
     if (text.trim()) {
@@ -368,16 +375,10 @@ function convertChildren(
       return
     }
 
-    if (child.type === 'raw') {
-      if (state.options.skipHtml || !state.options.allowHtml) return
-      result.push({
-        kind: 'text',
-        key: path,
-        value: child.value,
-        source: toSourceRange(child),
-      })
-      return
-    }
+    // Raw nodes never reach the model. The official pipeline parses them into
+    // elements only when the html plugin is enabled; custom pipelines own their
+    // own raw HTML handling.
+    if (child.type === 'raw') return
 
     if (child.type !== 'element') return
 

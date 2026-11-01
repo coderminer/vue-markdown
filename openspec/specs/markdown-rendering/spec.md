@@ -107,19 +107,19 @@ The renderer SHALL apply a `urlTransform` function to every URL-bearing attribut
 
 ### Requirement: HTML handling modes
 
-Raw HTML SHALL be dropped by default. `skipHtml` SHALL remove raw HTML nodes explicitly. Raw HTML SHALL be rendered only when the host adds `rehype-raw` to `rehypePlugins`; the renderer SHALL NOT expose an `enableHtml` prop. When `rehype-raw` is present, `rehype-sanitize` SHALL run immediately after it and before any trusted transform. A host that enables raw HTML is making an explicit trust decision documented by the library.
+Raw HTML SHALL be dropped by default. It SHALL be rendered only when the host adds `htmlPlugin()` from `vue-markdown-suite/html`; the renderer SHALL NOT expose an `enableHtml` or `html` prop. When the html plugin is present, `rehype-sanitize` SHALL run immediately after `rehype-raw` and before any trusted transform. A manual `rehype-raw` in `rehypePlugins` SHALL be ignored with a warning. A host that enables raw HTML is making an explicit trust decision documented by the library.
 
 #### Scenario: Default drop
-- **WHEN** the source contains a raw HTML block and `rehype-raw` is not configured
+- **WHEN** the source contains a raw HTML block and the html plugin is not configured
 - **THEN** the block does not render
 
-#### Scenario: `skipHtml`
-- **WHEN** `skipHtml` is true and the source contains a raw HTML block
-- **THEN** the block is removed from the output
-
 #### Scenario: Sanitized HTML
-- **WHEN** `rehype-raw` is configured and the source contains a script element
+- **WHEN** the html plugin is configured and the source contains a script element
 - **THEN** the script element is removed before rendering
+
+#### Scenario: Manual parser ignored
+- **WHEN** a host configures `rehype-raw` directly through `rehypePlugins`
+- **THEN** the parser is ignored, a warning is reported, and the block does not render
 
 ### Requirement: CommonMark and GFM conformance
 
@@ -239,7 +239,7 @@ Rendered links SHALL use the configured link target, defaulting to `_self`. Open
 
 ### Requirement: Raw HTML safety
 
-Raw HTML SHALL be disabled by default. When a host explicitly enables it through `rehype-raw`, the renderer SHALL sanitize immediately with `rehype-sanitize`, removing script, style, iframe, object, and embed elements, stripping inline event-handler attributes, and dropping URL attributes that use unsafe protocols. A host-supplied sanitizer SHALL be expressed as a rehype plugin or a documented schema extension. The renderer SHALL document that built-in filtering is a guardrail and that enabling raw HTML is a trust decision.
+Raw HTML SHALL be disabled by default. When a host explicitly enables it through `htmlPlugin()`, the renderer SHALL sanitize immediately with `rehype-sanitize`, removing script, style, iframe, object, and embed elements, stripping inline event-handler attributes, and dropping URL attributes that use unsafe protocols. A host-supplied sanitizer extension SHALL be expressed through `htmlPlugin({ schema })` and SHALL be add-only. The renderer SHALL document that built-in filtering is a guardrail and that enabling raw HTML is a trust decision.
 
 #### Scenario: Raw HTML disabled by default
 - **WHEN** Markdown contains an HTML element and the host has not enabled raw HTML

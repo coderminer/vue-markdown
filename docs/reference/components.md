@@ -85,6 +85,15 @@ See [Rich components](../guide/rich-components.md) for standalone usage of
 `CodeBlock`, `VueSyntaxHighlighter`, `MermaidBlock`, `MermaidLiveEditor`, and
 `MarkdownMath`.
 
+## Component props
+
+Tag components receive the normalized `node` plus their resolved attributes.
+Rendered children arrive through the default slot. The raw child nodes are
+passed as a `children` prop only when the component declares `children`; this
+keeps Vue from leaking a `children` attribute onto elements. `defineAsyncComponent`
+wrappers do not expose the resolved component's props, so rely on the default
+slot or resolve the component before passing it.
+
 ## Parts, slots, and labels
 
 Every visual part exposes a stable class and a `data-vmd-part` attribute. New

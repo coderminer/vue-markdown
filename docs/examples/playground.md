@@ -34,19 +34,17 @@ import { MarkdownRenderer } from 'vue-markdown-suite'
 import { fullPlugins } from 'vue-markdown-suite/plugins'
 import { mathPlugin } from 'vue-markdown-suite/math'
 import { mermaidPlugin } from 'vue-markdown-suite/mermaid'
-import rehypeRaw from 'rehype-raw'
+import { htmlPlugin } from 'vue-markdown-suite/html'
 
 const source = ref(samples['All elements'])
 const theme = computed(() => (isDark.value ? 'dark' : 'light'))
-const plugins = [...fullPlugins, mathPlugin(), mermaidPlugin()]
-const rehypePlugins = [rehypeRaw]
+const plugins = [...fullPlugins, mathPlugin(), mermaidPlugin(), htmlPlugin()]
 </script>
 
 <template>
   <MarkdownRenderer
     v-model:source="source"
     :plugins="plugins"
-    :rehype-plugins="rehypePlugins"
     :theme="theme"
     toc
     show-error

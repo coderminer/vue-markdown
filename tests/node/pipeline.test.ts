@@ -5,6 +5,8 @@ import { createOfficialPipeline } from '../../src/pipeline'
 import { normalizeHast } from '../../src/core/normalize'
 import { buildDocument } from '../../src/core/model'
 import { useMarkdownDocument } from '../../src/composables/useMarkdownDocument'
+import { htmlPlugin } from '../../src/html'
+import { mathPlugin } from '../../src/math'
 import {
   defaultPlugins,
   frontmatterPlugin,
@@ -31,26 +33,21 @@ function findElement(nodes: MarkdownNode[], tag: string): MarkdownNode | undefin
   return undefined
 }
 
-function parse(source: string, rehypePlugins: PipelineContext['rehypePlugins'] = []) {
+function parse(
+  source: string,
+  plugins: PipelineContext['plugins'] = defaultPlugins,
+) {
+  const resolved = resolvePlugins(plugins)
   const slugger = new GithubSlugger()
   const ctx: PipelineContext = {
     source,
-    plugins: defaultPlugins,
-    remarkPlugins: [],
-    rehypePlugins,
+    options: {},
+    plugins: resolved.plugins,
+    remarkPlugins: resolved.remarkPlugins,
+    rehypePlugins: resolved.rehypePlugins,
     remarkRehypeOptions: {},
     slugger,
     idPrefix: '',
-    allowHtml: rehypePlugins.some((item) => {
-      const name = Array.isArray(item)
-        ? typeof item[0] === 'function'
-          ? item[0].name
-          : ''
-        : typeof item === 'function'
-          ? item.name
-          : ''
-      return /^rehype[-_]?raw$/i.test(name)
-    }),
     diagnostics: [],
   }
   const result = createOfficialPipeline().processSync!(source, ctx)
@@ -79,54 +76,155 @@ describe('pipeline stages and raw HTML', () => {
     expect(findElement(result.nodes, 'b')).toBeUndefined()
   })
 
-  it('drops raw HTML when skipHtml is set', () => {
-    const slugger = new GithubSlugger()
-    const ctx: PipelineContext = {
-      source: '<b>bold</b>\n\nHello',
-      plugins: defaultPlugins,
-      remarkPlugins: [],
-      rehypePlugins: [],
-      remarkRehypeOptions: {},
-      slugger,
-      idPrefix: '',
-      allowHtml: false,
-      diagnostics: [],
-    }
-    const result = createOfficialPipeline().processSync!(ctx.source, ctx)
-    const model = normalizeHast(result.hast, {
-      slugger: new GithubSlugger(),
-      skipHtml: true,
-      allowHtml: false,
-    })
-    expect(text(model.nodes)).toContain('Hello')
-    expect(findElement(model.nodes, 'b')).toBeUndefined()
+  it('renders sanitized HTML through the html plugin', () => {
+    const model = parse(
+      '<b>bold</b><script>alert(1)</script><a href="javascript:alert(1)">x</a>',
+      [...defaultPlugins, htmlPlugin()],
+    )
+    expect(text(model.nodes)).toContain('bold')
+    expect(text(model.nodes)).not.toContain('alert(1)')
+    expect(findElement(model.nodes, 'b')).toBeDefined()
+
+    const link = findElement(model.nodes, 'a')
+    expect(link?.kind).toBe('element')
+    if (link?.kind === 'element') expect(link.attrs.href).toBeUndefined()
   })
 
-  it('sanitizes HTML after rehype-raw', () => {
+  it('does not leak style content from raw HTML', () => {
+    const model = parse(
+      '<style>body{display:none}</style><b>bold</b>',
+      [...defaultPlugins, htmlPlugin()],
+    )
+    expect(text(model.nodes)).not.toContain('display:none')
+    expect(text(model.nodes)).toContain('bold')
+  })
+
+  it('ignores manual rehype-raw and reports a warning', () => {
     const slugger = new GithubSlugger()
+    const diagnostics: PipelineContext['diagnostics'] = []
     const ctx: PipelineContext = {
-      source: '<b>bold</b><script>alert(1)</script><a href="javascript:alert(1)">x</a>',
+      source: '<b>bold</b>',
+      options: {},
       plugins: defaultPlugins,
       remarkPlugins: [],
       rehypePlugins: [rehypeRaw],
       remarkRehypeOptions: {},
       slugger,
       idPrefix: '',
-      allowHtml: true,
+      diagnostics,
+    }
+    const result = createOfficialPipeline().processSync!(ctx.source, ctx)
+    const model = normalizeHast(result.hast, {
+      slugger: new GithubSlugger(),
+    })
+
+    expect(findElement(model.nodes, 'b')).toBeUndefined()
+    expect(diagnostics.some((item) => item.code === 'html-plugin')).toBe(true)
+  })
+
+  it('merges every html plugin and its schema extension', () => {
+    const extra = defineMarkdownPlugin({
+      name: 'html-extra',
+      html: true,
+      htmlSchema: {
+        tags: ['video'],
+        attributes: { video: ['src', 'controls'] },
+      },
+    })
+    const model = parse(
+      '<video src="/a.mp4" controls></video><b>bold</b>',
+      [...defaultPlugins, extra, htmlPlugin()],
+    )
+
+    expect(findElement(model.nodes, 'video')).toBeDefined()
+    expect(findElement(model.nodes, 'b')).toBeDefined()
+  })
+
+  it('drops raw nodes before an undetected manual parser can run', () => {
+    const wrapped = (options: unknown) => rehypeRaw(options as never)
+    const slugger = new GithubSlugger()
+    const ctx: PipelineContext = {
+      source: '<b>bold</b><script>alert(1)</script>',
+      options: {},
+      plugins: defaultPlugins,
+      remarkPlugins: [],
+      rehypePlugins: [wrapped as never],
+      remarkRehypeOptions: {},
+      slugger,
+      idPrefix: '',
       diagnostics: [],
     }
     const result = createOfficialPipeline().processSync!(ctx.source, ctx)
     const model = normalizeHast(result.hast, {
       slugger: new GithubSlugger(),
-      allowHtml: true,
     })
-    expect(text(model.nodes)).toContain('bold')
-    expect(text(model.nodes)).not.toContain('alert(1)')
 
-    const link = model.nodes.find(
-      (node) => node.kind === 'element' && node.tag === 'a',
-    )
-    expect(link).toBeUndefined()
+    expect(JSON.stringify(result.hast)).not.toContain('"tagName":"b"')
+    expect(JSON.stringify(result.hast)).not.toContain('"tagName":"script"')
+    expect(findElement(model.nodes, 'b')).toBeUndefined()
+    expect(findElement(model.nodes, 'script')).toBeUndefined()
+  })
+
+  it('keeps math nodes when the html plugin is enabled', () => {
+    const model = parse('Inline $E=mc^2$.', [
+      ...defaultPlugins,
+      mathPlugin(),
+      htmlPlugin(),
+    ])
+    const json = JSON.stringify(model.nodes)
+    expect(json).toContain('"kind":"math"')
+    expect(json).toContain('E=mc^2')
+    expect(json).toContain('"tag":"math"')
+  })
+
+  it('keeps dangerous tags stripped even when a schema extension lists them', () => {
+    const resolved = resolvePlugins([
+      ...defaultPlugins,
+      htmlPlugin({ schema: { tags: ['script', 'style'] } }),
+    ])
+    const ctx: PipelineContext = {
+      source: '<script>alert(1)</script><style>x</style><b>ok</b>',
+      options: {},
+      plugins: resolved.plugins,
+      remarkPlugins: resolved.remarkPlugins,
+      rehypePlugins: resolved.rehypePlugins,
+      remarkRehypeOptions: {},
+      slugger: new GithubSlugger(),
+      idPrefix: '',
+      diagnostics: [],
+    }
+    const result = createOfficialPipeline().processSync!(ctx.source, ctx)
+    const json = JSON.stringify(result.hast)
+
+    expect(json).not.toContain('"tagName":"script"')
+    expect(json).not.toContain('"tagName":"style"')
+    expect(json).toContain('"tagName":"b"')
+  })
+
+  it('keeps event handlers and inline styles out of a schema extension', () => {
+    const resolved = resolvePlugins([
+      ...defaultPlugins,
+      htmlPlugin({
+        schema: { attributes: { '*': ['onClick', 'style', 'srcdoc'] } },
+      }),
+    ])
+    const ctx: PipelineContext = {
+      source: '<div onclick="alert(1)" style="color:red" srcdoc="<b>x</b>">ok</div>',
+      options: {},
+      plugins: resolved.plugins,
+      remarkPlugins: resolved.remarkPlugins,
+      rehypePlugins: resolved.rehypePlugins,
+      remarkRehypeOptions: {},
+      slugger: new GithubSlugger(),
+      idPrefix: '',
+      diagnostics: [],
+    }
+    const result = createOfficialPipeline().processSync!(ctx.source, ctx)
+    const json = JSON.stringify(result.hast)
+
+    expect(json.toLowerCase()).not.toContain('onclick')
+    expect(json).not.toContain('"style"')
+    expect(json.toLowerCase()).not.toContain('srcdoc')
   })
 
   it('runs library slug output before host rehype plugins', () => {
@@ -152,7 +250,6 @@ describe('pipeline stages and raw HTML', () => {
       remarkRehypeOptions: {},
       slugger,
       idPrefix: '',
-      allowHtml: false,
       diagnostics: [],
     }
     const result = createOfficialPipeline().processSync!(ctx.source, ctx)
@@ -176,7 +273,6 @@ describe('pipeline stages and raw HTML', () => {
       remarkRehypeOptions: {},
       slugger,
       idPrefix: '',
-      allowHtml: false,
       diagnostics,
     }
     const result = createOfficialPipeline().processSync!(ctx.source, ctx)
@@ -203,7 +299,6 @@ describe('pipeline stages and raw HTML', () => {
       remarkRehypeOptions: {},
       slugger,
       idPrefix: '',
-      allowHtml: false,
     }
     const pipeline = createOfficialPipeline()
 
@@ -240,7 +335,6 @@ describe('pipeline stages and raw HTML', () => {
       remarkRehypeOptions: {},
       slugger: new GithubSlugger(),
       idPrefix: '',
-      allowHtml: false,
       diagnostics,
     }
     createOfficialPipeline().processSync!('# Title', ctx)
@@ -271,7 +365,6 @@ describe('safety and URL policy', () => {
       remarkRehypeOptions: {},
       slugger,
       idPrefix: '',
-      allowHtml: false,
       diagnostics: [],
     }
     const result = createOfficialPipeline().processSync!(ctx.source, ctx)
@@ -295,7 +388,6 @@ describe('safety and URL policy', () => {
       remarkRehypeOptions: {},
       slugger,
       idPrefix: '',
-      allowHtml: false,
       diagnostics: [],
     }
     const result = createOfficialPipeline().processSync!(ctx.source, ctx)
@@ -317,7 +409,6 @@ describe('safety and URL policy', () => {
       remarkRehypeOptions: {},
       slugger,
       idPrefix: '',
-      allowHtml: false,
       diagnostics: [],
     }
     const result = createOfficialPipeline().processSync!(ctx.source, ctx)
@@ -341,7 +432,6 @@ describe('safety and URL policy', () => {
       remarkRehypeOptions: {},
       slugger,
       idPrefix: 'doc-',
-      allowHtml: false,
       diagnostics: [],
     }
     const result = createOfficialPipeline().processSync!(ctx.source, ctx)
@@ -368,7 +458,6 @@ describe('filtering', () => {
       remarkRehypeOptions: {},
       slugger,
       idPrefix: '',
-      allowHtml: false,
       diagnostics: [],
     }
     const result = createOfficialPipeline().processSync!(source, ctx)

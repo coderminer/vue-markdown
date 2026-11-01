@@ -70,7 +70,7 @@ It is available on `getDocument()` and on the `ready` event.
 
 The test suite runs the CommonMark spec and a curated GFM fixture set:
 
-- CommonMark: 580/580 applicable examples pass. 72 examples are skipped because
+- CommonMark: 576/576 applicable examples pass. 76 examples are skipped because
   they depend on raw HTML, comments, or active content, which the suite drops or
   sanitizes by design.
 - GFM: 6/6 fixtures pass (tables, alignment, strikethrough, task lists,

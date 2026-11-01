@@ -23,6 +23,7 @@ the detailed behavior.
 | `vue-markdown-suite/math` | `mathPlugin`, `katexEngine`, math types |
 | `vue-markdown-suite/mermaid` | `mermaidPlugin`, lazy Mermaid runtime, SVG sanitizer |
 | `vue-markdown-suite/editor` | Lazy CodeMirror Mermaid editor |
+| `vue-markdown-suite/html` | `htmlPlugin`, sanitized raw HTML, schema extension |
 | `vue-markdown-suite/components/*` | One entry per public component |
 | `vue-markdown-suite/style.css` | Full optional stylesheet |
 | `vue-markdown-suite/styles/*.css` | Token, component, and math styles |
@@ -33,6 +34,7 @@ import { useMarkdownDocument, walkNodes } from 'vue-markdown-suite/headless'
 import { defineMarkdownPlugin, gfmPlugin } from 'vue-markdown-suite/plugins'
 import { mathPlugin } from 'vue-markdown-suite/math'
 import { mermaidPlugin } from 'vue-markdown-suite/mermaid'
+import { htmlPlugin } from 'vue-markdown-suite/html'
 import { shiki } from 'vue-markdown-suite/highlight/shiki'
 ```
 
@@ -66,10 +68,10 @@ renders the normalized document.
 | `regions` | `Partial<Record<string, Component \| string>>` | Structural region overrides. |
 | `labels` | `Partial<MarkdownLabels>` | Built-in text, string or function. |
 | `preset` | `MarkdownPreset \| MarkdownPreset[]` | One or more presets. |
-| `plugins` | `PluginInput[]` | Replaces the resolved plugin set when provided. |
+| `plugins` | `PluginInput[]` | Replaces the resolved plugin set when provided. Add `htmlPlugin()` for sanitized raw HTML. |
 | `disablePlugins` | `string[]` | Removes non-core plugins by name. |
 | `remarkPlugins` | `PluggableList` | Host remark plugins. |
-| `rehypePlugins` | `PluggableList` | Host rehype plugins. `rehype-raw` enables raw HTML. |
+| `rehypePlugins` | `PluggableList` | Host rehype plugins; runs after the built-in sanitizer. |
 | `remarkRehypeOptions` | `Record<string, unknown>` | Conversion options. |
 | `pipeline` | `MarkdownPipeline` | Custom pipeline; must return hast. |
 | `slugger` | `MarkdownSlugger` | Heading ID generator. |
@@ -87,7 +89,6 @@ renders the normalized document.
 | `baseUrl` | `string` | Resolves relative URLs. |
 | `idPrefix` | `string` | Prefixes heading IDs. |
 | `syncHash` | `boolean` | Updates the URL hash on heading navigation. |
-| `skipHtml` | `boolean` | Removes raw HTML nodes. |
 | `toc` | `boolean` | Renders the TOC region. |
 | `tocDepth` | `number` | Maximum heading level in the TOC. `0` means every level. |
 | `showError` | `boolean` | Renders the error region on failure. |
@@ -506,6 +507,8 @@ interface MarkdownPlugin {
   name: string
   core?: boolean
   phase?: 'pre' | 'normal' | 'post'
+  html?: boolean
+  htmlSchema?: HtmlSchemaExtension
   remarkPlugins?: PluggableList
   rehypePlugins?: PluggableList
   remarkRehypeOptions?: Record<string, unknown>
@@ -523,6 +526,9 @@ interface MarkdownPlugin {
   onError?(error: unknown, phase: DiagnosticPhase, ctx: PluginContext): void
 }
 ```
+
+`htmlPlugin()` from `vue-markdown-suite/html` sets `html: true`; its
+`HtmlSchemaExtension` adds `tags` and `attributes` for the raw HTML sanitizer.
 
 ```ts
 import { defineMarkdownPlugin } from 'vue-markdown-suite/plugins'

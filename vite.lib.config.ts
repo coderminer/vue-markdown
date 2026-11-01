@@ -54,6 +54,7 @@ export default defineConfig({
         'math/index': resolveSrc('./src/math/index.ts'),
         'mermaid/index': resolveSrc('./src/mermaid/index.ts'),
         'editor/index': resolveSrc('./src/editor/index.ts'),
+        'html/index': resolveSrc('./src/html/index.ts'),
         'components/index': resolveSrc('./src/components/index.ts'),
         ...componentEntries,
       },
@@ -68,6 +69,7 @@ export default defineConfig({
         'katex',
         'shiki',
         'mermaid',
+        'rehype-raw',
         /^@codemirror\//,
       ],
       output: {

@@ -6,7 +6,52 @@ import {
   type MarkdownTheme,
 } from 'vue-markdown-suite'
 
-const source = ref(`# Custom elements
+const props = withDefaults(defineProps<{ locale?: 'en' | 'zh' }>(), {
+  locale: 'en',
+})
+
+const text = computed(() =>
+  props.locale === 'zh'
+    ? {
+        kicker: '定制实验室',
+        theme: '主题',
+        accent: '强调色令牌',
+        toggleHeading: 'h1 → h2',
+        badgeLinks: '徽章链接',
+        callout: 'Callout 引用块',
+        skin: '作用域 CSS 皮肤',
+        note: '预览就是真实渲染器。切换任意一层，观察它影响的范围。',
+        calloutTitle: '自定义引用块',
+      }
+    : {
+        kicker: 'Customization lab',
+        theme: 'Theme',
+        accent: 'Accent token',
+        toggleHeading: 'h1 → h2',
+        badgeLinks: 'Badge links',
+        callout: 'Callout blockquotes',
+        skin: 'Scoped CSS skin',
+        note: 'The preview is the real renderer. Toggle a layer to see its surface.',
+        calloutTitle: 'Custom blockquote',
+      },
+)
+
+const source = ref(
+  props.locale === 'zh'
+    ? `# 自定义元素
+
+一段带 [链接](https://example.com) 和 **加粗文字** 的文字。
+
+> 引用块可以替换默认的 blockquote 渲染。
+
+- 列表保留语义
+- 代码块会懒加载高亮器
+
+\`\`\`ts
+const answer = 42
+\`\`\`
+`
+    : `# Custom elements
 
 A paragraph with a [link](https://example.com) and **strong text**.
 
@@ -18,7 +63,8 @@ A paragraph with a [link](https://example.com) and **strong text**.
 \`\`\`ts
 const answer = 42
 \`\`\`
-`)
+`,
+)
 
 const theme = ref<MarkdownTheme>('auto')
 const accent = ref('#7c3aed')
@@ -42,7 +88,7 @@ const Callout = defineComponent({
   setup(_, { slots }) {
     return () =>
       h('aside', { class: 'vmd-callout' }, [
-        h('strong', { class: 'vmd-callout-title' }, 'Custom blockquote'),
+        h('strong', { class: 'vmd-callout-title' }, text.value.calloutTitle),
         h('div', slots.default?.()),
       ])
   },
@@ -70,10 +116,10 @@ const tokens = computed(() => ({
 <template>
   <div class="vmd-lab">
     <aside class="vmd-lab-controls">
-      <p class="vmd-lab-kicker">Customization lab</p>
+      <p class="vmd-lab-kicker">{{ text.kicker }}</p>
 
       <label>
-        <span>Theme</span>
+        <span>{{ text.theme }}</span>
         <select v-model="theme">
           <option value="light">light</option>
           <option value="dark">dark</option>
@@ -83,32 +129,32 @@ const tokens = computed(() => ({
       </label>
 
       <label>
-        <span>Accent token</span>
+        <span>{{ text.accent }}</span>
         <input v-model="accent" type="color" />
       </label>
 
       <label class="vmd-lab-check">
         <input v-model="overrideHeading" type="checkbox" />
-        <span>h1 → h2</span>
+        <span>{{ text.toggleHeading }}</span>
       </label>
 
       <label class="vmd-lab-check">
         <input v-model="decorateLinks" type="checkbox" />
-        <span>Badge links</span>
+        <span>{{ text.badgeLinks }}</span>
       </label>
 
       <label class="vmd-lab-check">
         <input v-model="customCallout" type="checkbox" />
-        <span>Callout blockquotes</span>
+        <span>{{ text.callout }}</span>
       </label>
 
       <label class="vmd-lab-check">
         <input v-model="cssSkin" type="checkbox" />
-        <span>Scoped CSS skin</span>
+        <span>{{ text.skin }}</span>
       </label>
 
       <p class="vmd-lab-note">
-        The preview is the real renderer. Toggle a layer to see its surface.
+        {{ text.note }}
       </p>
     </aside>
 

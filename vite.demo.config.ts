@@ -57,6 +57,10 @@ export default defineConfig({
         replacement: resolveSrc('./src/editor/index.ts'),
       },
       {
+        find: 'vue-markdown-suite/html',
+        replacement: resolveSrc('./src/html/index.ts'),
+      },
+      {
         find: 'vue-markdown-suite',
         replacement: resolveSrc('./src/index.ts'),
       },

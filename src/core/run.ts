@@ -18,30 +18,14 @@ export interface MarkdownRun {
   plugins: ResolvedPlugins
   source: string
   context: PipelineContext
-  allowHtml: boolean
   slugger: MarkdownSlugger
   diagnostics: MarkdownDiagnostic[]
 }
 
-export function detectRawPlugin(
-  plugins: PipelineContext['rehypePlugins'],
-): boolean {
-  return plugins.some((item) => {
-    const name = Array.isArray(item)
-      ? typeof item[0] === 'function'
-        ? item[0].name
-        : ''
-      : typeof item === 'function'
-        ? item.name
-        : ''
-    return /^rehype[-_]?raw$/i.test(name)
-  })
-}
-
 /**
  * Resolve and prepare one non-reactive pipeline run. Export uses this helper so
- * source transforms, plugin resolution, slugger setup, and raw-HTML detection
- * match the composable's run.
+ * source transforms, plugin resolution, and slugger setup match the
+ * composable's run.
  */
 export function prepareMarkdownRun(
   source: string,
@@ -75,9 +59,6 @@ export function prepareMarkdownRun(
 
   const baseSlugger = options.slugger ?? new GithubSlugger()
   const slugger = withUniqueSlugs(baseSlugger)
-  const allowHtml =
-    detectRawPlugin(rehypePlugins) ||
-    resolvedPipeline.pipeline.capabilities?.html === true
 
   const context: PipelineContext = {
     source: transformedSource,
@@ -91,7 +72,6 @@ export function prepareMarkdownRun(
     },
     slugger,
     idPrefix: options.idPrefix ?? '',
-    allowHtml,
     diagnostics,
   }
 
@@ -100,7 +80,6 @@ export function prepareMarkdownRun(
     plugins,
     source: transformedSource,
     context,
-    allowHtml,
     slugger,
     diagnostics,
   }

@@ -7,7 +7,7 @@ Establishes a stable extension contract so parsing, document transformations, re
 
 ### Requirement: Plugin contract
 
-The library SHALL define a typed plugin contract with a unique name, optional ordering hint, optional remark and rehype plugin contributions, optional `remarkRehypeOptions`, optional source and document transforms, optional node/tag/region component contributions, optional labels, optional tokens, and optional setup/cleanup hooks. Plugins SHALL be authorable as plain objects and through a typed helper that infers options.
+The library SHALL define a typed plugin contract with a unique name, optional ordering hint, optional remark and rehype plugin contributions, optional `remarkRehypeOptions`, optional raw-HTML capability and sanitizer extension, optional source and document transforms, optional node/tag/region component contributions, optional labels, optional tokens, and optional setup/cleanup hooks. Plugins SHALL be authorable as plain objects and through a typed helper that infers options.
 
 #### Scenario: Minimal plugin
 - **WHEN** a host defines a plugin with only a name and a document transform
@@ -43,7 +43,7 @@ Plugins SHALL be registered per renderer or provider instance, not globally. Reg
 
 ### Requirement: Pipeline extension
 
-Plugins SHALL extend Markdown by contributing remark plugins, rehype plugins, and `remarkRehypeOptions`. Contributions SHALL run in the documented pipeline order, after source transforms and the parser and before model construction. A plugin SHALL NOT configure a parser object directly. Pipeline configuration SHALL preserve core safety rules and SHALL report failures without breaking unrelated plugins. A failing contribution SHALL be reported with the plugin name and stage and SHALL be passed to the owning plugin's `onError`. A cached processor SHALL use the current run's diagnostics rather than a previous run's context.
+Plugins SHALL extend Markdown by contributing remark plugins, rehype plugins, and `remarkRehypeOptions`. Contributions SHALL run in the documented pipeline order, after source transforms and the parser and before model construction. A plugin that declares `html: true` SHALL have its rehype contributions run before the built-in sanitizer; the official pipeline SHALL always sanitize those contributions with the library schema plus an optional add-only `htmlSchema` extension. A plugin SHALL NOT configure a parser object directly. Pipeline configuration SHALL preserve core safety rules and SHALL report failures without breaking unrelated plugins. A failing contribution SHALL be reported with the plugin name and stage and SHALL be passed to the owning plugin's `onError`. A cached processor SHALL use the current run's diagnostics rather than a previous run's context.
 
 #### Scenario: remark syntax plugin
 - **WHEN** a plugin contributes a remark plugin that adds custom syntax
@@ -52,6 +52,14 @@ Plugins SHALL extend Markdown by contributing remark plugins, rehype plugins, an
 #### Scenario: rehype transform
 - **WHEN** a plugin contributes a rehype plugin that rewrites links
 - **THEN** the transformed hast is normalized into the same core model
+
+#### Scenario: Raw HTML capability
+- **WHEN** a plugin declares `html: true` and contributes `rehype-raw`
+- **THEN** the parsed HTML is sanitized with the built-in schema before any host rehype plugin runs
+
+#### Scenario: Sanitizer extension cannot weaken safety
+- **WHEN** an `htmlSchema` extension adds a tag or attribute
+- **THEN** script and style stripping, event-handler removal, and unsafe-URL rejection still apply
 
 #### Scenario: Pipeline failure isolation
 - **WHEN** a plugin's remark or rehype plugin throws

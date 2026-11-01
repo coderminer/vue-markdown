@@ -50,6 +50,21 @@ export const ALLOWED_TAGS = new Set([
   'figure',
   'figcaption',
   'time',
+  'b',
+  'i',
+  's',
+  'u',
+  'q',
+  'ins',
+  'picture',
+  'source',
+  'ruby',
+  'rp',
+  'rt',
+  'samp',
+  'var',
+  'tt',
+  'strike',
 ])
 
 /** Tags whose content must never reach the model. */
@@ -126,6 +141,7 @@ const TAG_ATTRIBUTES: Record<string, readonly string[]> = {
   del: ['cite', 'datetime'],
   ins: ['cite', 'datetime'],
   time: ['datetime'],
+  source: ['src', 'srcset', 'sizes', 'media', 'type'],
   details: ['open'],
   code: ['class'],
   pre: ['class'],
@@ -161,7 +177,9 @@ function kebab(value: string): string {
 
 export function toAttributeName(key: string): string {
   if (/^data[A-Z]/.test(key)) return `data-${kebab(key.slice(4))}`
-  if (/^aria[A-Z]/.test(key)) return `aria-${kebab(key.slice(4))}`
+  // ARIA attribute names are lowercase concatenations, not kebab-case:
+  // ariaLabelledBy -> aria-labelledby, ariaValueText -> aria-valuetext.
+  if (/^aria[A-Z]/.test(key)) return `aria-${key.slice(4).toLowerCase()}`
   const alias = ATTRIBUTE_ALIASES[key.toLowerCase()]
   if (alias) return alias
   return key.includes('-') ? key.toLowerCase() : kebab(key)
@@ -183,6 +201,47 @@ function isSafeUrl(value: string, key: string): boolean {
   return value.trim() === '' || defaultUrlTransform(value, key) !== ''
 }
 
+interface SrcsetCandidate {
+  url: string
+  descriptor: string
+}
+
+/**
+ * Split a `srcset` value without breaking commas inside a `data:` URL. The URL
+ * runs until whitespace, matching the HTML candidate grammar; a trailing comma
+ * separates the next candidate.
+ */
+function parseSrcset(value: string): SrcsetCandidate[] {
+  const candidates: SrcsetCandidate[] = []
+  let index = 0
+
+  while (index < value.length) {
+    while (index < value.length && /[\s,]/.test(value[index]!)) index++
+    if (index >= value.length) break
+
+    const urlStart = index
+    while (index < value.length && !/\s/.test(value[index]!)) index++
+    let url = value.slice(urlStart, index)
+    let commaSeparated = false
+    while (url.endsWith(',')) {
+      url = url.slice(0, -1)
+      commaSeparated = true
+    }
+
+    let descriptor = ''
+    if (!commaSeparated) {
+      const descriptorStart = index
+      while (index < value.length && value[index] !== ',') index++
+      descriptor = value.slice(descriptorStart, index).trim()
+    }
+
+    if (url) candidates.push({ url, descriptor })
+    if (index < value.length && value[index] === ',') index++
+  }
+
+  return candidates
+}
+
 /**
  * Validate one URL-bearing attribute value. `srcset` holds a comma-separated
  * candidate list, so each candidate is checked individually.
@@ -192,13 +251,15 @@ export function sanitizeUrlValue(
   key: string,
 ): string | undefined {
   if (key === 'srcset') {
-    const safe = value
-      .split(',')
-      .map((part) => part.trim())
-      .filter((candidate) => {
-        const url = candidate.split(/\s+/)[0] ?? ''
-        return isSafeUrl(url, 'src')
-      })
+    const safe: string[] = []
+    for (const candidate of parseSrcset(value)) {
+      if (!isSafeUrl(candidate.url, 'src')) continue
+      safe.push(
+        candidate.descriptor
+          ? `${candidate.url} ${candidate.descriptor}`
+          : candidate.url,
+      )
+    }
     return safe.length > 0 ? safe.join(', ') : undefined
   }
   return isSafeUrl(value, key) ? value : undefined

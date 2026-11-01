@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import rehypeRaw from 'rehype-raw'
 import {
   exportMarkdownHtml,
   exportMarkdownHtmlSync,
 } from '../../src/export'
 import { defineMarkdownPlugin } from '../../src/plugins/define'
+import { defaultPlugins } from '../../src/plugins/builtin'
+import { htmlPlugin } from '../../src/html'
 import type { MarkdownDocument, MarkdownNode } from '../../src/core/types'
 
 describe('static export parity', () => {
@@ -93,6 +94,47 @@ describe('static export parity', () => {
   })
 })
 
+describe('static export plugin nodes', () => {
+  function withNode(node: MarkdownNode) {
+    return defineMarkdownPlugin({
+      name: 'export-plugin-node',
+      transformDocument(document: MarkdownDocument) {
+        return { ...document, nodes: [...document.nodes, node] }
+      },
+    })
+  }
+
+  it('serializes plugin node children under an addressable wrapper', () => {
+    const node: MarkdownNode = {
+      kind: 'plugin',
+      key: 'callout-1',
+      type: 'callout',
+      payload: { tone: 'info' },
+      children: [{ kind: 'text', key: 'callout-text', value: 'Note' }],
+    }
+    const html = exportMarkdownHtmlSync('Hello', { plugins: [withNode(node)] })
+    expect(html).toContain('data-vmd-part="plugin"')
+    expect(html).toContain('data-plugin-type="callout"')
+    expect(html).toContain('data-plugin-key="callout-1"')
+    expect(html).toContain('Note')
+    expect(html).not.toContain('data-plugin-unrendered')
+  })
+
+  it('keeps a placeholder for component-only plugin nodes instead of dropping them', () => {
+    const node: MarkdownNode = {
+      kind: 'plugin',
+      key: 'media-1',
+      type: 'media',
+      payload: { src: '/clip.mp4' },
+    }
+    const html = exportMarkdownHtmlSync('Hello', { plugins: [withNode(node)] })
+    expect(html).toContain('data-plugin-type="media"')
+    expect(html).toContain('data-plugin-key="media-1"')
+    expect(html).toContain('data-plugin-unrendered')
+    expect(html).not.toContain('/clip.mp4')
+  })
+})
+
 describe('static export security', () => {
   it('drops unsafe protocols', () => {
     const html = exportMarkdownHtmlSync(
@@ -104,24 +146,29 @@ describe('static export security', () => {
     expect(html).not.toContain('data:image/svg+xml')
   })
 
-  it('drops raw HTML by default and honors skipHtml', () => {
+  it('drops raw HTML by default', () => {
     const source = '<script>alert(1)</script>\n\n<b>bold</b>'
     const dropped = exportMarkdownHtmlSync(source)
     expect(dropped).not.toContain('<script')
     expect(dropped).not.toContain('<b>')
-
-    const skipped = exportMarkdownHtmlSync(source, { skipHtml: true })
-    expect(skipped).not.toContain('alert(1)')
   })
 
-  it('sanitizes raw HTML when rehype-raw is enabled', () => {
+  it('sanitizes raw HTML when the html plugin is enabled', () => {
     const html = exportMarkdownHtmlSync(
       '<script>alert(1)</script><img src="x" onerror="alert(1)"><b>bold</b>',
-      { rehypePlugins: [rehypeRaw] },
+      { plugins: [...defaultPlugins, htmlPlugin()] },
     )
     expect(html).not.toContain('<script')
     expect(html).not.toContain('onerror')
     expect(html).toContain('<b>bold</b>')
+  })
+
+  it('adds rel to raw _blank links in export', () => {
+    const html = exportMarkdownHtmlSync(
+      '<a href="https://example.com" target="_blank">x</a>',
+      { plugins: [...defaultPlugins, htmlPlugin()] },
+    )
+    expect(html).toContain('rel="noopener noreferrer"')
   })
 
   it('fails instead of returning partial output when a transform reports an error', () => {

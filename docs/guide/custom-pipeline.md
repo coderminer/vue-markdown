@@ -19,7 +19,7 @@ import { defineMarkdownPipeline } from 'vue-markdown-suite/pipeline'
 
 export const myPipeline = defineMarkdownPipeline({
   name: 'my-pipeline',
-  capabilities: { html: true, sync: true },
+  capabilities: { sync: true },
   process(source: string, ctx: PipelineContext): Promise<PipelineResult> {
     // ...
   },

@@ -48,7 +48,7 @@ features:
       width: 24
       height: 24
     title: Safe by default
-    details: Raw HTML is dropped, URLs are validated, and the sanitizer runs immediately after rehype-raw when you opt in.
+    details: Raw HTML is dropped by default; add htmlPlugin() from vue-markdown-suite/html and the built-in sanitizer runs immediately.
   - icon:
       src: /icons/brackets.svg
       alt: Headless core

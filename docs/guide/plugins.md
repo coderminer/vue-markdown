@@ -134,11 +134,10 @@ onError(error, phase, ctx) {
 ```vue
 <script setup lang="ts">
 import remarkGfm from 'remark-gfm'
-import rehypeRaw from 'rehype-raw'
 import rehypeHighlight from 'rehype-highlight'
 
 const remarkPlugins = [remarkGfm]
-const rehypePlugins = [rehypeRaw, rehypeHighlight]
+const rehypePlugins = [rehypeHighlight]
 </script>
 
 <template>
@@ -151,7 +150,9 @@ const rehypePlugins = [rehypeRaw, rehypeHighlight]
 ```
 
 Host remark plugins run after library remark plugins. Host rehype plugins run
-after library rehype plugins. Adding `rehype-raw` is what enables raw HTML.
+after library rehype plugins and after the built-in sanitizer. Raw HTML is not
+enabled through `rehypePlugins`: use `htmlPlugin()` from
+`vue-markdown-suite/html` so the parser and sanitizer stay paired.
 
 ## Built-in plugins
 
@@ -164,6 +165,7 @@ after library rehype plugins. Adding `rehype-raw` is what enables raw HTML.
 | `customTagsPlugin({ tags })` | Convert tags to custom nodes; a real document transform. |
 | `gfmPlugin` | `remark-gfm`. |
 | `frontmatterPlugin` | `remark-frontmatter` + YAML capture. |
+| `htmlPlugin()` | Optional `vue-markdown-suite/html` entry; sanitized raw HTML. |
 
 `defaultPlugins` is `[toc, code, link, search, custom-tags]`. The first three are
 core invariant markers: they remain in the resolved set for ordering and

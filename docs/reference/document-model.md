@@ -58,7 +58,7 @@ const {
 subset of renderer props: `components`, `plugins`, `disablePlugins`,
 `remarkPlugins`, `rehypePlugins`, `remarkRehypeOptions`, `pipeline`, `slugger`,
 `allowedElements`, `disallowedElements`, `unwrapDisallowed`, `allowElement`,
-`urlTransform`, `baseUrl`, `idPrefix`, and `skipHtml`.
+`urlTransform`, `baseUrl`, and `idPrefix`.
 
 The composable also exposes plugin contributions:
 

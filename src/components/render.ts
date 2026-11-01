@@ -332,6 +332,27 @@ function childrenRenderer(
   return () => renderNodes(node.children, ctx)
 }
 
+const childrenPropCache = new WeakMap<object, boolean>()
+
+/**
+ * `children` is a DOM property on elements, so forwarding it to a string tag or
+ * to a component that does not declare it makes Vue warn or leak the node array
+ * into an attribute. Only components that opt in with a `children` prop receive
+ * the raw child nodes; everything else reads the rendered default slot.
+ */
+function declaresChildrenProp(component: Component): boolean {
+  const cached = childrenPropCache.get(component as object)
+  if (cached !== undefined) return cached
+  const declared = (component as { props?: unknown }).props
+  const result = Array.isArray(declared)
+    ? declared.indexOf('children') !== -1
+    : declared !== null &&
+      typeof declared === 'object' &&
+      Object.prototype.hasOwnProperty.call(declared, 'children')
+  childrenPropCache.set(component as object, result)
+  return result
+}
+
 function renderComponent(
   component: Component | string,
   node: MarkdownNode,
@@ -340,10 +361,16 @@ function renderComponent(
   extraProps: Record<string, unknown> = {},
   children?: () => VNodeChild[],
 ): VNodeChild {
-  const props = {
+  const props: Record<string, unknown> = {
     ...attrs,
     ...extraProps,
     key: node.key,
+  }
+  if (
+    'children' in props &&
+    (typeof component === 'string' || !declaresChildrenProp(component))
+  ) {
+    delete props.children
   }
   const slot = children ?? (() => [])
   if (typeof component === 'string') return h(component, props, slot)
@@ -537,9 +564,13 @@ function renderNodeDefault(node: MarkdownNode, ctx: RenderContext): VNodeChild {
       }
       const resolved = component ?? BUILTINS[node.tag]
       if (!resolved) {
+        const attrs = { ...node.attrs }
+        // A string tag cannot receive a `children` prop; keep it out of the DOM
+        // attribute set even if a custom pipeline or schema added one.
+        delete attrs.children
         return h(
           node.tag,
-          { ...node.attrs, key: node.key },
+          { ...attrs, key: node.key },
           childrenRenderer(node, ctx),
         )
       }

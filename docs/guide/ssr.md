@@ -57,7 +57,7 @@ const sync = exportMarkdownHtmlSync('# Hello')
 Both helpers run the same pipeline and finalization as the renderer, then
 stringify the normalized document with `rehype-stringify`. Export therefore
 applies the same sanitization, element filtering, URL policy, `baseUrl`,
-`skipHtml`, heading IDs, and plugin document transforms as rendering. The render
+heading IDs, and plugin document transforms as rendering. The render
 path never calls `rehype-stringify`; export is an explicit, separate helper.
 
 Options are the same parse-affecting options as the renderer:
@@ -74,11 +74,24 @@ exportMarkdownHtmlSync(source, {
 path. `exportMarkdownHtml` throws when the run produces an error diagnostic
 instead of returning a partial document.
 
+Plugin nodes keep their identity in the output: they serialize as a `span`
+wrapper carrying `data-vmd-part="plugin"`, `data-plugin-type`, and
+`data-plugin-key`, so a client can find and hydrate them. When a plugin node
+renders only through a host component it has no serializable content, and export
+cannot invent any. Instead of dropping the node, export writes an empty
+placeholder marked `data-plugin-unrendered`. Give the plugin node children, or
+mount the component on the client, when the static HTML must contain the
+content.
+
 ## Hydration
 
 The client and server must use the same source, plugins, and parse-affecting
 options. Presentation-only options — tokens, labels, active heading — can differ
 without changing the document structure.
+
+`htmlPlugin()` is parse-affecting: it adds `rehype-raw`, which re-parses the
+whole hast tree. Include or omit it identically on the server and client, even
+for documents that contain no raw HTML.
 
 ## Next
 

@@ -16,7 +16,7 @@ plugin transformSource    (in resolved plugin order)
   -> library remark plugins
   -> host remarkPlugins
   -> remark-rehype        (allowDangerousHtml: true)
-  -> rehype-raw           (only when the host adds it)
+  -> rehype-raw           (only when the html plugin is enabled)
   -> rehype-sanitize      (immediately after rehype-raw)
   -> core heading IDs
   -> host rehypePlugins
@@ -26,8 +26,11 @@ plugin transformSource    (in resolved plugin order)
 This order is a contract. Source transforms are applied by `useMarkdownDocument`
 and the static export helpers before the pipeline starts; a direct
 `createOfficialPipeline` caller is responsible for passing already-transformed
-source. A host rehype plugin runs after core heading-ID work, and sanitization
-always runs immediately after raw parsing.
+source. A host rehype plugin runs after core heading-ID work. Raw HTML is enabled
+by adding `htmlPlugin()` to `plugins`, never by adding `rehype-raw` to
+`rehypePlugins`; the pipeline ignores a manual parser and reports a warning.
+Without the html plugin, raw nodes are dropped before host rehype plugins run,
+so a wrapped or minified manual parser has no effect either.
 
 ## Use it directly
 
@@ -46,7 +49,6 @@ const result = await pipeline.process('# Hello', {
   remarkRehypeOptions: {},
   slugger: new GithubSlugger(),
   idPrefix: '',
-  allowHtml: false,
   diagnostics: [],
 })
 

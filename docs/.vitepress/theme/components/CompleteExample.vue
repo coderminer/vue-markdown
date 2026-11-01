@@ -25,7 +25,35 @@ import { mathPlugin } from 'vue-markdown-suite/math'
 
 const { isDark } = useData()
 
-const article = `---
+const props = withDefaults(defineProps<{ locale?: 'en' | 'zh' }>(), {
+  locale: 'en',
+})
+
+const text = computed(() =>
+  props.locale === 'zh'
+    ? {
+        kicker: '文档门户',
+        search: '搜索本文',
+        export: '导出 HTML',
+        onThisPage: '本页目录',
+        emptyToc: '添加标题后会生成目录。',
+        callout: '提示',
+        exported: (length: string) => `已导出 ${length} 个字符。`,
+        exportFailed: '静态导出失败。',
+      }
+    : {
+        kicker: 'Docs portal',
+        search: 'Search this article',
+        export: 'Export HTML',
+        onThisPage: 'On this page',
+        emptyToc: 'Add headings to build the TOC.',
+        callout: 'Note',
+        exported: (length: string) => `Exported ${length} characters.`,
+        exportFailed: 'Static export failed.',
+      },
+)
+
+const articleEn = `---
 title: Build a documentation portal
 description: A complete page built with the public API only.
 author: Vue Markdown Suite
@@ -92,9 +120,75 @@ Static export applies the same plugins, sanitizer, URL policy, and heading IDs.
 Use the **Export HTML** button to download this article as a standalone file.
 `
 
+const articleZh = `---
+title: 搭建文档门户
+description: 只用公共 API 构建的完整页面。
+author: Vue Markdown Suite
+---
+
+# 搭建文档门户
+
+生产级文档页面不只需要 Markdown 解析。它还需要导航、搜索、安全渲染、富代码、数学公式，
+以及一套保持一致的设计系统。这个示例用一个渲染器把它们组合起来。
+
+> **这里的一切都是公共 API。** 页面使用了预设、插件、节点组件、令牌、搜索、目录和
+> 静态导出，没有触碰任何内部模块。
+
+## 从文档开始
+
+无头组合式函数负责解析、记忆化、状态和诊断。渲染器包装同一个组合式函数，并加上预设
+标记、区域和插槽。
+
+\`\`\`ts
+const { document, toc, status, diagnostics } = useMarkdownDocument(source, {
+  plugins: [tocPlugin, codePlugin, linkPlugin, gfmPlugin, mathPlugin()],
+})
+\`\`\`
+
+## 用插件组合行为
+
+插件是普通对象。这个页面加入搜索插件，以及一个贡献文案、令牌和文档元数据的增强插件。
+
+| 层 | 职责 |
+| --- | --- |
+| 插件 | 解析行为、变换、文案、令牌 |
+| 预设 | 可共享的文案和令牌默认值 |
+| 节点组件 | 引用块和链接的 Vue 渲染 |
+| 渲染器 | 目录、事件、区域和状态 |
+
+## 让它可搜索
+
+在上方搜索框输入文字。匹配项会被包进 \`search-match\` 部件，而不改变文档结构，因此高亮
+仍然可访问、可选中。
+
+## 渲染数学
+
+行内公式如 $E = mc^2$，以及块级公式，都由可选数学入口通过 KaTeX 渲染：
+
+$$
+\\int_0^1 x^2 \\, dx = \\frac{1}{3}
+$$
+
+## 跟踪进度
+
+- [x] Markdown 渲染
+- [x] 搜索与导航
+- [x] 可访问的代码块
+- [ ] 发布文档
+
+## 导出同一份文档
+
+静态导出应用相同的插件、净化器、URL 策略和标题 ID。使用 **导出 HTML** 按钮把本文下载
+为独立文件。
+`
+
+const article = props.locale === 'zh' ? articleZh : articleEn
+
+const tocLabel = props.locale === 'zh' ? '本页目录' : 'On this page'
+
 const docsPlugin = defineMarkdownPlugin({
   name: 'docs-enhancements',
-  labels: { toc: 'On this page' },
+  labels: { toc: tocLabel },
   transformDocument(document) {
     return {
       ...document,
@@ -106,7 +200,7 @@ const docsPlugin = defineMarkdownPlugin({
 const portalPreset = composePresets(
   defineMarkdownPreset({
     name: 'portal-base',
-    labels: { toc: 'On this page' },
+    labels: { toc: tocLabel },
   }),
   defineMarkdownPreset({
     name: 'portal-accent',
@@ -145,7 +239,7 @@ const Callout = defineComponent({
   setup(_, { slots }) {
     return () =>
       h('aside', { class: 'vmd-callout' }, [
-        h('strong', { class: 'vmd-callout-title' }, 'Note'),
+        h('strong', { class: 'vmd-callout-title' }, text.value.callout),
         h('div', slots.default?.()),
       ])
   },
@@ -196,10 +290,10 @@ function exportHtml(): void {
     anchor.click()
     anchor.parentNode?.removeChild(anchor)
     window.setTimeout(() => URL.revokeObjectURL(url), 1000)
-    exportMessage.value = `Exported ${html.length.toLocaleString()} characters.`
+    exportMessage.value = text.value.exported(html.length.toLocaleString())
   } catch (error) {
     exportMessage.value =
-      error instanceof Error ? error.message : 'Static export failed.'
+      error instanceof Error ? error.message : text.value.exportFailed
   }
 }
 </script>
@@ -208,26 +302,26 @@ function exportHtml(): void {
   <div class="vmd-portal">
     <header class="vmd-portal-bar">
       <div class="vmd-portal-brand">
-        <span class="vmd-portal-kicker">Docs portal</span>
-        <strong>{{ meta('title') || 'Build a documentation portal' }}</strong>
+        <span class="vmd-portal-kicker">{{ text.kicker }}</span>
+        <strong>{{ meta('title') || (props.locale === 'zh' ? '搭建文档门户' : 'Build a documentation portal') }}</strong>
         <span v-if="meta('description')">{{ meta('description') }}</span>
       </div>
       <div class="vmd-portal-tools">
         <input
           v-model="query"
           type="search"
-          placeholder="Search this article"
-          aria-label="Search this article"
+          :placeholder="text.search"
+          :aria-label="text.search"
         />
         <button type="button" class="vmd-portal-button" @click="exportHtml">
-          Export HTML
+          {{ text.export }}
         </button>
       </div>
     </header>
 
     <div class="vmd-portal-body">
-      <aside class="vmd-portal-toc" aria-label="On this page">
-        <strong>On this page</strong>
+      <aside class="vmd-portal-toc" :aria-label="text.onThisPage">
+        <strong>{{ text.onThisPage }}</strong>
         <ol v-if="toc.length > 0">
           <li
             v-for="item in toc"
@@ -239,7 +333,7 @@ function exportHtml(): void {
             </a>
           </li>
         </ol>
-        <p v-else class="vmd-portal-message">Add headings to build the TOC.</p>
+        <p v-else class="vmd-portal-message">{{ text.emptyToc }}</p>
         <p v-if="exportMessage" class="vmd-portal-message">{{ exportMessage }}</p>
         <p v-if="diagnostics.length > 0" class="vmd-portal-diagnostic">
           {{ diagnostics[0]?.message }}

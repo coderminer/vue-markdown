@@ -31,19 +31,23 @@ The library SHALL render untrusted Markdown as Vue nodes and SHALL NOT use `v-ht
 
 ### Requirement: Raw HTML is opt-in and sanitized
 
-Raw HTML SHALL be dropped by default. `skipHtml` SHALL remove raw HTML explicitly. Raw HTML SHALL be enabled only by adding `rehype-raw` to `rehypePlugins`. When enabled, `rehype-sanitize` SHALL run immediately after `rehype-raw` and before any trusted transform or host rehype plugin. The default schema SHALL block `script`, `style`, `iframe`, `object`, and `embed`, strip event-handler attributes, and restrict URLs and attributes.
+Raw HTML SHALL be dropped by default. It SHALL be enabled only through the official optional `vue-markdown-suite/html` entry, whose `htmlPlugin()` contributes `rehype-raw`. When the plugin is present, `rehype-sanitize` SHALL run immediately after `rehype-raw` and before any trusted transform or host rehype plugin. The default schema SHALL block `script`, `style`, `iframe`, `object`, and `embed`, strip event-handler attributes, and restrict URLs and attributes. A manual `rehype-raw` in `rehypePlugins` SHALL be ignored with a warning.
 
 #### Scenario: Default drop
 - **WHEN** raw HTML is not enabled
 - **THEN** raw HTML nodes are removed from the document model
 
 #### Scenario: Sanitizer ordering
-- **WHEN** `rehype-raw` is enabled
+- **WHEN** the html plugin is enabled
 - **THEN** sanitization runs before host rehype plugins and before model construction
 
 #### Scenario: Dangerous element
 - **WHEN** enabled raw HTML contains an `iframe` or an `onclick` attribute
 - **THEN** the element or attribute is removed by the sanitizer
+
+#### Scenario: Manual parser ignored
+- **WHEN** a host adds `rehype-raw` to `rehypePlugins` instead of using `htmlPlugin()`
+- **THEN** the pipeline ignores the manual parser, reports a warning, and raw HTML remains dropped
 
 ### Requirement: URL policy
 
@@ -103,7 +107,7 @@ KaTeX, highlighter, and Mermaid output SHALL be treated as trusted engine output
 
 ### Requirement: Sanitizer customization
 
-A host SHALL be able to customize raw-HTML sanitization through a rehype plugin or a documented schema extension. A custom sanitizer SHALL run inside the documented pipeline order and SHALL NOT bypass URL and attribute safety for content it does not explicitly handle.
+A host SHALL be able to customize raw-HTML sanitization through the add-only `htmlPlugin({ schema })` extension. The extension SHALL be able to add tags and properties and SHALL NOT remove the built-in strip list, change the URL policy, or bypass attribute safety. A custom pipeline SHALL run its own sanitizer inside the documented pipeline order.
 
 #### Scenario: Custom schema
 - **WHEN** a host extends the sanitizer schema to allow an additional safe element
@@ -131,7 +135,7 @@ Plugins SHALL be documented as trusted code. A plugin SHALL NOT be able to silen
 
 ### Requirement: Security tests
 
-The repository SHALL include automated security tests covering unsafe protocols, event handlers, raw HTML, `skipHtml`, sanitizer ordering, `data:` URLs including SVG, custom tags, plugin bypass attempts, Mermaid output, KaTeX trust, and a fuzz corpus of malformed HTML and Markdown.
+The repository SHALL include automated security tests covering unsafe protocols, event handlers, raw HTML, sanitizer ordering, `data:` URLs including SVG, custom tags, plugin bypass attempts, Mermaid output, KaTeX trust, and a fuzz corpus of malformed HTML and Markdown.
 
 #### Scenario: Security suite
 - **WHEN** the security test suite runs

@@ -21,6 +21,7 @@ complete export index.
 | `vue-markdown-suite/math` | `mathPlugin`, `katexEngine`, math types |
 | `vue-markdown-suite/mermaid` | `mermaidPlugin`, lazy Mermaid runtime, and SVG sanitizer |
 | `vue-markdown-suite/editor` | Lazy CodeMirror integration |
+| `vue-markdown-suite/html` | `htmlPlugin()` for sanitized raw HTML |
 | `vue-markdown-suite/components/*` | One entry per public component |
 | `vue-markdown-suite/style.css` | Full optional stylesheet |
 | `vue-markdown-suite/styles/tokens.css` | Design tokens only |
@@ -44,20 +45,22 @@ import { defineMarkdownPlugin, gfmPlugin } from 'vue-markdown-suite/plugins'
 import { shiki } from 'vue-markdown-suite/highlight/shiki'
 import { mathPlugin } from 'vue-markdown-suite/math'
 import { mermaidPlugin, renderMermaid } from 'vue-markdown-suite/mermaid'
+import { htmlPlugin } from 'vue-markdown-suite/html'
 ```
 
 ## Bundle boundaries
 
 ::: warning Keep engines optional
 The headless, pipeline, and plugins entries must not import highlight.js, Shiki,
-KaTeX, Mermaid, or CodeMirror. Optional engines stay behind their own entries or
-dynamic chunks.
+KaTeX, Mermaid, CodeMirror, or `rehype-raw`. Optional engines stay behind their
+own entries or dynamic chunks.
 :::
 
 - A document without code never loads the highlighter.
 - A document without math never loads KaTeX.
 - Mermaid loads only when a Mermaid component renders.
 - The Mermaid editor loads CodeMirror only when mounted.
+- The HTML parser loads only when `vue-markdown-suite/html` is imported.
 - The core is DOM-free and Vue-free; the Vue adapter depends downward on it.
 
 ## Styles

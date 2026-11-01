@@ -17,7 +17,6 @@ export interface FinalizeDocumentOptions {
   options: MarkdownDocumentOptions
   plugins: ResolvedPlugins
   pipelineName: string
-  allowHtml: boolean
   slugger: MarkdownSlugger
   idPrefix: string
   diagnostics: MarkdownDiagnostic[]
@@ -37,7 +36,6 @@ export function finalizeMarkdownDocument(
     options,
     plugins,
     pipelineName,
-    allowHtml,
     slugger,
     idPrefix,
     diagnostics,
@@ -52,8 +50,6 @@ export function finalizeMarkdownDocument(
     disallowedElements: options.disallowedElements,
     unwrapDisallowed: options.unwrapDisallowed,
     allowElement: options.allowElement,
-    skipHtml: options.skipHtml,
-    allowHtml,
     diagnostics,
   })
 

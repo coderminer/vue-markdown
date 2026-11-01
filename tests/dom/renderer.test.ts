@@ -1,12 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { defineComponent, h, isReactive, nextTick, ref } from 'vue'
-import rehypeRaw from 'rehype-raw'
 import MarkdownRenderer from '../../src/components/MarkdownRenderer.vue'
 import {
   customTagsPlugin,
+  defaultPlugins,
   searchPlugin,
 } from '../../src/plugins/builtin'
+import { htmlPlugin } from '../../src/html'
 import { defineMarkdownPlugin } from '../../src/plugins/define'
 import { createOfficialPipeline } from '../../src/pipeline'
 import type {
@@ -405,7 +406,7 @@ describe('search and raw HTML', () => {
   it('renders raw HTML through element components without an html part', () => {
     const wrapper = renderer({
       source: '<b>bold</b>\n\nHello',
-      rehypePlugins: [rehypeRaw],
+      plugins: [...defaultPlugins, htmlPlugin()],
       components: { b: 'strong' },
     })
     expect(wrapper.find('strong').text()).toBe('bold')
@@ -419,13 +420,13 @@ describe('search and raw HTML', () => {
 
     const enabled = renderer({
       source: '<b>bold</b>\n\nHello',
-      rehypePlugins: [rehypeRaw],
+      plugins: [...defaultPlugins, htmlPlugin()],
     })
     expect(enabled.find('b').text()).toBe('bold')
 
     const dangerous = renderer({
       source: '<b>bold</b><script>alert(1)</script>',
-      rehypePlugins: [rehypeRaw],
+      plugins: [...defaultPlugins, htmlPlugin()],
     })
     expect(dangerous.html()).not.toContain('<script')
     expect(dangerous.html()).not.toContain('alert(1)')

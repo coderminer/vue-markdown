@@ -4,9 +4,10 @@ import { VFile } from 'vfile'
 import remarkParse from 'remark-parse'
 import remarkRehype from 'remark-rehype'
 import rehypeSanitize from 'rehype-sanitize'
-import { defaultSchema } from 'hast-util-sanitize'
+import { defaultSchema, type Schema } from 'hast-util-sanitize'
 import { visit } from 'unist-util-visit'
 import type {
+  HtmlSchemaExtension,
   MarkdownPipeline,
   MarkdownPlugin,
   PipelineCapabilities,
@@ -16,11 +17,11 @@ import type {
 } from '../core/types'
 import { identityOf, listIdentity } from '../core/identity'
 import { createDiagnostic, errorMessage } from '../core/diagnostics'
+import { ALLOWED_TAGS, DANGEROUS_TAGS } from '../core/security'
 
 const CONTEXT_KEY = 'vmdPipelineContext'
 
 const CAPABILITIES: PipelineCapabilities = {
-  html: false,
   sync: true,
   plugins: true,
 }
@@ -156,7 +157,21 @@ export function pluginName(item: unknown): string {
 }
 
 function isRehypeRaw(item: Pluggable): boolean {
+  // Best-effort only: the supported path takes the parser by reference from
+  // htmlPlugin(), and raw nodes are dropped before host rehype plugins run, so
+  // a wrapped or minified manual parser cannot affect the result.
   return /^rehype[-_]?raw$/i.test(pluginName(item))
+}
+
+function rehypeDropRaw() {
+  return () => (tree: Root) => {
+    visit(tree, 'raw', (node, index, parent) => {
+      if (parent && typeof index === 'number') {
+        parent.children.splice(index, 1)
+        return index
+      }
+    })
+  }
 }
 
 function textContent(node: unknown): string {
@@ -183,8 +198,98 @@ function rehypeHeadingIds(options: { slugger: PipelineContext['slugger']; idPref
   }
 }
 
-function sanitizeSchema() {
-  return { ...defaultSchema, clobberPrefix: '' }
+function sanitizeSchema(
+  extensions: Array<HtmlSchemaExtension | undefined>,
+): Schema {
+  const defaults = defaultSchema.attributes ?? {}
+  const tagNames = [...ALLOWED_TAGS]
+  const attributes = {
+    ...defaults,
+    '*': [
+      ...(defaults['*'] ?? []),
+      'className',
+      'data*',
+      'role',
+      'hidden',
+      'ariaLabel',
+      'ariaLabelledBy',
+      'ariaDescribedBy',
+      'ariaHidden',
+      'ariaCurrent',
+      'ariaExpanded',
+      'ariaControls',
+      'ariaLive',
+    ],
+    a: [...(defaults.a ?? []), 'target', 'rel', 'download'],
+    img: [
+      ...(defaults.img ?? []),
+      'srcSet',
+      'sizes',
+      'loading',
+      'decoding',
+    ],
+    source: ['src', 'srcSet', 'media', 'sizes', 'type'],
+  } as NonNullable<Schema['attributes']>
+  const protocols = {
+    ...(defaultSchema.protocols ?? {}),
+    // The core URL policy still rejects data:image/svg+xml and non-image data
+    // URLs; allowing data here keeps raster image data URLs at parity with
+    // Markdown image syntax.
+    src: ['http', 'https', 'data'],
+  } as NonNullable<Schema['protocols']>
+
+  // `hast-util-sanitize` checks tag-specific definitions before the `'*'`
+  // fallback. Replace the restrictive `className` entries (for example
+  // `code: [['className', /^language-./]]`) with an unconstrained definition
+  // so raw HTML classes and math classes survive. Class names are not
+  // executable, and the core model builder keeps its global class policy.
+  for (const tag of Object.keys(attributes)) {
+    if (tag === '*') continue
+    const definitions = attributes[tag]
+    if (
+      !definitions.some(
+        (entry) => (typeof entry === 'string' ? entry : entry[0]) === 'className',
+      )
+    ) {
+      continue
+    }
+    attributes[tag] = [
+      'className',
+      ...definitions.filter(
+        (entry) => (typeof entry === 'string' ? entry : entry[0]) !== 'className',
+      ),
+    ]
+  }
+
+  for (const extension of extensions) {
+    if (!extension) continue
+    for (const tag of extension.tags ?? []) {
+      // tagNames membership short-circuits the strip list in
+      // hast-util-sanitize, so a dangerous tag must never be added here.
+      if (DANGEROUS_TAGS.has(tag)) continue
+      if (tagNames.indexOf(tag) === -1) tagNames.push(tag)
+    }
+    for (const tag of Object.keys(extension.attributes ?? {})) {
+      const extra = (extension.attributes?.[tag] ?? []).filter((name) => {
+        const lower = name.toLowerCase()
+        return (
+          !lower.startsWith('on') &&
+          lower !== 'style' &&
+          lower !== 'srcdoc'
+        )
+      })
+      attributes[tag] = [...(attributes[tag] ?? []), ...extra]
+    }
+  }
+
+  return {
+    ...defaultSchema,
+    clobberPrefix: '',
+    tagNames,
+    strip: [...DANGEROUS_TAGS],
+    attributes,
+    protocols,
+  }
 }
 
 export interface OfficialPipelineOptions {
@@ -198,9 +303,27 @@ export function createOfficialPipeline(
   let cachedProcessor: AnyProcessor | undefined
 
   const build = (ctx: PipelineContext): AnyProcessor => {
-    const rawItems = ctx.rehypePlugins.filter(isRehypeRaw)
-    const hostRehype = ctx.rehypePlugins.filter((item) => !isRehypeRaw(item))
+    const htmlPlugins = ctx.plugins.filter((plugin) => plugin.html === true)
+    const rawItems: Pluggable[] = []
+    for (const plugin of htmlPlugins) {
+      if (plugin.rehypePlugins) rawItems.push(...plugin.rehypePlugins)
+    }
     const hasRaw = rawItems.length > 0
+    const hostRehype = ctx.rehypePlugins.filter((item) => {
+      if (rawItems.indexOf(item) !== -1) return false
+      if (!isRehypeRaw(item)) return true
+      // Manual rehype-raw bypasses the guaranteed sanitizer and the documented
+      // stage order. It is ignored, and raw nodes are dropped before host
+      // plugins run, so a wrapped parser cannot inject elements either.
+      ctx.diagnostics.push(
+        createDiagnostic(
+          'html-plugin',
+          'Raw HTML is enabled with `htmlPlugin()` from "vue-markdown-suite/html"; manual rehype-raw is ignored.',
+          { severity: 'warning', phase: 'pipeline', plugin: 'html' },
+        ),
+      )
+      return false
+    })
 
     const key = [
       ctx.plugins.map((plugin) => identityOf(plugin)).join(','),
@@ -210,6 +333,7 @@ export function createOfficialPipeline(
       identityOf(ctx.remarkRehypeOptions),
       identityOf(ctx.slugger),
       ctx.idPrefix,
+      htmlPlugins.map((plugin) => identityOf(plugin.htmlSchema)).join(','),
       hasRaw ? '1' : '0',
     ].join('\u001e')
 
@@ -230,7 +354,12 @@ export function createOfficialPipeline(
       for (const item of rawItems) {
         useItem(processor, guardItem(item, 'rehype', ownerOf(ctx, item, 'rehype'), ctx))
       }
-      processor.use(rehypeSanitize, sanitizeSchema())
+      processor.use(
+        rehypeSanitize,
+        sanitizeSchema(htmlPlugins.map((plugin) => plugin.htmlSchema)),
+      )
+    } else {
+      processor.use(rehypeDropRaw())
     }
 
     processor.use(rehypeHeadingIds({ slugger: ctx.slugger, idPrefix: ctx.idPrefix }) as never)

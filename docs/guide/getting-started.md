@@ -56,6 +56,10 @@ npm install katex
 npm install mermaid
 ```
 
+```bash [Raw HTML]
+npm install rehype-raw
+```
+
 :::
 
 The Mermaid live editor also needs CodeMirror:
@@ -63,6 +67,9 @@ The Mermaid live editor also needs CodeMirror:
 ```bash
 npm install @codemirror/state @codemirror/view @codemirror/language @codemirror/commands
 ```
+
+Raw HTML requires `rehype-raw` only when you import `htmlPlugin()` from
+`vue-markdown-suite/html`.
 
 ## Render your first document
 
@@ -99,7 +106,7 @@ Markdown source
   → remark-parse
   → remark plugins
   → remark-rehype
-  → optional rehype-raw + sanitizer
+  → optional htmlPlugin() + sanitizer
   → rehype plugins
   → normalized document model
   → Vue VNodes

@@ -18,9 +18,10 @@ const entries = [
   'math/index.js',
   'mermaid/index.js',
   'editor/index.js',
+  'html/index.js',
 ]
 
-const heavy = ['mermaid', 'shiki', 'katex', 'highlight.js', '@codemirror/']
+const heavy = ['mermaid', 'shiki', 'katex', 'highlight.js', '@codemirror/', 'rehype-raw']
 
 const allowed = {
   'highlight/index.js': ['highlight.js'],
@@ -28,6 +29,7 @@ const allowed = {
   'math/index.js': ['katex'],
   'mermaid/index.js': ['mermaid'],
   'editor/index.js': ['@codemirror/'],
+  'html/index.js': ['rehype-raw'],
 }
 
 function isRelative(specifier) {

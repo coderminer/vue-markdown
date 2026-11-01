@@ -2,9 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { defineComponent, h, nextTick, shallowRef } from 'vue'
 import remarkGfm from 'remark-gfm'
-import rehypeRaw from 'rehype-raw'
 import MarkdownRenderer from '../../src/components/MarkdownRenderer.vue'
 import { useMarkdownDocument } from '../../src/composables/useMarkdownDocument'
+import { defaultPlugins } from '../../src/plugins/builtin'
+import { htmlPlugin } from '../../src/html'
 import type { MarkdownPipeline, PipelineResult } from '../../src/core/types'
 
 function renderer(props: Record<string, unknown>) {
@@ -93,16 +94,6 @@ describe('react-markdown migration table', () => {
       urlTransform: (url: string) => url.replace('example.com', 'example.org'),
     })
     expect(rewritten.find('a').attributes('href')).toBe('https://example.org')
-  })
-
-  it('skipHtml', () => {
-    const wrapper = renderer({
-      source: '<b>raw</b>\n\nMarkdown',
-      skipHtml: true,
-    })
-    expect(wrapper.find('b').exists()).toBe(false)
-    expect(wrapper.html()).not.toContain('<b')
-    expect(wrapper.text()).toContain('Markdown')
   })
 
   it('remarkPlugins', () => {
@@ -205,13 +196,13 @@ describe('react-markdown migration behavior notes', () => {
     expect(external.find('a').attributes('rel')).toBe('noopener noreferrer')
   })
 
-  it('drops raw HTML by default and enables it through rehype-raw', () => {
+  it('drops raw HTML by default and enables it through the html plugin', () => {
     const dropped = renderer({ source: '<b>raw</b>\n\nText' })
     expect(dropped.find('b').exists()).toBe(false)
 
     const enabled = renderer({
       source: '<b>raw</b>\n\nText',
-      rehypePlugins: [rehypeRaw],
+      plugins: [...defaultPlugins, htmlPlugin()],
     })
     expect(enabled.find('b').text()).toBe('raw')
   })

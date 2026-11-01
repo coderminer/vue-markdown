@@ -19,7 +19,7 @@ The project SHALL build a distributable library that exposes ES modules and Type
 
 ### Requirement: Public entry points
 
-The package SHALL provide documented entries for the styled root, headless API, pipeline, plugins, presets, node components, the default highlight.js adapter, the optional Shiki adapter, the optional KaTeX math entry, the optional Mermaid plugin/runtime entry, individual components, design tokens, math container styles, a self-contained math stylesheet, and the aggregate stylesheet. Each entry SHALL be independently importable and SHALL NOT require importing the root entry.
+The package SHALL provide documented entries for the styled root, headless API, pipeline, plugins, presets, node components, the default highlight.js adapter, the optional Shiki adapter, the optional KaTeX math entry, the optional Mermaid plugin/runtime entry, the optional sanitized raw HTML entry, individual components, design tokens, math container styles, a self-contained math stylesheet, and the aggregate stylesheet. Each entry SHALL be independently importable and SHALL NOT require importing the root entry.
 
 #### Scenario: Root import
 - **WHEN** a consumer imports a preset component from the package root
@@ -39,7 +39,7 @@ The package SHALL provide documented entries for the styled root, headless API, 
 
 ### Requirement: Dependency contract
 
-Vue SHALL be a peer dependency and SHALL NOT be bundled into the published output. The official `unified`/`remark` pipeline, `hast-util-*`, and `rehype-sanitize`/`hast-util-sanitize` SHALL be default dependencies. The default highlight.js adapter SHALL be isolated behind its documented entry, and the optional Shiki, KaTeX, Mermaid, and CodeMirror ecosystems SHALL be optional peers or dynamic imports so they are installed only by consumers who select them. The package SHALL NOT depend on `markdown-it`, `htmlparser2`, or an icon library.
+Vue SHALL be a peer dependency and SHALL NOT be bundled into the published output. The official `unified`/`remark` pipeline, `hast-util-*`, and `rehype-sanitize`/`hast-util-sanitize` SHALL be default dependencies. The default highlight.js adapter SHALL be isolated behind its documented entry, and the optional Shiki, KaTeX, Mermaid, CodeMirror, and `rehype-raw` ecosystems SHALL be optional peers or dynamic imports so they are installed only by consumers who select them. `rehype-raw` SHALL be required only by the `vue-markdown-suite/html` entry. The package SHALL NOT depend on `markdown-it`, `htmlparser2`, or an icon library.
 
 #### Scenario: Single Vue instance
 - **WHEN** a Vue application installs the package
@@ -55,7 +55,7 @@ Vue SHALL be a peer dependency and SHALL NOT be bundled into the published outpu
 
 ### Requirement: Tree-shaking and lazy loading
 
-The build SHALL preserve tree-shakability. Importing the headless entry SHALL NOT load any preset component, CSS, highlighter, Mermaid, or CodeMirror. The official pipeline SHALL load only when the document composable is used without an injected pipeline. Importing a preset component SHALL load only its own graph, the pipeline and highlighter it uses, and shared core. Shiki, KaTeX, Mermaid, and CodeMirror SHALL remain in optional or lazy chunks requested only when the corresponding feature is used.
+The build SHALL preserve tree-shakability. Importing the headless entry SHALL NOT load any preset component, CSS, highlighter, Mermaid, CodeMirror, or HTML parser. The official pipeline SHALL load only when the document composable is used without an injected pipeline. Importing a preset component SHALL load only its own graph, the pipeline and highlighter it uses, and shared core. Shiki, KaTeX, Mermaid, CodeMirror, and `rehype-raw` SHALL remain in optional or lazy chunks requested only when the corresponding feature is used.
 
 #### Scenario: Headless bundle
 - **WHEN** a consumer builds only with the headless entry
@@ -67,7 +67,7 @@ The build SHALL preserve tree-shakability. Importing the headless entry SHALL NO
 
 #### Scenario: Optional adapters stay optional
 - **WHEN** a consumer uses the default pipeline and highlight.js
-- **THEN** Shiki and KaTeX are absent from the bundle
+- **THEN** Shiki, KaTeX, and `rehype-raw` are absent from the bundle
 
 ### Requirement: Styling contract
 
@@ -135,7 +135,7 @@ The repository SHALL provide a single automated test command that runs unit, com
 
 #### Scenario: react-markdown parity
 - **WHEN** the parity fixture suite renders the documented react-markdown examples
-- **THEN** tag overrides, allow/deny filtering, unwrap behavior, URL transformation, skipHtml, and source input produce the documented equivalent output
+- **THEN** tag overrides, allow/deny filtering, unwrap behavior, URL transformation, raw HTML policy, and source input produce the documented equivalent output
 
 #### Scenario: Unsafe content regression
 - **WHEN** a test renders Markdown containing unsafe links or event-handler attributes
@@ -150,7 +150,7 @@ The repository SHALL provide a single automated test command that runs unit, com
 The repository SHALL document installation, styled and headless usage, all public props/events/slots, the node component catalog, pipeline selection and custom pipeline authoring, remark/rehype plugin usage, highlighter selection and adapter authoring, math setup and engine authoring, plugin hooks, preset composition, customization tokens and parts, the plugin authoring guide, the customization cookbook, SSR behavior, raw-HTML security limits, CommonMark/GFM conformance, and a migration guide from react-markdown. Documented `vmd-` parts and class names SHALL remain stable within a major version.
 
 #### Scenario: react-markdown migration
-- **WHEN** a React user maps `components`, `allowedElements`, `urlTransform`, `skipHtml`, and `remarkPlugins` to this library
+- **WHEN** a React user maps `components`, `allowedElements`, `urlTransform`, raw HTML handling, and `remarkPlugins` to this library
 - **THEN** the guide provides an equivalent Vue example for each concept and identifies the deliberate differences
 
 #### Scenario: Customization cookbook

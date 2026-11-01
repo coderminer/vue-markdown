@@ -38,7 +38,7 @@ parse-affecting subset of the renderer props: `components`, `plugins`,
 `disablePlugins`, `remarkPlugins`, `rehypePlugins`, `remarkRehypeOptions`,
 `pipeline`, `slugger`, `allowedElements`, `disallowedElements`,
 `unwrapDisallowed`, `allowElement`, `urlTransform`, `linkTarget`,
-`externalLinkTarget`, `baseUrl`, `idPrefix`, `skipHtml`.
+`externalLinkTarget`, `baseUrl`, and `idPrefix`.
 
 The composable also exposes plugin contributions for hosts that render their own
 markup:

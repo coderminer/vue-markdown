@@ -11,7 +11,7 @@ the sections below; `npm run build:demo` must also succeed.
 - [x] TOC: navigation and active-section state
 - [x] Search: match highlighting and custom match rendering
 - [x] Custom tags: host component mapping and click payloads
-- [x] HTML safety: raw HTML is dropped by default and sanitized with `rehype-raw`
+- [x] HTML safety: raw HTML is dropped by default and sanitized through `htmlPlugin()`
 - [x] Pipeline switching: official, custom, and invalid-pipeline fallback
 - [x] Headless usage: `useMarkdownDocument` renders without preset components
 - [x] Plugin extension: source transforms, document transforms, and diagnostics

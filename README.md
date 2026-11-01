@@ -5,6 +5,8 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Docs](https://img.shields.io/badge/docs-live-8250df)](https://coderminer.github.io/vue-markdown/)
 
+English | [简体中文](./README.zh-CN.md)
+
 A general-purpose, customizable, plugin-driven **Vue 3 Markdown component suite**.
 
 `vue-markdown-suite` renders Markdown directly into Vue VNodes with the official
@@ -19,14 +21,16 @@ export.
   `data-vmd-part` and stable `vmd-*` classes, and theme with `--vmd-*` tokens.
 - **Plugin-driven** — plugins contribute remark/rehype plugins, source and
   document transforms, components, labels, tokens, and lifecycle hooks.
-- **Safe by default** — raw HTML is dropped, URLs are validated, and the
-  sanitizer runs immediately after `rehype-raw` when the host opts in.
+- **Safe by default** — raw HTML is dropped, URLs are validated, and
+  `htmlPlugin()` pairs the parser with the built-in sanitizer when the host opts in.
 - **SSR-ready** — deterministic heading IDs, a synchronous path, and static HTML
   export that applies the same sanitization, filtering, and URL policy.
 - **Optional engines** — highlight.js, Shiki, KaTeX, Mermaid, and CodeMirror
   stay behind their own entries and lazy chunks.
 
 **Live documentation:** <https://coderminer.github.io/vue-markdown/>
+
+**Chinese documentation:** [docs/zh](docs/zh/index.md) (`/zh/` on the documentation site).
 
 ## Install
 
@@ -432,10 +436,10 @@ component manifest, lives in the
 | `nodeComponents` | `Record<string, Component \| string \| NodeRenderer>` | `{}` | Semantic node overrides and function renderers. |
 | `labels` | `Partial<MarkdownLabels>` | `{}` | String or function labels for built-in text. |
 | `preset` | `MarkdownPreset \| MarkdownPreset[]` | — | Applies one or more presets. |
-| `plugins` | `PluginInput[]` | `defaultPlugins` | Replaces the default plugin set when provided. |
+| `plugins` | `PluginInput[]` | `defaultPlugins` | Replaces the default plugin set when provided. Add `htmlPlugin()` for sanitized raw HTML. |
 | `disablePlugins` | `string[]` | `[]` | Removes named plugins from the resolved set. |
 | `remarkPlugins` | `PluggableList` | `[]` | Runs after library remark plugins. |
-| `rehypePlugins` | `PluggableList` | `[]` | Runs after library rehype plugins. Adding `rehype-raw` enables raw HTML. |
+| `rehypePlugins` | `PluggableList` | `[]` | Runs after library rehype plugins and the built-in sanitizer. |
 | `remarkRehypeOptions` | `Record<string, unknown>` | `{}` | Merged into the conversion step. |
 | `pipeline` | `MarkdownPipeline` | official | Advanced escape hatch; must return hast. |
 | `slugger` | `MarkdownSlugger` | `github-slugger` | Heading ID generator. |
@@ -453,7 +457,6 @@ component manifest, lives in the
 | `baseUrl` | `string` | — | Resolves relative URLs before `urlTransform`. |
 | `idPrefix` | `string` | `''` | Prefixes generated heading IDs. Use a unique prefix for multiple renderers on one page. |
 | `syncHash` | `boolean` | `false` | Updates the URL hash on heading activation. |
-| `skipHtml` | `boolean` | `false` | Removes raw HTML nodes. |
 | `toc` | `boolean` | `false` | Renders the TOC region. |
 | `showError` | `boolean` | `false` | Renders the error region on failure. |
 | `tokens` | `Record<string, string>` | `{}` | Inline `--vmd-*` custom properties on the root. |
@@ -496,6 +499,7 @@ rendering. See the [customization guide](docs/guide/customization.md#slots).
 | `vue-markdown-suite/math` | `mathPlugin`, `katexEngine`, math types |
 | `vue-markdown-suite/mermaid` | Lazy Mermaid runtime and SVG sanitizer |
 | `vue-markdown-suite/editor` | Lazy CodeMirror integration |
+| `vue-markdown-suite/html` | `htmlPlugin()` and sanitized raw HTML |
 | `vue-markdown-suite/node-components` | The node component catalog only |
 | `vue-markdown-suite/components/*` | One entry per public component |
 | `vue-markdown-suite/style.css` | Full stylesheet |
@@ -506,8 +510,8 @@ rendering. See the [customization guide](docs/guide/customization.md#slots).
 
 ## Security defaults
 
-- Raw HTML is dropped. Add `rehype-raw` to `rehypePlugins` to enable it; the
-  sanitizer then runs immediately after raw parsing.
+- Raw HTML is dropped. Add `htmlPlugin()` from `vue-markdown-suite/html` to
+  enable it; the sanitizer then runs immediately after raw parsing.
 - URL protocols are limited to `http`, `https`, `irc`, `ircs`, `mailto`,
   `xmpp`, and relative URLs.
 - Image `data:` URLs are raster-only; `data:image/svg+xml` is rejected.

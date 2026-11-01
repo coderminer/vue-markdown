@@ -18,7 +18,6 @@ function parse(source: string) {
     remarkRehypeOptions: {},
     slugger,
     idPrefix: '',
-    allowHtml: false,
     diagnostics: [],
   }
   const result = createOfficialPipeline().processSync!(source, ctx)
