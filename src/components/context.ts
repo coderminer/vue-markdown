@@ -11,6 +11,7 @@ import type {
   DiagnosticFormatter,
   MarkdownComponentValue,
   MarkdownDocument,
+  MarkdownExternalLinkTarget,
   MarkdownHighlighter,
   MarkdownLabels,
   MarkdownNode,
@@ -48,7 +49,7 @@ export interface RenderContext {
   theme?: MarkdownTheme
   labels: MarkdownLabels
   linkTarget: string
-  externalLinkTarget: string
+  externalLinkTarget: MarkdownExternalLinkTarget
   highlighter?: MarkdownHighlighter
   mathEngine?: MathEngine
   mermaidRenderer?: MermaidRenderer

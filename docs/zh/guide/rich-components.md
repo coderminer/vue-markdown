@@ -416,7 +416,9 @@ const diagram = `flowchart LR
 | `actions` | `MermaidAction[]` | `[]` | 额外工具栏按钮，含 `key`、`label`、`run`。 |
 
 事件：`rendered(result)`、`error(message)`、`copy(source)`、
-`export('png' | 'svg')`、`fullscreen(active)` 和 `action(key)`。
+`export('png' | 'svg')`、`fullscreen(active)` 和 `action(key)`。所有负载都是普通值；
+`rendered` 是结构化的 `MermaidRenderResult`，其余为基本类型。完整类型映射可导入
+`MermaidBlockEvents`。
 
 插槽：`header`、`tabs`、`actions`、`mermaid` 和 `mermaid-error`。
 
@@ -453,6 +455,10 @@ const renderer = {
 ```vue
 <MermaidBlock :source="diagram" :renderer="renderer" />
 ```
+
+`renderer` 属性是单块覆盖。应用级适配器请配置在 `MarkdownRenderer` 或
+`MarkdownConfigProvider` 的 `mermaidRenderer` 上；两者都不设置时使用内置运行时。参见
+[Mermaid 渲染器优先级](./mermaid.md#选择渲染器)。
 
 ## MermaidLiveEditor
 

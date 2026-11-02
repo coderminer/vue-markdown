@@ -151,7 +151,8 @@ The stylesheet includes hooks for the renderer layout and rich catalog:
 `highlighter`, `highlighter-line`, `highlighter-gutter`, `highlighter-empty`,
 `math`, `math-error`, `mermaid`, `mermaid-header`, `mermaid-tabs`,
 `mermaid-actions`, `mermaid-preview`, `mermaid-source`, `mermaid-pending`,
-`mermaid-error`, `mermaid-fullscreen`, `editor`, `editor-toolbar`,
+`mermaid-error`, `mermaid-fallback`, `mermaid-retry`, `mermaid-fullscreen`,
+`editor`, `editor-toolbar`,
 `editor-pane`, `editor-divider`, `editor-preview`, `editor-diagnostics`,
 `editor-empty`, and `editor-fullscreen`. Fullscreen state is exposed with
 `data-fullscreen`; Mermaid uses `data-status`, `data-view`, and `data-renderer`.

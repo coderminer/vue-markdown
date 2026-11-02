@@ -192,6 +192,18 @@ describe('stylesheet compatibility fallbacks', () => {
     expect(components).toMatch(
       /\[data-vmd-part='toc-column'\]\s*\{[^}]*position: -webkit-sticky;/,
     )
+    // A long side TOC must scroll inside its column instead of extending past
+    // the viewport.
+    expect(components).toMatch(
+      /\[data-vmd-part='root'\]\[data-vmd-toc-layout='side'\]\s*>\s*\[data-vmd-part='toc-column'\]\s*\{[^}]*max-height:[^}]*overflow-y: auto;/,
+    )
+    // The stacked mobile layout must undo the side-column cap so the TOC
+    // expands above the content instead of getting its own scrollbar.
+    const mobileStart = components.indexOf('@media (max-width: 768px)')
+    const mobileEnd = components.indexOf("[data-vmd-part='content']", mobileStart)
+    const mobile = components.slice(mobileStart, mobileEnd)
+    expect(mobile).toContain('max-height: none;')
+    expect(mobile).toContain('overflow-y: visible;')
   })
 
   it('does not add outer padding around the rich code block shell', () => {

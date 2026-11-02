@@ -879,6 +879,95 @@ a.home-card:hover {
 }
 
 /* -------------------------------------------------------------------------- */
+/* Runtime CodeBlock syntax colors                                            */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * highlight.js emits `hljs-*` classes. The library leaves token colors to the
+ * host so applications can choose their own theme; the docs supply a small
+ * light/dark theme so the standalone CodeBlock examples show highlighting.
+ */
+:is(.vmd-code-block, .vmd-highlighter) {
+  --vmd-doc-hl-keyword: #d73a49;
+  --vmd-doc-hl-entity: #6f42c1;
+  --vmd-doc-hl-constant: #005cc5;
+  --vmd-doc-hl-string: #032f62;
+  --vmd-doc-hl-variable: #e36209;
+  --vmd-doc-hl-comment: #6a737d;
+  --vmd-doc-hl-tag: #22863a;
+  --vmd-doc-hl-text: #24292e;
+}
+
+.dark :is(.vmd-code-block, .vmd-highlighter) {
+  --vmd-doc-hl-keyword: #ff7b72;
+  --vmd-doc-hl-entity: #d2a8ff;
+  --vmd-doc-hl-constant: #79c0ff;
+  --vmd-doc-hl-string: #a5d6ff;
+  --vmd-doc-hl-variable: #ffa657;
+  --vmd-doc-hl-comment: #8b949e;
+  --vmd-doc-hl-tag: #7ee787;
+  --vmd-doc-hl-text: #c9d1d9;
+}
+
+:is(.vmd-code-block, .vmd-highlighter) .hljs-doctag,
+:is(.vmd-code-block, .vmd-highlighter) .hljs-keyword,
+:is(.vmd-code-block, .vmd-highlighter) .hljs-template-tag,
+:is(.vmd-code-block, .vmd-highlighter) .hljs-template-variable,
+:is(.vmd-code-block, .vmd-highlighter) .hljs-type,
+:is(.vmd-code-block, .vmd-highlighter) .hljs-variable.language_ {
+  color: var(--vmd-doc-hl-keyword);
+}
+
+:is(.vmd-code-block, .vmd-highlighter) .hljs-title,
+:is(.vmd-code-block, .vmd-highlighter) .hljs-title.class_,
+:is(.vmd-code-block, .vmd-highlighter) .hljs-title.class_.inherited__,
+:is(.vmd-code-block, .vmd-highlighter) .hljs-title.function_ {
+  color: var(--vmd-doc-hl-entity);
+}
+
+:is(.vmd-code-block, .vmd-highlighter) .hljs-attr,
+:is(.vmd-code-block, .vmd-highlighter) .hljs-attribute,
+:is(.vmd-code-block, .vmd-highlighter) .hljs-literal,
+:is(.vmd-code-block, .vmd-highlighter) .hljs-meta,
+:is(.vmd-code-block, .vmd-highlighter) .hljs-number,
+:is(.vmd-code-block, .vmd-highlighter) .hljs-operator,
+:is(.vmd-code-block, .vmd-highlighter) .hljs-variable,
+:is(.vmd-code-block, .vmd-highlighter) .hljs-selector-attr,
+:is(.vmd-code-block, .vmd-highlighter) .hljs-selector-class,
+:is(.vmd-code-block, .vmd-highlighter) .hljs-selector-id {
+  color: var(--vmd-doc-hl-constant);
+}
+
+:is(.vmd-code-block, .vmd-highlighter) .hljs-regexp,
+:is(.vmd-code-block, .vmd-highlighter) .hljs-string,
+:is(.vmd-code-block, .vmd-highlighter) .hljs-meta .hljs-string {
+  color: var(--vmd-doc-hl-string);
+}
+
+:is(.vmd-code-block, .vmd-highlighter) .hljs-built_in,
+:is(.vmd-code-block, .vmd-highlighter) .hljs-symbol {
+  color: var(--vmd-doc-hl-variable);
+}
+
+:is(.vmd-code-block, .vmd-highlighter) .hljs-comment,
+:is(.vmd-code-block, .vmd-highlighter) .hljs-code,
+:is(.vmd-code-block, .vmd-highlighter) .hljs-formula {
+  color: var(--vmd-doc-hl-comment);
+  font-style: italic;
+}
+
+:is(.vmd-code-block, .vmd-highlighter) .hljs-name,
+:is(.vmd-code-block, .vmd-highlighter) .hljs-quote,
+:is(.vmd-code-block, .vmd-highlighter) .hljs-selector-tag,
+:is(.vmd-code-block, .vmd-highlighter) .hljs-selector-pseudo {
+  color: var(--vmd-doc-hl-tag);
+}
+
+:is(.vmd-code-block, .vmd-highlighter) .hljs-subst {
+  color: var(--vmd-doc-hl-text);
+}
+
+/* -------------------------------------------------------------------------- */
 /* CodeBlock feature lab                                                      */
 /* -------------------------------------------------------------------------- */
 

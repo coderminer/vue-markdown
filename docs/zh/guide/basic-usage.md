@@ -140,7 +140,7 @@ function onError(diagnostic: MarkdownDiagnostic) {
 | `render-error` | `MarkdownDiagnostic` |
 | `ready` | `MarkdownDocument` |
 
-`toc-change` 带有签名判断：只有序列化后的目录真正变化时才会触发。`ready` 在第一次成功
+`toc-change` 带有签名判断：只有目录内容真正变化时才会触发。`ready` 在第一次成功
 生成文档时触发一次。
 
 ## 实例方法

@@ -373,7 +373,9 @@ function renderComponent(
     delete props.children
   }
   const slot = children ?? (() => [])
-  if (typeof component === 'string') return h(component, props, slot)
+  // Vue 3.3 and 3.4 only normalize a function child into a slot for component
+  // vnodes. An element vnode needs resolved children, so call the slot here.
+  if (typeof component === 'string') return h(component, props, slot())
   return h(
     component,
     {
@@ -571,7 +573,7 @@ function renderNodeDefault(node: MarkdownNode, ctx: RenderContext): VNodeChild {
         return h(
           node.tag,
           { ...attrs, key: node.key },
-          childrenRenderer(node, ctx),
+          childrenRenderer(node, ctx)(),
         )
       }
       return renderComponent(

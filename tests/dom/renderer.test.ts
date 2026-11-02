@@ -41,7 +41,7 @@ function customTagResult(): PipelineResult {
         {
           type: 'element',
           tagName: 'x-note',
-          properties: { tone: 'info', label: 'Heads up' },
+          properties: { tone: 'info', label: 'Heads up', 'start-line': '2' },
           children: [{ type: 'text', value: 'Body' }],
         },
       ],
@@ -80,6 +80,10 @@ describe('renderer events and actions', () => {
     expect(ready.toc.map((item) => item.id)).toEqual(['one', 'two'])
 
     const tocEvents = wrapper.emitted('toc-change') ?? []
+    const initialTocCount = tocEvents.length
+    // The immediate watcher must not emit a transient empty TOC before the
+    // first parse settles.
+    expect(tocEvents).toHaveLength(1)
     expect(tocEvents[tocEvents.length - 1]?.[0]).toEqual([
       { id: 'one', text: 'One', level: 1 },
       { id: 'two', text: 'Two', level: 2 },
@@ -89,6 +93,23 @@ describe('renderer events and actions', () => {
     await nextTick()
     expect(wrapper.emitted('ready')).toHaveLength(1)
     expect(wrapper.emitted('toc-change')).toHaveLength(tocEvents.length)
+
+    // Removing the headings is a real change to an empty TOC, so it still
+    // emits; only the pre-parse mount value is suppressed.
+    await wrapper.setProps({ source: 'Text only' })
+    await nextTick()
+    const emptyEvents = wrapper.emitted('toc-change') ?? []
+    expect(emptyEvents).toHaveLength(initialTocCount + 1)
+    expect(emptyEvents[emptyEvents.length - 1]?.[0]).toEqual([])
+  })
+
+  it('emits toc-change once for a first document with no headings', async () => {
+    const wrapper = renderer({ source: 'Text only' })
+    await nextTick()
+
+    const events = wrapper.emitted('toc-change') ?? []
+    expect(events).toHaveLength(1)
+    expect(events[0]?.[0]).toEqual([])
   })
 
   it('emits link-click with the resolved target', async () => {
@@ -137,7 +158,11 @@ describe('renderer events and actions', () => {
       props: Record<string, unknown>
     }
     expect(mappedPayload.tag).toBe('x-note')
-    expect(mappedPayload.props).toMatchObject({ tone: 'info', label: 'Heads up' })
+    expect(mappedPayload.props).toMatchObject({
+      tone: 'info',
+      label: 'Heads up',
+      startLine: '2',
+    })
 
     const plain = renderer({
       source: '',
@@ -179,6 +204,194 @@ describe('renderer events and actions', () => {
         (event) => (event[0] as { code: string }).code === 'pipeline-name',
       ),
     ).toHaveLength(1)
+  })
+
+  it('reports a failure again after the document recovers', async () => {
+    const plugin = defineMarkdownPlugin({
+      name: 'conditional-failure',
+      transformSource(source) {
+        if (source.includes('boom')) throw new Error('boom')
+        return source
+      },
+    })
+    const wrapper = renderer({
+      source: 'boom',
+      plugins: [plugin],
+    })
+    await nextTick()
+
+    const count = () =>
+      (wrapper.emitted('render-error') ?? []).filter(
+        (event) => (event[0] as { code: string }).code === 'plugin-source',
+      ).length
+
+    expect(count()).toBe(1)
+
+    await wrapper.setProps({ source: 'safe' })
+    await nextTick()
+    await wrapper.setProps({ source: 'boom again' })
+    await nextTick()
+    expect(count()).toBe(2)
+  })
+
+  it('does not report an omitted optional baseUrl', async () => {
+    const wrapper = renderer({ source: '# Hello' })
+    await nextTick()
+
+    expect(wrapper.emitted('render-error')).toBeUndefined()
+  })
+
+  it('falls back to _self when linkTarget is empty', async () => {
+    const wrapper = renderer({
+      source: '[docs](https://example.com)',
+      linkTarget: '',
+    })
+    await nextTick()
+
+    const codes = (wrapper.emitted('render-error') ?? []).map(
+      (event) => (event[0] as { code: string }).code,
+    )
+    expect(codes).toContain('prop-link-target')
+    expect(wrapper.find('a').attributes('target')).toBe('_self')
+
+    await wrapper.find('a').trigger('click')
+    const payload = wrapper.emitted('link-click')?.[0]?.[0] as {
+      target: string
+    }
+    expect(payload.target).toBe('_self')
+  })
+
+  it('reports an invalid enum prop and keeps a safe fallback', async () => {
+    const wrapper = renderer({
+      source: '[external](https://example.com)',
+      externalLinkTarget: 'invalid',
+      tocPlacement: 'diagonal',
+      theme: 'sepia',
+    })
+    await nextTick()
+
+    const codes = (wrapper.emitted('render-error') ?? []).map(
+      (event) => (event[0] as { code: string }).code,
+    )
+    expect(codes).toEqual(
+      expect.arrayContaining([
+        'prop-external-link-target',
+        'prop-toc-placement',
+        'prop-theme',
+      ]),
+    )
+    expect(wrapper.find('a').attributes('target')).toBe('_self')
+    expect(wrapper.find('.vmd-root').attributes('data-vmd-theme')).toBe('light')
+    expect(
+      wrapper.find('.vmd-root').attributes('data-vmd-toc-placement'),
+    ).toBe('top')
+  })
+
+  it('reports invalid scalar props and applies safe fallbacks', async () => {
+    const wrapper = renderer({
+      source: '# Title',
+      toc: 'yes',
+      tocDepth: '2',
+      search: 42,
+      searchCaseSensitive: 'yes',
+      searchDebounce: -1,
+      linkTarget: 42,
+      baseUrl: 42,
+      idPrefix: null,
+      syncHash: 'yes',
+      showError: 'no',
+    })
+    await nextTick()
+
+    const codes = (wrapper.emitted('render-error') ?? []).map(
+      (event) => (event[0] as { code: string }).code,
+    )
+    expect(codes).toEqual(
+      expect.arrayContaining([
+        'prop-toc',
+        'prop-toc-depth',
+        'prop-search',
+        'prop-search-case-sensitive',
+        'prop-search-debounce',
+        'prop-link-target',
+        'prop-base-url',
+        'prop-id-prefix',
+        'prop-sync-hash',
+        'prop-show-error',
+      ]),
+    )
+    // The invalid query and TOC flags are ignored rather than rendering
+    // unexpected content.
+    expect(wrapper.find('nav.vmd-toc').exists()).toBe(false)
+    expect(wrapper.findAll('mark.vmd-search-match')).toHaveLength(0)
+  })
+
+  it('debounces search parsing when searchDebounce is set', async () => {
+    vi.useFakeTimers()
+    try {
+      const { pipeline, counter } = countingPipeline('memo-search-debounce')
+      const wrapper = renderer({
+        source: 'Hello hello',
+        pipeline,
+        search: '',
+        searchDebounce: 200,
+      })
+      expect(counter.calls).toBe(1)
+
+      await wrapper.setProps({ search: 'h' })
+      await nextTick()
+      await wrapper.setProps({ search: 'hello' })
+      await nextTick()
+      expect(counter.calls).toBe(1)
+
+      vi.advanceTimersByTime(199)
+      await nextTick()
+      expect(counter.calls).toBe(1)
+
+      vi.advanceTimersByTime(1)
+      await nextTick()
+      expect(counter.calls).toBe(2)
+      expect(wrapper.findAll('mark.vmd-search-match')).toHaveLength(2)
+      expect(wrapper.emitted('search-change')?.slice(-1)[0]?.[0]).toEqual({
+        query: 'hello',
+        caseSensitive: false,
+        matches: 2,
+      })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('keeps nested render contexts isolated', async () => {
+    const Inner = defineComponent({
+      setup() {
+        return () =>
+          h(MarkdownRenderer, {
+            source: '[inner](https://example.com)',
+            externalLinkTarget: '_blank',
+            theme: 'dark',
+          })
+      },
+    })
+    const wrapper = mount(MarkdownRenderer, {
+      props: {
+        source: '[outer](https://example.com)\n\n*inner*',
+        externalLinkTarget: '_self',
+        theme: 'light',
+        components: { em: Inner },
+      },
+    })
+    await nextTick()
+
+    const roots = wrapper.findAll('.vmd-root')
+    expect(roots.map((root) => root.attributes('data-vmd-theme'))).toEqual([
+      'light',
+      'dark',
+    ])
+    expect(wrapper.findAll('a').map((link) => link.attributes('target'))).toEqual([
+      '_self',
+      '_blank',
+    ])
   })
 })
 
@@ -419,6 +632,14 @@ describe('TOC and heading navigation', () => {
   it('prefixes heading IDs', () => {
     const wrapper = renderer({ source: '# Title', idPrefix: 'doc-' })
     expect(wrapper.find('h1').attributes('id')).toBe('doc-title')
+  })
+
+  it('collapses whitespace and hyphen runs in heading IDs', async () => {
+    const wrapper = renderer({ source: '# My   -   Heading' })
+    await nextTick()
+    expect(wrapper.find('h1').attributes('id')).toBe('my-heading')
+    const ready = wrapper.emitted('ready')?.[0]?.[0] as MarkdownDocument
+    expect(ready.toc[0]?.id).toBe('my-heading')
   })
 
   it('renders a heading anchor with the generated ID and label', () => {

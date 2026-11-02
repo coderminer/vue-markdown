@@ -1,12 +1,20 @@
 import { describe, expect, it } from 'vitest'
 import GithubSlugger from 'github-slugger'
 import { createOfficialPipeline } from '../../src/pipeline'
-import { normalizeHast } from '../../src/core/normalize'
+import {
+  normalizeCustomTagProps,
+  normalizeHast,
+} from '../../src/core/normalize'
 import { buildDocument } from '../../src/core/model'
 import { PARTS, TOKEN_NAMES, partAttrs, partClass } from '../../src/core/parts'
 import { defaultUrlTransform } from '../../src/core/url'
+import { createDefaultSlugger } from '../../src/core/slugger'
 import { defaultPlugins } from '../../src/plugins/builtin'
-import type { MarkdownNode, PipelineContext } from '../../src/core/types'
+import type {
+  MarkdownDocumentOptions,
+  MarkdownNode,
+  PipelineContext,
+} from '../../src/core/types'
 
 function parse(source: string) {
   const slugger = new GithubSlugger()
@@ -27,6 +35,24 @@ function parse(source: string) {
   })
 }
 
+describe('custom tag props', () => {
+  it('normalizes kebab-case attributes and preserves DOM data attributes', () => {
+    expect(
+      normalizeCustomTagProps({
+        'start-line': '2',
+        'data-id': '1',
+        'aria-label': 'Note',
+        label: 'Heads up',
+      }),
+    ).toEqual({
+      startLine: '2',
+      'data-id': '1',
+      'aria-label': 'Note',
+      label: 'Heads up',
+    })
+  })
+})
+
 describe('parts and tokens', () => {
   it('exposes stable part attributes', () => {
     expect(partAttrs(PARTS.paragraph)).toEqual({
@@ -35,6 +61,25 @@ describe('parts and tokens', () => {
     })
     expect(partClass(PARTS.code, 'extra')).toBe('vmd-code extra')
     expect(TOKEN_NAMES).toContain('--vmd-color-text')
+  })
+})
+
+describe('default slugger', () => {
+  it('collapses whitespace and hyphen runs into one hyphen', () => {
+    const slug = (text: string) => createDefaultSlugger().slug(text)
+    expect(slug('My   Heading')).toBe('my-heading')
+    expect(slug('My - Heading')).toBe('my-heading')
+    expect(slug('My   -   Heading')).toBe('my-heading')
+    expect(slug('  Padded  Heading  ')).toBe('padded-heading')
+  })
+
+  it('keeps CJK text and unique duplicate slugs', () => {
+    const slugger = createDefaultSlugger()
+    expect(slugger.slug('中文   标题')).toBe('中文-标题')
+    expect(slugger.slug('Same Heading')).toBe('same-heading')
+    expect(slugger.slug('Same   Heading')).toBe('same-heading-1')
+    slugger.reset?.()
+    expect(slugger.slug('Same Heading')).toBe('same-heading')
   })
 })
 
@@ -121,5 +166,16 @@ describe('default URL transform', () => {
       'data:image/png;base64,abc',
     )
     expect(defaultUrlTransform('data:image/svg+xml,<svg/>', 'src')).toBe('')
+  })
+})
+
+describe('external link target contract', () => {
+  it('types only the supported targets', () => {
+    const valid: MarkdownDocumentOptions['externalLinkTarget'] = '_blank'
+    // @ts-expect-error externalLinkTarget is a closed union, not any string.
+    const invalid: MarkdownDocumentOptions['externalLinkTarget'] = '_parent'
+
+    expect(valid).toBe('_blank')
+    expect(invalid).toBe('_parent')
   })
 })

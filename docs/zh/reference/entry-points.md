@@ -47,6 +47,11 @@ import { mermaidPlugin, renderMermaid } from '@coderminer/vue-markdown/mermaid'
 import { htmlPlugin } from '@coderminer/vue-markdown/html'
 ```
 
+Mermaid 入口还导出 `resetMermaidRuntime()`。它用于测试或显式重新初始化，会清除懒加载
+的模块引用和配置键。它无法卸载浏览器的模块缓存，也不应在组件生命周期中调用：
+Mermaid 配置是进程级共享的，一个块卸载时不能重置其他块仍在使用的运行时。缓存不保存
+任何单块数据，因此卸载块不会造成缓存泄漏。
+
 ## 打包边界
 
 ::: warning 保持引擎可选
@@ -56,9 +61,12 @@ import { htmlPlugin } from '@coderminer/vue-markdown/html'
 
 - 没有代码的文档不会加载高亮器。
 - 没有数学的文档不会加载 KaTeX。
-- Mermaid 只在 Mermaid 组件渲染时加载。
+- Mermaid 只在 Mermaid 组件渲染时加载；其 SVG 净化器在图表实际渲染后才加载
+  HTML 解析器。
 - Mermaid 编辑器只在挂载时加载 CodeMirror。
-- HTML 解析器只在导入 `@coderminer/vue-markdown/html` 时加载。
+- 数学或 Mermaid 产物转换只在可选的 `math` 或 `mermaid` 入口加载 HTML 解析器；
+  `highlight` 入口通过 `lowlight` 直接生成 hast，基础渲染器不包含解析器。
+- 原始 HTML 解析器只在导入 `@coderminer/vue-markdown/html` 时加载。
 - 内核无 DOM、无 Vue；Vue 适配层单向依赖它。
 
 ## 样式

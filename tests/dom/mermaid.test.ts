@@ -45,6 +45,7 @@ describe('MermaidBlock', () => {
     })
     expect(hidden.find('[data-vmd-part="mermaid-error"]').exists()).toBe(false)
     expect(hidden.find('[data-vmd-part="mermaid-fallback"]').exists()).toBe(true)
+    expect(hidden.find('[data-vmd-part="mermaid-retry"]').exists()).toBe(true)
     expect(hidden.text()).toContain('Diagram could not be rendered.')
     expect(hidden.text()).not.toContain('bad syntax')
 
@@ -208,8 +209,59 @@ describe('MermaidBlock', () => {
       expect(wrapper.attributes('data-status')).toBe('error')
     })
     expect(wrapper.text()).toContain('Hello diagram')
-    expect(wrapper.text()).toContain('Renderer returned no usable diagram output.')
+    expect(wrapper.text()).toContain(
+      'The Mermaid renderer returned no diagram nodes or SVG.',
+    )
+    expect(wrapper.text()).toContain('remove the custom renderer')
     expect(wrapper.emitted('error')).toBeTruthy()
+  })
+
+  it('distinguishes an invalid renderer result', async () => {
+    const wrapper = mountBlock({
+      renderer: renderer({
+        render: () => null as unknown as MermaidRenderResult,
+      }),
+      showErrors: true,
+    })
+    await vi.waitFor(() => {
+      expect(wrapper.attributes('data-status')).toBe('error')
+    })
+    expect(wrapper.text()).toContain(
+      'The Mermaid renderer returned an invalid result.',
+    )
+    expect(wrapper.text()).toContain('Return an object such as `{ nodes }`')
+  })
+
+  it('distinguishes SVG that sanitization rejects completely', async () => {
+    const wrapper = mountBlock({
+      renderer: renderer({
+        render: () => ({ nodes: [], svg: '<script>x</script>' }),
+      }),
+      showErrors: true,
+    })
+    await vi.waitFor(() => {
+      expect(wrapper.attributes('data-status')).toBe('error')
+    })
+    expect(wrapper.text()).toContain(
+      'The Mermaid renderer returned SVG that sanitization rejected completely.',
+    )
+  })
+
+  it('adds a fix hint when an injected renderer throws', async () => {
+    const wrapper = mountBlock({
+      renderer: renderer({
+        render: () => {
+          throw new Error('service unavailable')
+        },
+      }),
+      showErrors: true,
+    })
+    await vi.waitFor(() => {
+      expect(wrapper.attributes('data-status')).toBe('error')
+    })
+    expect(wrapper.text()).toContain(
+      'The Mermaid renderer failed: service unavailable',
+    )
   })
 
   it('discards stale renderer results', async () => {
@@ -262,6 +314,23 @@ describe('MermaidBlock', () => {
     expect(wrapper.text()).not.toContain('Stale')
   })
 
+  it('ignores an in-flight render that settles after unmount', async () => {
+    let resolveRender: (value: MermaidRenderResult) => void = () => undefined
+    const pending = new Promise<MermaidRenderResult>((resolve) => {
+      resolveRender = resolve
+    })
+    const wrapper = mountBlock({
+      renderer: renderer({ render: () => pending }),
+    })
+    await flushPromises()
+    expect(wrapper.attributes('data-status')).toBe('pending')
+
+    wrapper.unmount()
+    resolveRender({ svg: safeSvg, nodes: [] })
+    await flushPromises()
+    expect(wrapper.emitted('rendered')).toBeUndefined()
+    expect(wrapper.emitted('error')).toBeUndefined()
+  })
 
   it('switches to source, copies, zooms, and toggles fullscreen', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined)
@@ -300,6 +369,90 @@ describe('MermaidBlock', () => {
 
     await wrapper.find('[data-action="fullscreen"]').trigger('click')
     expect(wrapper.attributes('data-fullscreen')).toBe('true')
+  })
+
+  it('resets zoom when the source changes', async () => {
+    const wrapper = mountBlock({ enableZoom: true })
+    await flushPromises()
+    await wrapper.find('[data-action="zoom-in"]').trigger('click')
+    expect(wrapper.find('.vmd-mermaid-diagram').attributes('style')).toContain(
+      'scale(1.25)',
+    )
+
+    await wrapper.setProps({ source: 'graph TD; C-->D' })
+    await flushPromises()
+    await vi.waitFor(() => {
+      expect(wrapper.attributes('data-status')).toBe('ready')
+    })
+    expect(wrapper.find('.vmd-mermaid-diagram').attributes('style')).toContain(
+      'scale(1)',
+    )
+  })
+
+  it('resets zoom after a re-render and when returning from the source tab', async () => {
+    const wrapper = mountBlock({ enableZoom: true })
+    await flushPromises()
+
+    await wrapper.find('[data-action="zoom-in"]').trigger('click')
+    await wrapper.find('[data-action="zoom-in"]').trigger('click')
+    expect(wrapper.find('.vmd-mermaid-diagram').attributes('style')).toContain(
+      'scale(1.5)',
+    )
+
+    await wrapper.find('[data-action="retry"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('.vmd-mermaid-diagram').attributes('style')).toContain(
+      'scale(1)',
+    )
+
+    await wrapper.find('[data-action="zoom-in"]').trigger('click')
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === 'Source')!
+      .trigger('click')
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === 'Preview')!
+      .trigger('click')
+    expect(wrapper.find('.vmd-mermaid-diagram').attributes('style')).toContain(
+      'scale(1)',
+    )
+
+    await wrapper.find('[data-action="zoom-in"]').trigger('click')
+    await wrapper.setProps({ theme: 'dark' })
+    await flushPromises()
+    expect(wrapper.find('.vmd-mermaid-diagram').attributes('style')).toContain(
+      'scale(1)',
+    )
+  })
+
+  it('reports a non-string source instead of throwing', async () => {
+    const wrapper = mountBlock({
+      source: Promise.resolve('graph TD; A-->B') as unknown as string,
+      showErrors: true,
+    })
+    await flushPromises()
+    await vi.waitFor(() => {
+      expect(wrapper.attributes('data-status')).toBe('error')
+    })
+    expect(wrapper.text()).toContain('Mermaid source must be a string.')
+  })
+
+  it('offers a retry control in the error region', async () => {
+    const render = vi.fn(() => ({ nodes: [], error: 'bad syntax' }))
+    const wrapper = mountBlock({
+      showErrors: true,
+      renderer: renderer({ render }),
+    })
+    await vi.waitFor(() => {
+      expect(wrapper.attributes('data-status')).toBe('error')
+    })
+    expect(wrapper.find('[data-vmd-part="mermaid-retry"]').exists()).toBe(true)
+    expect(render).toHaveBeenCalledTimes(1)
+
+    await wrapper.find('[data-vmd-part="mermaid-retry"]').trigger('click')
+    await flushPromises()
+    expect(render).toHaveBeenCalledTimes(2)
   })
 
   it('replaces the header and exposes the default actions', async () => {

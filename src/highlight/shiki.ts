@@ -1,6 +1,7 @@
 import { createHighlighter, type Highlighter } from 'shiki'
 import type { MarkdownHighlighter } from '../core/types'
-import { highlightedNodesFromHast, plaintextHighlight } from './shared'
+import { highlightedNodesFromHast } from './convert-hast'
+import { plaintextHighlight } from './shared'
 
 const THEMES = {
   light: 'github-light',

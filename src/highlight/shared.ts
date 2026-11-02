@@ -4,10 +4,6 @@ import type {
   MarkdownHighlighter,
   MarkdownNode,
 } from '../core/types'
-import {
-  hastToMarkdownNodes,
-  htmlToMarkdownNodes,
-} from '../core/hast-nodes'
 
 const MAX_CACHE = 256
 const cache = new Map<string, HighlightResult>()
@@ -20,18 +16,6 @@ export function plaintextHighlight(
     language,
     nodes: [{ kind: 'text', key: 'highlight-0', value: code }],
   }
-}
-
-/** Convert trusted engine HTML into normalized nodes. */
-export function highlightedNodesFromHtml(html: string): MarkdownNode[] {
-  return htmlToMarkdownNodes(html)
-}
-
-/** Convert an already-parsed hast subtree into normalized nodes. */
-export function highlightedNodesFromHast(
-  nodes: Parameters<typeof hastToMarkdownNodes>[0],
-): MarkdownNode[] {
-  return hastToMarkdownNodes(nodes)
 }
 
 export function cacheKey(

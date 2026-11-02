@@ -20,6 +20,7 @@ import type {
   MarkdownNode,
   MarkdownPipeline,
   PipelineContext,
+  PluginContext,
 } from '../../src/core/types'
 
 function findElement(nodes: MarkdownNode[], tag: string): MarkdownNode | undefined {
@@ -521,6 +522,18 @@ describe('built-in plugins', () => {
     expect(segments?.filter((segment) => segment.match)).toHaveLength(2)
   })
 
+  it('skips the tree walk when the search query is empty', () => {
+    const plugin = searchPlugin()
+    const document = {
+      nodes: [],
+      toc: [],
+      customTags: [],
+      plugins: [],
+      pipeline: 'official',
+    }
+    expect(plugin.transformDocument?.(document, {} as never)).toBe(document)
+  })
+
   it('applies the renderer-level search option', () => {
     const result = useMarkdownDocument('Hello hello world', {
       search: { query: 'hello', caseSensitive: true },
@@ -578,6 +591,169 @@ describe('built-in plugins', () => {
     })
     const result = useMarkdownDocument('Hello', { plugins: [plugin] })
     expect(result.document.value?.toc[0]?.text).toBe('Hello')
+  })
+
+  it('deduplicates diagnostics and clears them on demand', async () => {
+    const plugin = defineMarkdownPlugin({
+      name: 'duplicate-diagnostics',
+      transformDocument(document, ctx) {
+        ctx.addDiagnostic({
+          code: 'sample-warning',
+          message: 'The same warning.',
+          severity: 'warning',
+          phase: 'document',
+          plugin: 'duplicate-diagnostics',
+        })
+        ctx.addDiagnostic({
+          code: 'sample-warning',
+          message: 'The same warning.',
+          severity: 'warning',
+          phase: 'document',
+          plugin: 'duplicate-diagnostics',
+        })
+        return document
+      },
+    })
+
+    const result = useMarkdownDocument('# Title', { plugins: [plugin] })
+    await result.refresh()
+    expect(result.diagnostics.value).toHaveLength(1)
+
+    await result.refresh()
+    await result.refresh()
+    expect(result.diagnostics.value).toHaveLength(1)
+
+    result.clearDiagnostics()
+    expect(result.diagnostics.value).toEqual([])
+  })
+
+  it('keeps diagnostics that share a message but occur in different places', async () => {
+    const plugin = defineMarkdownPlugin({
+      name: 'distinct-diagnostics',
+      transformDocument(document, ctx) {
+        ctx.addDiagnostic({
+          code: 'unsupported-syntax',
+          message: 'Unsupported syntax.',
+          severity: 'warning',
+          phase: 'document',
+          plugin: 'distinct-diagnostics',
+          source: {
+            start: { line: 3, column: 1 },
+            end: { line: 3, column: 8 },
+          },
+        })
+        ctx.addDiagnostic({
+          code: 'unsupported-syntax',
+          message: 'Unsupported syntax.',
+          severity: 'warning',
+          phase: 'document',
+          plugin: 'distinct-diagnostics',
+          source: {
+            start: { line: 12, column: 1 },
+            end: { line: 12, column: 8 },
+          },
+        })
+        ctx.addDiagnostic({
+          code: 'unsupported-syntax',
+          message: 'Unsupported syntax.',
+          severity: 'warning',
+          phase: 'document',
+          plugin: 'distinct-diagnostics',
+          details: 'Parser detail for the first occurrence.',
+          source: {
+            start: { line: 3, column: 1 },
+            end: { line: 3, column: 8 },
+          },
+        })
+        return document
+      },
+    })
+
+    const result = useMarkdownDocument('# Title', { plugins: [plugin] })
+    await result.refresh()
+    expect(result.diagnostics.value).toHaveLength(3)
+  })
+
+  it('replaces diagnostics instead of accumulating across failed runs', async () => {
+    let attempt = 0
+    const pipeline: MarkdownPipeline = {
+      name: 'always-fails',
+      process() {
+        return Promise.resolve({ hast: { type: 'root', children: [] } })
+      },
+      processSync() {
+        attempt += 1
+        throw new Error(`broken ${attempt}`)
+      },
+    }
+
+    const result = useMarkdownDocument('# Title', { pipeline })
+    await result.refresh()
+    await result.refresh()
+    await result.refresh()
+
+    expect(result.status.value).toBe('error')
+    expect(result.diagnostics.value).toHaveLength(1)
+    expect(result.diagnostics.value[0]?.message).toBe('broken 4')
+  })
+
+  it('clears failure diagnostics when a later run succeeds', async () => {
+    let fail = true
+    const pipeline: MarkdownPipeline = {
+      name: 'recoverable',
+      process() {
+        return Promise.resolve({ hast: { type: 'root', children: [] } })
+      },
+      processSync() {
+        if (fail) throw new Error('broken')
+        return { hast: { type: 'root', children: [] } }
+      },
+    }
+
+    const result = useMarkdownDocument('# Title', { pipeline })
+    expect(result.diagnostics.value[0]?.code).toBe('pipeline-sync')
+
+    fail = false
+    await result.refresh()
+    expect(result.status.value).toBe('ready')
+    expect(result.diagnostics.value).toEqual([])
+  })
+
+  it('does not let a retained setup context grow the diagnostics list', async () => {
+    let captured: PluginContext | undefined
+    let late = 0
+    const plugin = defineMarkdownPlugin({
+      name: 'late-reports',
+      setup(ctx) {
+        captured = ctx
+        ctx.addDiagnostic({
+          code: 'setup-warning',
+          message: 'Diagnosed once during setup.',
+          severity: 'warning',
+          phase: 'setup',
+          plugin: 'late-reports',
+        })
+      },
+      transformDocument(document) {
+        late += 1
+        captured?.addDiagnostic({
+          code: 'late-warning',
+          message: `Late warning ${late}.`,
+          severity: 'warning',
+          phase: 'document',
+          plugin: 'late-reports',
+        })
+        return document
+      },
+    })
+
+    const result = useMarkdownDocument('# Title', { plugins: [plugin] })
+    await result.refresh()
+    await result.refresh()
+
+    expect(result.diagnostics.value.map((diagnostic) => diagnostic.code)).toEqual([
+      'setup-warning',
+    ])
   })
 
   it('keeps the original source and reports when a source transform fails', () => {
@@ -651,6 +827,26 @@ describe('plugin registry', () => {
   it('still disables non-core plugins', () => {
     const resolved = resolvePlugins(defaultPlugins, ['search'])
     expect(resolved.names).not.toContain('search')
+  })
+
+  it('disables custom tags by its registered name', () => {
+    const resolved = resolvePlugins(defaultPlugins, ['custom-tags'])
+    expect(resolved.names).not.toContain('custom-tags')
+    expect(resolved.diagnostics).toHaveLength(0)
+  })
+
+  it('reports unknown disable names once without removing plugins', () => {
+    const resolved = resolvePlugins(defaultPlugins, ['customTags', 'customTags'])
+    expect(resolved.names).toEqual(defaultPlugins.map((plugin) => plugin.name))
+    expect(
+      resolved.diagnostics.filter((item) => item.code === 'plugin-unknown'),
+    ).toEqual([
+      expect.objectContaining({
+        severity: 'warning',
+        phase: 'setup',
+        plugin: 'customTags',
+      }),
+    ])
   })
 })
 

@@ -16,6 +16,22 @@ describe('highlight adapters', () => {
     expect(JSON.stringify(result.nodes)).toContain('keyword')
   })
 
+  it('supports highlight.js aliases with the default adapter', () => {
+    const result = highlightjs.highlight('const x = 1', 'js', {})
+    expect(result.language).toBe('js')
+    expect(JSON.stringify(result.nodes)).toContain('hljs-keyword')
+  })
+
+  it('supports html and svg aliases through lowlight', () => {
+    const html = highlightjs.highlight('<div class="x">hello</div>', 'html', {})
+    expect(html.language).toBe('html')
+    expect(JSON.stringify(html.nodes)).toContain('hljs-tag')
+
+    const svg = highlightjs.highlight('<svg><path d="M0 0" /></svg>', 'svg', {})
+    expect(svg.language).toBe('svg')
+    expect(JSON.stringify(svg.nodes)).toContain('hljs-tag')
+  })
+
   it('falls back to plain text for an unknown language', () => {
     const result = highlightjs.highlight('not a language', 'unknown-lang', {})
     expect(result).toEqual(plaintextHighlight('not a language', 'unknown-lang'))

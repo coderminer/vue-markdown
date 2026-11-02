@@ -60,6 +60,35 @@ function textContent(nodes: readonly MarkdownNode[]): string {
   return value
 }
 
+function camelCaseAttribute(name: string): string {
+  return name.replace(/-+([a-z0-9])/g, (_match, character: string) =>
+    character.toUpperCase(),
+  )
+}
+
+/**
+ * Convert custom-tag attributes into the camelCase props hosts receive.
+ *
+ * HTML parsing lowercases raw attribute names, so a camelCase attribute written
+ * in raw HTML (`startLine`) cannot be recovered. Authors should use kebab-case
+ * (`start-line`), which normalizes to `startLine`. `data-*` and `aria-*` keep
+ * their hyphenated form because they are DOM attributes rather than component
+ * props.
+ */
+export function normalizeCustomTagProps(
+  attrs: Record<string, string>,
+): Record<string, string> {
+  const props: Record<string, string> = {}
+  for (const key of Object.keys(attrs)) {
+    if (key.startsWith('data-') || key.startsWith('aria-')) {
+      props[key] = attrs[key]
+      continue
+    }
+    props[camelCaseAttribute(key)] = attrs[key]
+  }
+  return props
+}
+
 function classNames(element: Element): string[] {
   const value: unknown = element.properties?.className
   if (Array.isArray(value)) return value.map(String)

@@ -1,4 +1,3 @@
-import GithubSlugger from 'github-slugger'
 import type {
   MarkdownDiagnostic,
   MarkdownDocumentOptions,
@@ -6,7 +5,7 @@ import type {
   MarkdownSlugger,
   PipelineContext,
 } from './types'
-import { withUniqueSlugs } from './slugger'
+import { createDefaultSlugger, withUniqueSlugs } from './slugger'
 import type { ResolvedPlugins } from '../plugins/registry'
 import { defaultPlugins } from '../plugins/builtin'
 import { resolvePlugins } from '../plugins/registry'
@@ -57,7 +56,7 @@ export function prepareMarkdownRun(
     diagnostics,
   )
 
-  const baseSlugger = options.slugger ?? new GithubSlugger()
+  const baseSlugger = options.slugger ?? createDefaultSlugger()
   const slugger = withUniqueSlugs(baseSlugger)
 
   const context: PipelineContext = {

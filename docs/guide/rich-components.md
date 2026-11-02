@@ -425,7 +425,9 @@ const diagram = `flowchart LR
 | `actions` | `MermaidAction[]` | `[]` | Extra toolbar buttons with `key`, `label`, and `run`. |
 
 Events: `rendered(result)`, `error(message)`, `copy(source)`,
-`export('png' | 'svg')`, `fullscreen(active)`, and `action(key)`.
+`export('png' | 'svg')`, `fullscreen(active)`, and `action(key)`. All payloads
+are plain values; `rendered` is the structured `MermaidRenderResult` and the
+others are primitives. Import `MermaidBlockEvents` for the complete typed map.
 Slots: `header`, `tabs`, `actions`, `mermaid`, and `mermaid-error`.
 Exposed: `render()`, `copy()`, `exportPng()`, `downloadSvg()`, and
 `toggleFullscreen()`.
@@ -465,6 +467,11 @@ const renderer = {
 ```vue
 <MermaidBlock :source="diagram" :renderer="renderer" />
 ```
+
+The `renderer` prop is a per-block override. Configure `mermaidRenderer` on
+`MarkdownRenderer` or `MarkdownConfigProvider` for an app-wide adapter, or omit
+both to use the built-in runtime. See
+[Mermaid renderer precedence](./mermaid.md#choosing-a-renderer).
 
 ## MermaidLiveEditor
 

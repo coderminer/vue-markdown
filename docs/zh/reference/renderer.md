@@ -29,7 +29,7 @@ import '@coderminer/vue-markdown/style.css'
 | `labels` | `Partial<MarkdownLabels>` | 默认 `{}`。内置文案，支持字符串或函数。 |
 | `preset` | `MarkdownPreset \| MarkdownPreset[]` | 应用一个或多个预设。 |
 | `plugins` | `PluginInput[]` | 默认 `defaultPlugins`。传入后替换默认插件集合；加入来自 `@coderminer/vue-markdown/html` 的 `htmlPlugin()` 启用净化后的原始 HTML。 |
-| `disablePlugins` | `string[]` | 默认 `[]`。按名称从解析后的集合移除插件。 |
+| `disablePlugins` | `string[]` | 默认 `[]`。按名称从解析后的集合移除插件；未知名称会报告 `plugin-unknown` 警告。名称见[禁用名称](../guide/plugins.md#disableplugins-名称)。 |
 | `remarkPlugins` | `PluggableList` | 默认 `[]`。在库内置 remark 插件之后运行。 |
 | `rehypePlugins` | `PluggableList` | 默认 `[]`。在库内置 rehype 插件和内置净化器之后运行。 |
 | `remarkRehypeOptions` | `Record<string, unknown>` | 默认 `{}`。合并到转换步骤。 |
@@ -54,10 +54,14 @@ import '@coderminer/vue-markdown/style.css'
 | `tocPlacement` | `'top' \| 'left' \| 'right' \| 'hidden'` | 默认 `'top'`。目录置顶、放左侧/右侧或隐藏。 |
 | `search` | `string` | 默认 `''`。高亮匹配项并触发 `search-change`。 |
 | `searchCaseSensitive` | `boolean` | 默认 `false`。让 `search` 区分大小写。 |
+| `searchDebounce` | `number` | 默认 `0`。查询最后一次变化后等待多少毫秒再解析。 |
 | `showError` | `boolean` | 默认 `true`。失败时渲染错误区域。 |
 | `tokens` | `Record<string, string>` | 默认 `{}`。根元素上的内联 `--vmd-*` 自定义属性。 |
 | `theme` | `'light' \| 'dark' \| 'auto' \| 'custom'` | 默认 `'light'`。设置根元素的 `data-vmd-theme`。 |
 | `as` | `string \| Component` | 默认 `'div'`。根元素或根组件。 |
+
+标量属性会在运行时校验。非法的枚举、布尔、字符串或数字值会回退到文档默认值，并作为
+带 `prop-*` 代码的 `render-error` 诊断上报。
 
 ::: tip 同一页面有多个渲染器
 标题 slug 只在单份文档内唯一。给每个渲染器不同的 `idPrefix`（`doc-`、`sidebar-` 等），
@@ -68,18 +72,18 @@ import '@coderminer/vue-markdown/style.css'
 插件数组也要保持稳定。内联工厂调用会在每次父组件渲染时创建新的插件对象，并使解析缓存
 失效。
 
-`search` 会影响解析：每次变化都会重新解析文档。实现大文档的即时搜索时，请对输入做防抖
-（例如 200–300 ms）。两者同时存在时，显式的 `search` 选项会覆盖
-`searchPlugin()` 产生的搜索片段。`search-change` 只在当前渲染文档对应当前查询时触发，
-因此等待中或失败的运行不会报告旧的匹配数。空查询挂载时不会发事件；之后切换大小写是
-真实状态变化，会正常触发。
+`search` 会影响解析：每次稳定后的查询变化都会重新解析文档。大文档的即时搜索可设置
+`searchDebounce`（例如 `200`）。初始查询会立即应用，因此服务端渲染仍然包含匹配项。
+两者同时存在时，显式的 `search` 选项会覆盖 `searchPlugin()` 产生的搜索片段。
+`search-change` 只在当前渲染文档对应当前查询时触发，因此等待中或失败的运行不会报告
+旧的匹配数。空查询挂载时不会发事件；之后切换大小写是真实状态变化，会正常触发。
 
 ## 事件
 
 | 事件 | 负载 | 说明 |
 | --- | --- | --- |
 | `update:source` | `source: string` | 由 `updateSource` 和 `v-model:source` 触发。 |
-| `toc-change` | `TocItem[]` | 签名判断；只有序列化目录变化时才触发。 |
+| `toc-change` | `TocItem[]` | 签名判断；只有目录内容变化时才触发。 |
 | `link-click` | `{ url, target, node, event }` | 渲染后的链接被激活后触发。 |
 | `custom-tag-click` | `{ tag, props, node, event }` | props 已归一化且安全。 |
 | `task-change` | `{ checked, node }` | GFM 任务复选框变化时触发。 |
@@ -87,6 +91,23 @@ import '@coderminer/vue-markdown/style.css'
 | `math-error` | `MarkdownDiagnostic` | 数学渲染产生诊断时触发。 |
 | `render-error` | `MarkdownDiagnostic` | 解析、插件、适配器和配置失败。 |
 | `ready` | `MarkdownDocument` | 第一次成功生成文档时触发一次。 |
+
+### 负载约定
+
+所有负载都是库拥有的值：文档模型、诊断、原始值或普通对象。渲染器不会传递
+Vue 组件、VNode、DOM 节点或 processor 对象。交互事件还会携带来源 DOM
+`MouseEvent`，以便监听器取消默认行为。
+
+- `toc-change` 和 `ready` 直接传递模型值（`TocItem[]` 和 `MarkdownDocument`），
+  因为它们表示文档快照。
+- 交互事件（`link-click`、`custom-tag-click`、`task-change`）使用带字段名的普通
+  对象，并包含来源 `node`；点击事件还会包含 DOM `event`。
+- 失败事件（`math-error`、`render-error`）使用 `MarkdownDiagnostic`。
+- Mermaid 的轻量通知（`copy`、`export`、`fullscreen`、`action`）保持字符串或
+  布尔值；`rendered` 传递结构化的 `MermaidRenderResult`。
+
+宿主包装组件可以从 `@coderminer/vue-markdown` 导入 `MarkdownRendererEvents`
+或 `MermaidBlockEvents`，直接传给 `defineEmits`，无需逐个重新声明负载类型。
 
 ## 实例方法
 

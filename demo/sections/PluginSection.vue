@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { visit } from 'unist-util-visit'
 import { MarkdownRenderer } from '@coderminer/vue-markdown'
-import { defineMarkdownPlugin } from '@coderminer/vue-markdown/plugins'
 import SectionShell from '../components/SectionShell.vue'
 import SourceEditor from '../components/SourceEditor.vue'
 import OutputPane from '../components/OutputPane.vue'
+import { createSamplePlugin } from '../plugins/samplePlugin'
 
 const source = ref(`# Plugin demo
 
+[[sample]]
+
 This paragraph mentions plugin behavior and keeps **formatting**.
+
+> Every blockquote is rendered by the sample plugin's node component.
 
 ## Second heading
 `)
@@ -17,45 +20,12 @@ This paragraph mentions plugin behavior and keeps **formatting**.
 const setups = ref(0)
 const cleanups = ref(0)
 
-function remarkUppercaseKeyword() {
-  return (tree: { children: unknown[] }) => {
-    visit(tree as never, 'text', (node: { value: string }) => {
-      node.value = node.value.split('plugin').join('PLUGIN')
-    })
-  }
-}
-
-function rehypeMarkHeadings() {
-  return (tree: { children: unknown[] }) => {
-    visit(tree as never, 'element', (node: {
-      tagName: string
-      properties: Record<string, unknown>
-    }) => {
-      if (/^h[1-6]$/.test(node.tagName)) {
-        node.properties = { ...node.properties, 'data-demo-plugin': 'yes' }
-      }
-    })
-  }
-}
-
-const demoPlugin = defineMarkdownPlugin({
-  name: 'demo-plugin',
-  remarkPlugins: [remarkUppercaseKeyword],
-  rehypePlugins: [rehypeMarkHeadings],
-  components: { h2: 'h3' },
-  labels: { toc: 'Plugin contents' },
-  tokens: { '--vmd-color-accent': 'rgb(130, 80, 223)' },
-  setup() {
+const demoPlugin = createSamplePlugin({
+  onSetup: () => {
     setups.value += 1
-    return () => {
-      cleanups.value += 1
-    }
   },
-  transformDocument(document) {
-    return {
-      ...document,
-      frontmatter: { ...(document.frontmatter ?? {}), demoPlugin: true },
-    }
+  onCleanup: () => {
+    cleanups.value += 1
   },
 })
 </script>
@@ -64,7 +34,7 @@ const demoPlugin = defineMarkdownPlugin({
   <SectionShell
     id="plugin"
     title="Plugin"
-    description="defineMarkdownPlugin contributes remark/rehype plugins, components, labels, tokens, and setup/cleanup."
+    description="A complete sample plugin: source transform, remark/rehype hooks, component contribution, document transform, labels, tokens, and cleanup. See demo/plugins/samplePlugin.ts."
   >
     <div class="demo-controls">
       <span>setups: <strong>{{ setups }}</strong></span>
@@ -77,8 +47,10 @@ const demoPlugin = defineMarkdownPlugin({
       </OutputPane>
     </div>
     <p class="demo-note">
-      The plugin uppercases "plugin" in text nodes, marks headings with
-      <code>data-demo-plugin</code>, maps h2 to h3, and renames the TOC label.
+      <code>[[sample]]</code> is replaced before parsing, text nodes uppercase
+      "plugin", headings receive <code>data-sample-heading</code>, blockquotes
+      become a callout, the document gains frontmatter, and the TOC label and
+      accent token change.
     </p>
   </SectionShell>
 </template>

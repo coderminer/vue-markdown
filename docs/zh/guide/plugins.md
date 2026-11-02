@@ -52,6 +52,101 @@ export const search = defineMarkdownPlugin((options: { query: string }) => ({
 }))
 ```
 
+## 完整示例：示例插件
+
+演示站点提供了 [`demo/plugins/samplePlugin.ts`](https://github.com/coderminer/vue-markdown/blob/main/demo/plugins/samplePlugin.ts)，
+覆盖全部公开钩子：源码变换、remark 插件、rehype 插件、组件贡献、文档变换、文案、
+令牌、setup、cleanup 和 `onError`。
+
+```ts
+// sample-plugin.ts
+import { defineComponent, h } from 'vue'
+import { visit } from 'unist-util-visit'
+import type { MarkdownNodeRenderContext } from '@coderminer/vue-markdown'
+import { defineMarkdownPlugin } from '@coderminer/vue-markdown/plugins'
+
+const SampleCallout = defineComponent({
+  setup(_, { slots }) {
+    return () => h('aside', { class: 'sample-callout' }, slots.default?.())
+  },
+})
+
+const uppercaseKeyword = () => (tree) => {
+  visit(tree, 'text', (node) => {
+    node.value = node.value.split('plugin').join('PLUGIN')
+  })
+}
+
+const markHeadings = () => (tree) => {
+  visit(tree, 'element', (node) => {
+    if (/^h[1-6]$/.test(node.tagName)) {
+      node.properties = { ...node.properties, 'data-sample-heading': 'yes' }
+    }
+  })
+}
+
+export const samplePlugin = defineMarkdownPlugin({
+  name: 'sample-plugin',
+  phase: 'normal',
+  // 解析前运行；返回非字符串时保留上一份源码。
+  transformSource(source) {
+    return source.replace('[[sample]]', '> Injected before parsing.')
+  },
+  // 在官方管线中、remark-parse / remark-rehype 之后运行。
+  remarkPlugins: [uppercaseKeyword],
+  rehypePlugins: [markHeadings],
+  // 替换 blockquote 渲染；普通子节点用 ctx.defaultRender()。
+  nodeComponents: {
+    blockquote: (ctx: MarkdownNodeRenderContext) =>
+      h(SampleCallout, null, { default: () => ctx.defaultRender() }),
+  },
+  // 在净化和模型构建之后运行。
+  transformDocument(document) {
+    return {
+      ...document,
+      frontmatter: { ...(document.frontmatter ?? {}), samplePlugin: true },
+    }
+  },
+  labels: { toc: '示例目录' },
+  tokens: { '--vmd-color-accent': '#8250df' },
+  setup(ctx) {
+    // 每个解析后的插件集合执行一次；注册监听器时必须返回清理函数。
+    return () => {
+      // 重新配置和卸载时运行。
+    }
+  },
+  onError(error, phase, ctx) {
+    ctx.addDiagnostic({
+      code: 'sample-plugin-failed',
+      message: String(error),
+      severity: 'warning',
+      phase,
+      plugin: 'sample-plugin',
+    })
+  },
+})
+```
+
+像内置插件一样注册即可。插件实例只创建一次；在模板中返回新插件会导致父组件每次
+渲染都重新解析文档。
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
+import { samplePlugin } from './sample-plugin'
+
+const source = ref('# 插件演示\n\n[[sample]]\n\n这段文字包含 plugin。')
+</script>
+
+<template>
+  <MarkdownRenderer :source="source" :plugins="[samplePlugin]" toc />
+</template>
+```
+
+从数组中移除 `samplePlugin` 就能一次性停用全部贡献。演示站点增加了 `setups` 和
+`cleanups` 计数器，插件数组变化时可以看到生命周期执行。
+
 `transformSource` 在解析前按插件解析顺序运行。变换抛错或返回非字符串时，保留上一份
 源码并报告 `plugin-source`；`onError` 会收到 `source` 阶段。
 
@@ -70,6 +165,8 @@ const plugins = [mathPlugin(), mermaidPlugin()]
 顺序是 `pre` → `normal` → `post`，同阶段内按注册顺序执行。同名插件会确定性地替换先前
 注册，并产生一条诊断。`disablePlugins` 从解析后的集合中移除非内核插件。内核不变标记
 （`toc`、`code`、`link`）不能被禁用；请求禁用会报告 `plugin-core` 诊断，并保留该标记。
+不在解析后集合中的名称会被忽略，并报告 `plugin-unknown` 警告。完整的内置名称见
+[禁用名称](#disableplugins-names)。
 
 ```vue
 <MarkdownRenderer :source="source" :disable-plugins="['search']" />
@@ -151,10 +248,31 @@ const rehypePlugins = [rehypeHighlight]
 | `frontmatterPlugin` | `remark-frontmatter` + YAML 捕获。 |
 | `htmlPlugin()` | 可选的 `@coderminer/vue-markdown/html` 入口；净化后的原始 HTML。 |
 
-`defaultPlugins` 是 `[toc, code, link, search, custom-tags]`。前三个是内核不变标记：
-它们会保留在解析后的集合中用于排序和诊断，`disablePlugins` 只会报告警告而不会移除。
-`search` 和 `custom-tags` 是真实变换，可以禁用。`fullPlugins` 在此之上加入 GFM 和
-frontmatter。
+`defaultPlugins` 是 `[toc, code, link, search, custom-tags]`；`fullPlugins` 在此之上
+加入 `gfm` 和 `frontmatter`。
+
+### `disablePlugins` 名称
+
+`disablePlugins` 匹配插件的 `name`，不是导出的工厂函数名。完整的内置名称如下：
+
+| 名称 | 工厂 | 所属集合 | 可否禁用 |
+| --- | --- | --- | --- |
+| `toc` | `tocPlugin` | `defaultPlugins` | 否，内核不变标记 |
+| `code` | `codePlugin` | `defaultPlugins` | 否，内核不变标记 |
+| `link` | `linkPlugin` | `defaultPlugins` | 否，内核不变标记 |
+| `search` | `searchPlugin()` | `defaultPlugins` | 是 |
+| `custom-tags` | `customTagsPlugin()` | `defaultPlugins` | 是 |
+| `gfm` | `gfmPlugin` | `fullPlugins` | 是 |
+| `frontmatter` | `frontmatterPlugin` | `fullPlugins` | 是 |
+| `html` | `htmlPlugin()` | 按需启用 | 是 |
+| `math` | `mathPlugin()` | 按需启用 | 是 |
+| `mermaid` | `mermaidPlugin()` | 按需启用 | 是 |
+
+`customTagsPlugin` 注册的名称是 `custom-tags`，不是 `customTags`。如果传入自定义
+`plugins` 数组，只有该数组中的名称会被识别，其余名称会报告 `plugin-unknown`。
+
+前三个是内核不变标记：它们会保留在解析后的集合中用于排序和诊断，`disablePlugins`
+会报告 `plugin-core` 而不会移除它们。
 
 渲染器级的 `search` 属性是 `searchPlugin()` 之外的内核便利入口。两者同时存在时，显式
 属性优先；禁用 `search` 插件不会禁用显式属性。

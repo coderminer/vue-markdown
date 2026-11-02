@@ -86,7 +86,10 @@ bounded cache size.
 ## Heading IDs
 
 Heading IDs come from `github-slugger` by default, are unique per document, and
-are prefixed by `idPrefix`. Pass a custom `slugger` to change the algorithm:
+are prefixed by `idPrefix`. Consecutive whitespace and hyphen runs collapse to a
+single hyphen, so `My   Heading` and `My - Heading` both become `my-heading`.
+Pass a custom `slugger` to change the algorithm; its output is used as-is apart
+from duplicate handling:
 
 ```ts
 const slugger = {

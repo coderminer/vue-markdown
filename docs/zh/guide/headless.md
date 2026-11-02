@@ -29,6 +29,7 @@ const {
   pipeline,     // ComputedRef<string>
   plugins,      // ComputedRef<string[]>
   refresh,      // () => Promise<void>
+  clearDiagnostics, // () => void
 } = useMarkdownDocument(source)
 ```
 
@@ -153,6 +154,10 @@ const activeId = useActiveHeading(ids, true, { root: documentElement })
 - `pending` —— 异步运行进行中，保留上一份文档。
 - `ready` —— 当前源码成功生成了文档。
 - `error` —— 运行失败，保留上一份文档，诊断信息说明原因。
+
+每次运行（包括失败）都会替换诊断并合并重复项。插件 setup 期间产生的诊断会在 setup
+执行时生成快照，即使插件保留 setup 上下文也不会持续累积。调用
+`clearDiagnostics()` 可以清空已发布的诊断，而无需重新运行管线。
 
 ## 下一步
 

@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { MarkdownCustomTagNode } from '../core/types'
+import { normalizeCustomTagProps } from '../core/normalize'
 import { useRenderContext } from './context'
+
+defineOptions({ name: 'MarkdownCustomTag', inheritAttrs: false })
 
 const props = defineProps<{
   node: MarkdownCustomTagNode
@@ -21,18 +24,20 @@ const target = computed(() => {
   return 'span'
 })
 
+const bindings = computed(() => ({
+  ...normalizeCustomTagProps(props.node.attrs),
+  ...props.node.props,
+  ...(props.customProps ?? {}),
+}))
+
 function onClick(event: MouseEvent): void {
   ctx.onCustomTagClick({
     tag: tag.value,
-    props: { ...props.node.attrs, ...props.node.props },
+    props: bindings.value,
     node: props.node,
     event,
   })
 }
-const bindings = computed(() => ({
-  ...props.node.attrs,
-  ...props.node.props,
-}))
 </script>
 
 <template>

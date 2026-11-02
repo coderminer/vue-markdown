@@ -10,7 +10,7 @@ description: 在 Vue 3 中安装 @coderminer/vue-markdown，并渲染第一份 M
 ## 环境要求
 
 - Node.js 20 或更高版本
-- Vue 3.5 或更高版本
+- Vue 3.3 或更高版本（已在 3.3、3.4、3.5+ 上验证；推荐 3.5+）
 - 基于 Vite 的构建，或任何支持标准 ESM 的打包器
 
 ## 安装

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import MarkdownRenderer from '../../src/components/MarkdownRenderer.vue'
 import { mermaidPlugin } from '../../src/mermaid/plugin'
+import type { MermaidPluginOptions } from '../../src/mermaid/plugin'
 import type { MermaidRenderer } from '../../src/core/types'
 
 const renderer: MermaidRenderer = {
@@ -53,5 +54,13 @@ describe('mermaidPlugin', () => {
     })
     await flushPromises()
     expect(wrapper.find('[data-vmd-part="mermaid"]').exists()).toBe(true)
+  })
+
+  it('rejects renderer arguments instead of ignoring them', () => {
+    const unsupported = (() => undefined) as unknown as MermaidPluginOptions
+
+    expect(() => mermaidPlugin(unsupported)).toThrow(
+      '`mermaidPlugin` expects an options object',
+    )
   })
 })

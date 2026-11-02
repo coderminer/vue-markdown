@@ -12,7 +12,8 @@ the same adapter contract for standalone snippets.
 `CodeBlock` lazily imports the highlight.js adapter. The adapter registers an
 explicit language set (JavaScript, TypeScript, HTML/XML, CSS, JSON, Bash,
 Markdown, Python, Go, Rust, SQL, YAML, and related aliases) and highlights
-synchronously. A document without code never loads it.
+synchronously. It uses `lowlight` internally, so it produces hast nodes directly
+without an HTML round-trip. A document without code never loads it.
 
 ```ts
 import { highlightjs } from '@coderminer/vue-markdown/highlight'

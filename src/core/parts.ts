@@ -66,6 +66,7 @@ export const PARTS = {
   mermaidPending: 'mermaid-pending',
   mermaidError: 'mermaid-error',
   mermaidFallback: 'mermaid-fallback',
+  mermaidRetry: 'mermaid-retry',
   mermaidFullscreen: 'mermaid-fullscreen',
   editor: 'editor',
   editorPane: 'editor-pane',

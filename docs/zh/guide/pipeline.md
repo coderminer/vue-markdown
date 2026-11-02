@@ -79,8 +79,9 @@ import { memoClear, memoSize } from '@coderminer/vue-markdown'
 
 ## 标题 ID
 
-标题 ID 默认由 `github-slugger` 生成，在单份文档内唯一，并加上 `idPrefix` 前缀。传入
-自定义 `slugger` 可以替换算法：
+标题 ID 默认由 `github-slugger` 生成，在单份文档内唯一，并加上 `idPrefix` 前缀。
+连续的空白和减号会折叠为一个减号，因此 `My   Heading` 与 `My - Heading` 都会生成
+`my-heading`。传入自定义 `slugger` 可以替换算法，其输出除重复处理外会原样使用：
 
 ```ts
 const slugger = {

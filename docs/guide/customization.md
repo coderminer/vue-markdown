@@ -382,6 +382,18 @@ import { customTagsPlugin } from '@coderminer/vue-markdown/plugins'
 const plugins = [customTagsPlugin({ tags: ['x-note'] })]
 ```
 
+Custom-tag attribute names normalize from kebab-case to camelCase, so
+`<x-note start-line="2">` reaches the component and the `custom-tag-click`
+payload as `startLine`. `data-*` and `aria-*` attributes keep their hyphenated
+DOM form. HTML parsers lowercase raw attribute names, so write `start-line`
+rather than `startLine`; the camelCase spelling cannot be recovered after HTML
+parsing.
+
+`MarkdownCustomTag` also accepts a `customProps` object. It merges last, after
+normalized attributes and `node.props`, so its keys are passed through
+verbatim and are not case-normalized. Use it when a host wrapper needs to add
+or override props without going through HTML parsing.
+
 ::: tip Rich components
 The same component-first pattern applies to rich components. See
 [Build a custom code block](./rich-components.md#build-a-custom-code-block-with-codeblock)

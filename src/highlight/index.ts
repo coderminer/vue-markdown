@@ -1,9 +1,8 @@
 export { highlightjs } from './highlightjs'
 export { default } from './highlightjs'
+export { highlightedNodesFromHast } from './convert-hast'
 export {
   clearHighlightCache,
-  highlightedNodesFromHast,
-  highlightedNodesFromHtml,
   plaintextHighlight,
   runHighlighter,
   splitHighlightLines,

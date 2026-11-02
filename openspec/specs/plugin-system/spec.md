@@ -27,7 +27,7 @@ The library SHALL define a typed plugin contract with a unique name, optional or
 
 ### Requirement: Plugin registration and ordering
 
-Plugins SHALL be registered per renderer or provider instance, not globally. Registration SHALL accept plugin objects and ordered options tuples, SHALL preserve deterministic execution order, and SHALL support pre, normal, and post phases. Duplicate plugin names SHALL be detected and reported. The effective plugin order SHALL be inspectable. `disablePlugins` SHALL remove non-core plugins. Core invariant markers (`toc`, `code`, `link`) SHALL remain in the resolved set and SHALL report a `plugin-core` diagnostic when a host attempts to disable them.
+Plugins SHALL be registered per renderer or provider instance, not globally. Registration SHALL accept plugin objects and ordered options tuples, SHALL preserve deterministic execution order, and SHALL support pre, normal, and post phases. Duplicate plugin names SHALL be detected and reported. The effective plugin order SHALL be inspectable. `disablePlugins` SHALL remove non-core plugins. A name that does not match a registered plugin SHALL be ignored and SHALL report a `plugin-unknown` warning. Core invariant markers (`toc`, `code`, `link`) SHALL remain in the resolved set and SHALL report a `plugin-core` diagnostic when a host attempts to disable them.
 
 #### Scenario: Ordered execution
 - **WHEN** a pre-phase, normal-phase, and post-phase plugin are registered
@@ -40,6 +40,10 @@ Plugins SHALL be registered per renderer or provider instance, not globally. Reg
 #### Scenario: Disable a core invariant
 - **WHEN** a host passes `disablePlugins: ['toc']`
 - **THEN** TOC construction remains active and a `plugin-core` diagnostic is reported
+
+#### Scenario: Unknown disable name
+- **WHEN** a host passes `disablePlugins: ['customTags']` and no plugin registers that name
+- **THEN** no plugin is removed and a `plugin-unknown` warning is reported
 
 ### Requirement: Pipeline extension
 

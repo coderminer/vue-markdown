@@ -11,7 +11,7 @@ typed plugins, and optional engines for code, math, and diagrams.
 ## Requirements
 
 - Node.js 20 or newer
-- Vue 3.5 or newer
+- Vue 3.3 or newer (3.3, 3.4, and 3.5+ are verified; 3.5+ is recommended)
 - A Vite-based build, or any bundler that understands standard ESM
 
 ## Install

@@ -32,7 +32,9 @@ languages, and invalid results fall back to plain source. Results are cached by
 adapter identity, source, language, theme, and options.
 
 Built-ins: `highlightjs` from `@coderminer/vue-markdown/highlight` and `shiki` from
-`@coderminer/vue-markdown/highlight/shiki`.
+`@coderminer/vue-markdown/highlight/shiki`. The default `highlightjs` adapter
+uses `lowlight` internally and returns hast-derived nodes without an HTML
+round-trip.
 
 ## Math engine
 
@@ -70,10 +72,18 @@ const renderer: MermaidRenderer = {
 }
 ```
 
-Custom output is sanitized. A renderer may return nodes directly or SVG markup;
-invalid output keeps the last good preview and reports a diagnostic.
+Custom output is sanitized. A renderer may return nodes directly or SVG markup,
+and `render` may return a Promise; `MermaidBlock` awaits either form. Invalid
+output keeps the last good preview and reports a diagnostic.
 
-Built-in: `renderMermaid` from `@coderminer/vue-markdown/mermaid`.
+The built-in runtime is used automatically when no `mermaidRenderer` is
+configured. `renderMermaid()` from `@coderminer/vue-markdown/mermaid` is the
+async function behind it, not a `MermaidRenderer` object: it has no `id`, so do
+not pass it directly as `mermaidRenderer` or `renderer`. Await it before using
+its result as a source, or wrap it in `{ id, render }` when you need an explicit
+adapter. The [Mermaid guide](../guide/mermaid.md#choosing-a-renderer) documents
+the precedence between the per-block prop, provider, preset, and built-in
+runtime.
 
 ## Slugger and URL transform
 

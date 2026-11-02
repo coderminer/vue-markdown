@@ -8,6 +8,9 @@ export interface MermaidPluginOptions {
   /**
    * Fence languages that become Mermaid nodes. Defaults to `mermaid` and
    * `mmd`. Language matching is case-insensitive.
+   *
+   * This is the only option the plugin reads. Configure the Mermaid renderer
+   * and theme on `MarkdownRenderer` through `mermaidRenderer` and `theme`.
    */
   languages?: string | string[]
 }
@@ -63,6 +66,11 @@ function convert(
 export function mermaidPlugin(
   options: MermaidPluginOptions = {},
 ): MarkdownPlugin {
+  if (!options || typeof options !== 'object' || Array.isArray(options)) {
+    throw new TypeError(
+      '`mermaidPlugin` expects an options object such as `{ languages: ["mermaid"] }`. It does not accept renderer or theme arguments; configure those on `MarkdownRenderer`.',
+    )
+  }
   const languages = normalizeLanguages(options.languages)
 
   return {

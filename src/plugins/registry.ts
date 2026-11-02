@@ -67,6 +67,17 @@ export function resolvePlugins(
   })
 
   const disabled = new Set(disablePlugins)
+  for (const name of disabled) {
+    if (byName.has(name)) continue
+    diagnostics.push(
+      createDiagnostic(
+        'plugin-unknown',
+        `Plugin "${name}" in disablePlugins does not match a registered plugin and was ignored.`,
+        { severity: 'warning', phase: 'setup', plugin: name },
+      ),
+    )
+  }
+
   const ordered = [...byName.values()]
     .filter(({ plugin }) => {
       if (!disabled.has(plugin.name)) return true

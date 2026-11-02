@@ -1,4 +1,3 @@
-import { fromHtml } from 'hast-util-from-html'
 import type { Element, RootContent } from 'hast'
 import type { MarkdownNode } from '../core/types'
 
@@ -566,16 +565,20 @@ function modelScope(nodes: readonly MarkdownNode[]): string | undefined {
   return typeof id === 'string' && id !== '' ? `#${id}` : undefined
 }
 
-/** Sanitize Mermaid SVG output into normalized nodes. */
-export function sanitizeSvg(svg: string): MarkdownNode[] {
-  const root = fromHtml(svg, { fragment: true })
-  const svgElement = root.children.find(
+/**
+ * Sanitize parsed SVG markup into normalized nodes. Prefer the root SVG
+ * element so the stylesheet scope is derived from its id.
+ */
+export function sanitizeHastNodes(
+  nodes: readonly RootContent[],
+): MarkdownNode[] {
+  const svgElement = nodes.find(
     (node): node is Element =>
       node.type === 'element' && node.tagName.toLowerCase() === 'svg',
   )
   return svgElement
     ? sanitizeNodes([svgElement], '', svgScope(svgElement))
-    : sanitizeNodes(root.children)
+    : sanitizeNodes(nodes)
 }
 
 function safeModelAttributes(

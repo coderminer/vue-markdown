@@ -11,6 +11,16 @@ Mermaid 支持按需加载，且只在客户端运行。只有 Mermaid 块或可
 import { mermaidPlugin, renderMermaid, sanitizeSvg } from '@coderminer/vue-markdown/mermaid'
 ```
 
+`renderMermaid()` 是异步的：Mermaid 运行时按需加载，渲染本身也是异步操作。使用结果前
+需要先 await：
+
+```ts
+const result = await renderMermaid('graph TD; A-->B')
+```
+
+如果把未 await 的 Promise 传给 `MermaidBlock` 的 `source` 属性（或直接传给
+`renderMermaid()`），会报告清晰的错误，而不是抛出异常。
+
 `MermaidBlock` 从包根导出。它在 SSR 期间渲染确定性占位符，挂载后再加载运行时。
 
 ## 围栏图表
@@ -36,6 +46,40 @@ const plugins = [...defaultPlugins, mermaidPlugin()]
 `mermaidPlugin({ languages: ['mermaid', 'diagram'] })` 自定义。插件必须显式引入，因为
 Mermaid 是可选 peer。没有插件时，Mermaid 围栏保持普通代码块；没有 `mermaid` 包或自定义
 渲染器时，块会保留源码并报告 `mermaid-unavailable`，而不是塌缩成空白区域。
+
+`mermaidPlugin()` 只读取 `languages` 选项。渲染器和主题通过 `MarkdownRenderer` 的
+`mermaidRenderer` 和 `theme` 配置，它们不是插件参数。
+
+## 选择渲染器
+
+Mermaid 只有一条渲染管线，配置分为三层。只在需要覆盖下一层时才使用上一层：
+
+1. **内置运行时（默认）。** 没有配置渲染器时，`MermaidBlock` 会按需调用
+   `renderMermaid()`。这是常规用法。
+2. **应用级适配器。** 在 `MarkdownRenderer`、`MarkdownConfigProvider` 或预设中设置
+   `mermaidRenderer`。适合替换 Mermaid 构建、使用远程服务或预渲染结果。
+3. **单块适配器。** 在 `MermaidBlock` 或 `MarkdownMermaid` 上设置 `renderer`。它的优先级
+   高于 provider、预设和内置运行时。
+
+优先级为：本地属性 > 最近的 provider > 预设 > 内置。`mermaidPlugin()` 不是渲染器，
+它只把围栏代码转换成 Mermaid 节点。`renderMermaid()` 是内置运行时背后的异步函数，
+不是 `MermaidRenderer` 对象；它没有 `id`，不要直接传给 `mermaidRenderer` 或
+`renderer`。需要显式适配器时请包装它：
+
+```ts
+const renderer = {
+  id: 'mermaid',
+  render: (source, options) => renderMermaid(source, options),
+}
+```
+
+大多数应用不需要配置渲染器：添加 `mermaidPlugin()`、设置主题，然后让内置运行时按需加载即可。
+
+## 运行时生命周期
+
+Mermaid 运行时是进程级单例。所有块共享同一份懒加载模块、配置和渲染队列。卸载块不会
+重置或卸载它：缓存不保存任何单块状态，而且其他块可能仍在渲染。`resetMermaidRuntime()`
+用于测试或显式重新初始化，不是组件生命周期钩子，也无法卸载浏览器的模块缓存。
 
 <script setup>
 import { MermaidBlock } from '@coderminer/vue-markdown'

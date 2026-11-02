@@ -38,7 +38,7 @@ export.
 npm install @coderminer/vue-markdown
 ```
 
-Requires Node 20+ and Vue 3.5+.
+Requires Node 20+ and Vue 3.3+.
 
 Optional engines are peer dependencies. Install only the ones you use:
 
@@ -352,6 +352,10 @@ of the parse memo key, so `:plugins="[docsPlugin]"` created inline in a template
 re-parses on every parent render. A failing plugin is isolated and never corrupts
 the last good document.
 
+`disablePlugins` matches the plugin `name`, not the exported factory name.
+Unknown names report a `plugin-unknown` warning. See the
+[plugin name table](docs/guide/plugins.md#disableplugins-names) for the full list.
+
 ### Headless rendering
 
 ```ts
@@ -440,7 +444,7 @@ component manifest, lives in the
 | `labels` | `Partial<MarkdownLabels>` | `{}` | String or function labels for built-in text. |
 | `preset` | `MarkdownPreset \| MarkdownPreset[]` | — | Applies one or more presets. |
 | `plugins` | `PluginInput[]` | `defaultPlugins` | Replaces the default plugin set when provided. Add `htmlPlugin()` for sanitized raw HTML. |
-| `disablePlugins` | `string[]` | `[]` | Removes named plugins from the resolved set. |
+| `disablePlugins` | `string[]` | `[]` | Removes named plugins from the resolved set. Unknown names report a `plugin-unknown` warning. |
 | `remarkPlugins` | `PluggableList` | `[]` | Runs after library remark plugins. |
 | `rehypePlugins` | `PluggableList` | `[]` | Runs after library rehype plugins and the built-in sanitizer. |
 | `remarkRehypeOptions` | `Record<string, unknown>` | `{}` | Merged into the conversion step. |
@@ -465,6 +469,7 @@ component manifest, lives in the
 | `tocPlacement` | `'top' \| 'left' \| 'right' \| 'hidden'` | `'top'` | Stack the TOC, place it beside the content, or hide it. |
 | `search` | `string` | `''` | Highlights matches and emits `search-change`. |
 | `searchCaseSensitive` | `boolean` | `false` | Makes the `search` match case-sensitive. |
+| `searchDebounce` | `number` | `0` | Milliseconds before a new query is parsed. |
 | `showError` | `boolean` | `true` | Renders the error region on failure. |
 | `tokens` | `Record<string, string>` | `{}` | Inline `--vmd-*` custom properties on the root. |
 | `theme` | `'light' \| 'dark' \| 'auto' \| 'custom'` | `'light'` | Sets `data-vmd-theme` on the root. |

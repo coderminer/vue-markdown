@@ -23,3 +23,37 @@ jobs:
       - run: npm run bench
       - run: npm run build:demo
       - run: npm run docs:build
+
+  compat:
+    # The declared Vue floor is 3.3, so exercise the suite against every
+    # supported minor line. `@vue/test-utils@2.4.6` is pinned because 2.5 calls
+    # `app.onUnmount` in `mount({ attachTo })`, which Vue added in 3.5.
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        vue: ['3.3.13', '3.4.38']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install Vue ${{ matrix.vue }}
+        run: |
+          npm install --no-save --no-package-lock \
+            vue@${{ matrix.vue }} \
+            @vue/server-renderer@${{ matrix.vue }} \
+            @vue/compiler-sfc@${{ matrix.vue }} \
+            @vue/compiler-dom@${{ matrix.vue }} \
+            @vue/compiler-core@${{ matrix.vue }} \
+            @vue/compiler-ssr@${{ matrix.vue }} \
+            @vue/runtime-core@${{ matrix.vue }} \
+            @vue/runtime-dom@${{ matrix.vue }} \
+            @vue/reactivity@${{ matrix.vue }} \
+            @vue/shared@${{ matrix.vue }} \
+            @vue/test-utils@2.4.6
+      - name: Verify installed Vue version
+        run: node -p "require('vue/package.json').version"
+      - run: npm test

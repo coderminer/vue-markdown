@@ -145,7 +145,7 @@ const source = ref('# 你好\n\n一段带 **加粗** 和 [链接](https://exampl
 ```
 
   <div class="home-badges">
-    <span><strong>Vue 3.5+</strong></span>
+    <span><strong>Vue 3.3+</strong></span>
     <span><strong>TypeScript</strong> 优先</span>
     <span><strong>SSR</strong> 就绪</span>
     <span><strong>MIT</strong> 许可</span>

@@ -458,6 +458,9 @@ export interface MarkdownPipeline {
   dispose?(): void
 }
 
+/** Target applied to links whose destination is outside the current base URL. */
+export type MarkdownExternalLinkTarget = '_self' | '_blank'
+
 export interface MarkdownDocumentOptions {
   components?: MarkdownTagComponents
   nodeComponents?: MarkdownNodeComponents
@@ -477,7 +480,7 @@ export interface MarkdownDocumentOptions {
   allowElement?: AllowElement
   urlTransform?: MarkdownUrlTransform
   linkTarget?: string
-  externalLinkTarget?: string
+  externalLinkTarget?: MarkdownExternalLinkTarget
   baseUrl?: string
   idPrefix?: string
   /** Host-provided search state; search segments are recomputed when set. */

@@ -146,7 +146,7 @@ const source = ref('# Hello\n\nA **bold** paragraph with a [link](https://exampl
 ```
 
   <div class="home-badges">
-    <span><strong>Vue 3.5+</strong></span>
+    <span><strong>Vue 3.3+</strong></span>
     <span><strong>TypeScript</strong> first</span>
     <span><strong>SSR</strong> ready</span>
     <span><strong>MIT</strong> licensed</span>

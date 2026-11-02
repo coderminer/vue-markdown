@@ -17,6 +17,7 @@ import type {
   MermaidRenderResult,
   MermaidRenderer,
 } from '../core/types'
+import type { MermaidBlockEvents } from './types'
 import { createDiagnostic, errorMessage } from '../core/diagnostics'
 import { resolveLabel } from '../core/labels'
 import { isValidMermaidRenderer } from '../core/adapters'
@@ -24,7 +25,8 @@ import { isEmptySlotContent, useRenderContext } from './context'
 import { renderNodes } from './render'
 import { createMermaidRenderId, renderMermaid } from '../mermaid/runtime'
 import Icon, { type IconName } from './Icon'
-import { sanitizeMermaidNodes, sanitizeSvg } from '../mermaid/sanitize'
+import { sanitizeMermaidNodes } from '../mermaid/sanitize'
+import { sanitizeSvgAsync } from '../mermaid/sanitize-svg-lazy'
 
 const props = withDefaults(
   defineProps<{
@@ -51,19 +53,18 @@ const props = withDefaults(
   },
 )
 
-const emit = defineEmits<{
-  rendered: [result: MermaidRenderResult]
-  error: [message: string]
-  copy: [source: string]
-  export: [format: 'png' | 'svg']
-  fullscreen: [active: boolean]
-  action: [key: string]
-}>()
+const emit = defineEmits<MermaidBlockEvents>()
 
 const context = useRenderContext()
 const ownSlots = useSlots()
-const source = computed(
+const rawSource = computed(
   () => props.source ?? (props.node?.kind === 'mermaid' ? props.node.code : ''),
+)
+const sourceText = computed(() =>
+  // Vue props are only type-checked in TypeScript. A host can still bind a
+  // non-string (for example the un-awaited Promise from `renderMermaid`), so
+  // normalize before any string operation reaches the renderer.
+  typeof rawSource.value === 'string' ? rawSource.value : '',
 )
 const resolvedTheme = computed<MarkdownTheme>(
   () => props.theme ?? context.theme ?? 'light',
@@ -90,65 +91,94 @@ const rendererId = computed(() =>
     ? renderer.value.id
     : 'mermaid',
 )
-const label = computed(() => resolveLabel(context.labels.mermaid, { source: source.value }))
+const label = computed(() => resolveLabel(context.labels.mermaid, { source: sourceText.value }))
 
-const INVALID_RENDERER_OUTPUT = 'Renderer returned no usable diagram output.'
+const INVALID_RENDERER_RESULT =
+  'The Mermaid renderer returned an invalid result. Return an object such as `{ nodes }` or `{ svg }` from `render()`.'
+const EMPTY_RENDERER_OUTPUT =
+  'The Mermaid renderer returned no diagram nodes or SVG. Return `{ nodes }` or `{ svg }`, or remove the custom renderer to use the built-in runtime.'
+const REJECTED_RENDERER_SVG =
+  'The Mermaid renderer returned SVG that sanitization rejected completely. Return safe SVG markup or sanitized `nodes` instead.'
+const EMPTY_RUNTIME_OUTPUT =
+  'Mermaid produced no renderable diagram output. Check the diagram syntax and the installed `mermaid` version.'
+const REJECTED_RUNTIME_SVG =
+  'Mermaid produced SVG that sanitization rejected completely. Check the diagram syntax and the installed `mermaid` version.'
+const NON_STRING_SOURCE =
+  'Mermaid source must be a string. If you used `renderMermaid()`, await its result before passing it as the source.'
 let renderToken = 0
 
-function prepareResult(
+async function prepareResult(
   raw: MermaidRenderResult | null | undefined,
-): MermaidRenderResult {
+): Promise<MermaidRenderResult> {
   if (!raw || typeof raw !== 'object') {
-    return { nodes: [], error: INVALID_RENDERER_OUTPUT }
+    return { nodes: [], error: INVALID_RENDERER_RESULT }
   }
   const svg = typeof raw.svg === 'string' && raw.svg ? raw.svg : undefined
   const nodes = Array.isArray(raw.nodes) ? sanitizeMermaidNodes(raw.nodes) : []
   if (nodes.length > 0) return { ...raw, svg, nodes }
   if (svg) {
     // A renderer may return SVG markup plus no nodes. Parse and sanitize it
-    // before it can reach the renderer.
-    const sanitized = sanitizeSvg(svg)
+    // before it can reach the renderer. The parser loads lazily so the base
+    // renderer does not statically include it.
+    const sanitized = await sanitizeSvgAsync(svg)
     if (sanitized.length > 0) return { ...raw, svg, nodes: sanitized }
+    return {
+      ...raw,
+      svg,
+      nodes: [],
+      error: raw.error ?? REJECTED_RENDERER_SVG,
+    }
   }
   return {
     ...raw,
     svg,
     nodes: [],
-    error: raw.error ?? INVALID_RENDERER_OUTPUT,
+    error: raw.error ?? EMPTY_RENDERER_OUTPUT,
   }
 }
 
 async function render(): Promise<void> {
+  // A render may be triggered through the exposed API after unmount. Do not
+  // start new work, and let an in-flight render settle without writing state.
+  if (!mounted) return
   const token = ++renderToken
   status.value = 'pending'
   error.value = ''
+  // Every render starts from the default view. This covers retries, renderer
+  // or theme changes, and source updates, not only the source watcher below.
+  scale.value = 1
   const active = renderer.value
   const id = createMermaidRenderId()
   let next: MermaidRenderResult
-  if (active && isValidMermaidRenderer(active)) {
+  if (typeof rawSource.value !== 'string') {
+    next = { nodes: [], error: NON_STRING_SOURCE }
+  } else if (active && isValidMermaidRenderer(active)) {
     try {
-      next = prepareResult(
-        await active.render(source.value, { theme: resolvedTheme.value, id }),
+      next = await prepareResult(
+        await active.render(sourceText.value, { theme: resolvedTheme.value, id }),
       )
     } catch (exception) {
       next = {
         nodes: [],
-        error: exception instanceof Error ? exception.message : String(exception),
+        error: `The Mermaid renderer failed: ${errorMessage(exception)}`,
       }
     }
   } else {
     // The default runtime already returns sanitized nodes.
-    const rendered = await renderMermaid(source.value, {
+    const rendered = await renderMermaid(sourceText.value, {
       theme: resolvedTheme.value,
       id,
     })
     next =
       rendered.error || rendered.nodes.length > 0
         ? rendered
-        : { ...rendered, error: INVALID_RENDERER_OUTPUT }
+        : {
+            ...rendered,
+            error: rendered.svg ? REJECTED_RUNTIME_SVG : EMPTY_RUNTIME_OUTPUT,
+          }
   }
 
-  if (token !== renderToken) return
+  if (!mounted || token !== renderToken) return
 
   result.value = next
   if (next.error) {
@@ -177,25 +207,27 @@ onMounted(() => {
 })
 onUnmounted(() => {
   mounted = false
+  // Invalidate any in-flight render so it cannot emit events or write state
+  // after the component is gone.
+  renderToken += 1
   if (copiedTimer) clearTimeout(copiedTimer)
   if (typeof document !== 'undefined') {
     document.removeEventListener('keydown', onKeydown)
   }
 })
 watch(
-  () => [source.value, renderer.value, resolvedTheme.value] as const,
+  () => [sourceText.value, renderer.value, resolvedTheme.value] as const,
   () => {
     if (mounted) void render()
   },
 )
-
 async function copy(): Promise<void> {
   try {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      await navigator.clipboard.writeText(source.value)
+      await navigator.clipboard.writeText(sourceText.value)
     }
     copied.value = true
-    emit('copy', source.value)
+    emit('copy', sourceText.value)
     if (copiedTimer) clearTimeout(copiedTimer)
     copiedTimer = setTimeout(() => {
       copied.value = false
@@ -303,8 +335,30 @@ function resetZoom(): void {
   scale.value = 1
 }
 
+function retryControl(): ReturnType<typeof h> {
+  return h(
+    'button',
+    {
+      type: 'button',
+      class: 'vmd-mermaid-retry',
+      'data-vmd-part': 'mermaid-retry',
+      'data-action': 'retry',
+      onClick: retry,
+    },
+    resolveLabel(context.labels.retry),
+  )
+}
+
+async function retry(): Promise<void> {
+  scale.value = 1
+  await render()
+}
+
 function showPreview(): void {
   view.value = 'preview'
+  // Returning from the source tab shows the initial diagram view rather than
+  // the zoom level that happened to be active before the tab switch.
+  scale.value = 1
 }
 
 function showSource(): void {
@@ -316,7 +370,7 @@ const actionHandlers = computed(() => ({
   exportPng,
   downloadSvg,
   fullscreen: () => toggleFullscreen(),
-  retry: render,
+  retry,
   zoomIn: () => zoom(0.25),
   zoomOut: () => zoom(-0.25),
   resetZoom,
@@ -325,7 +379,7 @@ const actionHandlers = computed(() => ({
 async function runAction(action: MermaidAction): Promise<void> {
   try {
     await action.run({
-      source: source.value,
+      source: sourceText.value,
       ...actionHandlers.value,
     })
     emit('action', action.key)
@@ -343,7 +397,7 @@ async function runAction(action: MermaidAction): Promise<void> {
 }
 
 const headerContext = computed(() => ({
-  source: source.value,
+  source: sourceText.value,
   label: label.value,
   view: view.value,
   status: status.value,
@@ -365,7 +419,7 @@ const tabsContext = computed(() => ({
 }))
 
 const actionsSlotContext = computed(() => ({
-  source: source.value,
+  source: sourceText.value,
   status: status.value,
   copied: copied.value,
   fullscreen: fullscreen.value,
@@ -381,7 +435,7 @@ const PreviewContent = defineComponent({
       context.renderHostSlot(
         'mermaid',
         {
-          source: source.value,
+          source: sourceText.value,
           svg: lastGood.value?.svg,
           status: status.value,
           error: error.value,
@@ -389,14 +443,14 @@ const PreviewContent = defineComponent({
             copy,
             exportPng,
             fullscreen: () => toggleFullscreen(),
-            retry: render,
+            retry,
           },
         },
         () => {
           const slot = ownSlots.mermaid
           if (slot) {
             const output = slot({
-              source: source.value,
+              source: sourceText.value,
               svg: lastGood.value?.svg,
               status: status.value,
               error: error.value,
@@ -404,7 +458,7 @@ const PreviewContent = defineComponent({
                 copy,
                 exportPng,
                 fullscreen: () => toggleFullscreen(),
-                retry: render,
+                retry,
               },
             })
             if (!isEmptySlotContent(output)) return output
@@ -419,12 +473,12 @@ const PreviewContent = defineComponent({
                     class: 'vmd-mermaid-error',
                     role: 'status',
                   },
-                  error.value,
+                  [error.value, retryControl()],
                 )
               }
               // A failed first render should not leave an empty block. Keep the
               // detailed diagnostic behind `showErrors`, but always expose a
-              // lightweight failure state and the source tab.
+              // lightweight failure state, a retry action, and the source tab.
               return h(
                 'div',
                 {
@@ -432,7 +486,14 @@ const PreviewContent = defineComponent({
                   class: 'vmd-mermaid-fallback',
                   role: 'status',
                 },
-                resolveLabel(context.labels.mermaidFallback),
+                [
+                  h(
+                    'span',
+                    { class: 'vmd-mermaid-fallback-message' },
+                    resolveLabel(context.labels.mermaidFallback),
+                  ),
+                  retryControl(),
+                ],
               )
             }
             return h(
@@ -464,18 +525,18 @@ const ErrorContent = defineComponent({
       context.renderHostSlot(
         'mermaid-error',
         {
-          source: source.value,
+          source: sourceText.value,
           error: error.value,
-          retry: render,
+          retry,
           focusSource: showSource,
         },
         () => {
           const slot = ownSlots['mermaid-error']
           if (slot) {
             const output = slot({
-              source: source.value,
+              source: sourceText.value,
               error: error.value,
-              retry: render,
+              retry,
               focusSource: showSource,
             })
             if (!isEmptySlotContent(output)) return output
@@ -487,7 +548,7 @@ const ErrorContent = defineComponent({
               class: 'vmd-mermaid-error',
               role: 'status',
             },
-            error.value,
+            [error.value, retryControl()],
           )
         },
       )
@@ -636,7 +697,7 @@ const ActionsContent = defineComponent({
           )
         }
         children.push(
-          iconButton('retry', resolveLabel(context.labels.retry), 'retry', render),
+          iconButton('retry', resolveLabel(context.labels.retry), 'retry', retry),
         )
 
         for (const action of props.actions) {
@@ -729,7 +790,7 @@ defineExpose({ render, copy, exportPng, downloadSvg, toggleFullscreen })
         v-else
         data-vmd-part="mermaid-source"
         class="vmd-mermaid-source"
-      ><code>{{ source }}</code></pre>
+      ><code>{{ sourceText }}</code></pre>
     </div>
   </div>
 </template>

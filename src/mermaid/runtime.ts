@@ -3,17 +3,40 @@ import type {
   MermaidRenderOptions,
   MermaidRenderResult,
 } from '../core/types'
-import { sanitizeSvg } from './sanitize'
+import { sanitizeSvgAsync } from './sanitize-svg-lazy'
 
 interface MermaidApi {
   initialize(config: Record<string, unknown>): void | Promise<void>
   render(id: string, source: string): Promise<{ svg: string }>
 }
 
-let mermaidPromise: Promise<MermaidApi> | undefined
-let initializedTheme: MarkdownTheme | null | undefined = null
-let queue: Promise<unknown> = Promise.resolve()
-let counter = 0
+interface MermaidRuntimeState {
+  api: Promise<MermaidApi> | undefined
+  /**
+   * Key of the configuration currently installed on the shared Mermaid module.
+   * Mermaid configuration is process-wide, so this cannot live on a per-block
+   * instance; it is checked before every render inside the serialized queue.
+   */
+  initializedKey: string | undefined
+  /** Serializes renders because Mermaid keeps configuration and IDs globally. */
+  queue: Promise<unknown>
+  counter: number
+}
+
+function createRuntimeState(): MermaidRuntimeState {
+  return {
+    api: undefined,
+    initializedKey: undefined,
+    queue: Promise.resolve(),
+    counter: 0,
+  }
+}
+
+// One state object rather than several loose module-level variables. The state
+// is shared by design because Mermaid configuration is global; keeping it in a
+// single object makes that ownership explicit and gives reset one place to
+// clear every field.
+const runtime = createRuntimeState()
 
 function prefersDark(): boolean {
   return (
@@ -29,26 +52,48 @@ function themeName(theme: MarkdownTheme | undefined): string {
   return 'default'
 }
 
-async function loadMermaid(): Promise<MermaidApi> {
-  if (!mermaidPromise) {
-    mermaidPromise = import('mermaid').then((module) => {
-      const api = (module as { default?: MermaidApi }).default ?? module
-      return api as MermaidApi
-    })
-  }
-  return mermaidPromise
-}
-
-async function initialize(api: MermaidApi, theme: MarkdownTheme | undefined): Promise<void> {
-  if (initializedTheme !== null && initializedTheme === theme) return
-  await api.initialize({
+function initializeConfig(theme: MarkdownTheme | undefined): Record<string, unknown> {
+  return {
     startOnLoad: false,
     securityLevel: 'strict',
     htmlLabels: false,
     theme: themeName(theme),
     fontFamily: 'var(--vmd-font-sans)',
-  })
-  initializedTheme = theme
+  }
+}
+
+function configKey(config: Record<string, unknown>): string {
+  return JSON.stringify(config)
+}
+
+async function loadMermaid(state: MermaidRuntimeState): Promise<MermaidApi> {
+  if (!state.api) {
+    state.api = import('mermaid')
+      .then((module) => {
+        const api = (module as { default?: MermaidApi }).default ?? module
+        return api as MermaidApi
+      })
+      .catch((error: unknown) => {
+        // A rejected dynamic import must not be cached: the retry control and a
+        // later mount should be able to load the runtime after a transient
+        // chunk or network failure.
+        state.api = undefined
+        throw error
+      })
+  }
+  return state.api
+}
+
+async function initialize(
+  state: MermaidRuntimeState,
+  api: MermaidApi,
+  theme: MarkdownTheme | undefined,
+): Promise<void> {
+  const config = initializeConfig(theme)
+  const key = configKey(config)
+  if (state.initializedKey === key) return
+  await api.initialize(config)
+  state.initializedKey = key
 }
 
 function missingMermaid(message: string): boolean {
@@ -72,46 +117,69 @@ export function classifyMermaidError(error: unknown): string {
 
 /** Create a unique DOM-safe identifier for one Mermaid render. */
 export function createMermaidRenderId(): string {
-  return `vmd-mermaid-${++counter}`
+  runtime.counter += 1
+  return `vmd-mermaid-${runtime.counter}`
 }
 
 /**
  * Render one diagram through a single lazy Mermaid instance. Renders are
- * serialized so Mermaid's global state cannot interleave.
+ * serialized so Mermaid's global configuration cannot be changed while another
+ * diagram is rendering. The configuration key is checked inside that queue, so
+ * blocks with different themes cannot reuse a stale initialization.
  */
 export async function renderMermaid(
   source: string,
   options: MermaidRenderOptions = {},
 ): Promise<MermaidRenderResult> {
   if (typeof window === 'undefined' || typeof DOMParser === 'undefined') {
-    return { nodes: [], error: 'Mermaid requires a browser environment.' }
+    return {
+      nodes: [],
+      error:
+        'Mermaid requires a browser environment. Render it on the client after mount, or pass a pre-rendered renderer.',
+    }
+  }
+  // The renderer is async, so a caller may accidentally pass its Promise in
+  // place of the awaited source. Fail with a result instead of throwing.
+  if (typeof source !== 'string') {
+    return {
+      nodes: [],
+      error:
+        'Mermaid source must be a string. If you used `renderMermaid()`, await its result before passing it as the source.',
+    }
   }
   if (!source.trim()) {
-    return { nodes: [], error: 'Mermaid source is empty.' }
+    return {
+      nodes: [],
+      error: 'Mermaid source is empty. Provide diagram text such as `graph TD; A-->B`.',
+    }
   }
 
+  const state = runtime
   const run = async (): Promise<MermaidRenderResult> => {
     try {
-      const api = await loadMermaid()
-      await initialize(api, options.theme)
+      const api = await loadMermaid(state)
+      await initialize(state, api, options.theme)
       const id = options.id ?? createMermaidRenderId()
       const { svg } = await api.render(id, source)
-      return { svg, nodes: sanitizeSvg(svg) }
+      return { svg, nodes: await sanitizeSvgAsync(svg) }
     } catch (error) {
       return { nodes: [], error: classifyMermaidError(error) }
     }
   }
 
-  const result = queue.then(run, run)
-  queue = result.catch(() => undefined)
+  const result = state.queue.then(run, run)
+  state.queue = result.catch(() => undefined)
   return result
 }
 
 export function resetMermaidRuntime(): void {
-  mermaidPromise = undefined
-  initializedTheme = null
-  queue = Promise.resolve()
-  counter = 0
+  runtime.api = undefined
+  runtime.initializedKey = undefined
+  // Keep the queue tail and the monotonic counter. Replacing the queue while a
+  // render is in flight would let a new render interleave with it, which breaks
+  // the serialization guarantee; resetting the counter could reuse a DOM id
+  // that still exists in the page. The cached module is dropped only so the
+  // next render re-checks the optional peer and reinitializes configuration.
 }
 
 export default renderMermaid

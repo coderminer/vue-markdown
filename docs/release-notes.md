@@ -4,6 +4,73 @@ description: Release notes and upgrade guidance for @coderminer/vue-markdown 1.0
 
 # Release notes
 
+## 1.0.1 — 2026-11-02
+
+Patch release with post-1.0 runtime fixes. The package has no external users
+yet, so it also includes intentional contract tightenings: the
+`externalLinkTarget` type is narrowed and `mermaidPlugin()` rejects non-object
+arguments.
+
+- `toc-change` no longer emits a transient empty TOC before the first parse. A
+  first document that really has no headings still emits one settled `[]`.
+- Custom-tag attributes normalize from kebab-case to camelCase; `data-*` and
+  `aria-*` stay unchanged.
+- `MermaidBlock` resets zoom on every render and when returning from the source
+  tab, and shows a retry button in its error/fallback regions.
+- The Mermaid runtime retries a failed lazy import, keys initialization by the
+  full configuration, and serializes configuration changes.
+- Diagnostics are replaced and deduplicated per run, including failed runs.
+  Entries count as duplicates only when their code, message, severity, phase,
+  plugin, source range, and details all match, so distinct occurrences are
+  preserved. Setup diagnostics are snapshotted so a retained setup context cannot
+  grow the list later. `useMarkdownDocument` exposes `clearDiagnostics()`, and the
+  renderer no longer grows its reported-diagnostic bookkeeping indefinitely.
+- Typed `MarkdownRendererEvents` and `MermaidBlockEvents` maps are exported, and
+  event payload conventions are documented. Interaction events include the
+  originating DOM event; the documentation no longer claims that every payload
+  is serializable.
+- A complete sample plugin and guide exercise every public plugin hook.
+- Empty search queries skip the document tree walk and match counting.
+- A new `searchDebounce` prop delays parsing after the last query change for
+  search-as-you-type; the initial query still applies during server rendering.
+- Side TOC columns scroll internally when the TOC is taller than the viewport.
+  The stacked mobile layout resets that cap so the TOC expands above the
+  content.
+- Every scalar renderer prop is validated at runtime. Invalid values report a
+  `prop-*` warning and fall back safely. An omitted optional `baseUrl` is valid
+  and emits no diagnostic. `externalLinkTarget` is typed as
+  `'_self' | '_blank'` and `theme` gets a runtime string type.
+- `MermaidBlock` ignores an in-flight render that settles after unmount, and
+  `resetMermaidRuntime()` preserves queue ordering and ID uniqueness.
+- `mermaidPlugin()` rejects non-object arguments instead of silently ignoring
+  them; `languages` remains its only option.
+- Browser output no longer includes Node builtins (`node:process`, `node:path`,
+  `node:url`), fixing `process.cwd` crashes during rendering.
+- The default highlight.js adapter now uses `lowlight` to produce hast directly.
+  The highlight entry no longer pulls the HTML parser; Mermaid and KaTeX keep it
+  only where they need to convert engine markup. The highlight entry no longer
+  exports `highlightedNodesFromHtml`; use `highlightedNodesFromHast` for
+  adapters that already produce hast.
+- Published JavaScript no longer contains `sourceMappingURL` comments for maps
+  that are excluded from the tarball.
+- `renderMermaid()` is documented as async, and non-string or Promise sources
+  now produce a clear error instead of a `trim is not a function` exception.
+- `MermaidBlock` distinguishes an invalid renderer result, empty output, and
+  SVG rejected by sanitization, and each error includes a fix hint. The
+  invalid-`mermaidRenderer` diagnostic now names the built-in runtime as the
+  fallback.
+- The Mermaid guide documents renderer precedence: per-block `renderer` >
+  provider/preset `mermaidRenderer` > built-in runtime. It also clarifies that
+  `renderMermaid()` is a function rather than an adapter object and that
+  `resetMermaidRuntime()` is not a lifecycle hook.
+- Default heading IDs collapse consecutive whitespace and hyphen runs, so
+  `My   -   Heading` becomes `my-heading`. Custom sluggers keep their own
+  formatting; only duplicate suffixes are added.
+- The base renderer no longer statically includes the HTML parser. Mermaid SVG
+  sanitization loads it after a diagram renders, and the highlight entry
+  resolves `highlight.js` language subpaths from the host peer dependency
+  instead of bundling a second copy.
+
 ## 1.0.0 — 2026-11-01
 
 The first stable release of `@coderminer/vue-markdown`.
@@ -72,8 +139,8 @@ instead of direct-child structure:
 The renderer accepts `search` and `searchCaseSensitive`; `search-change`
 reports `{ query, caseSensitive, matches }`. It reflects the rendered document,
 so pending or failed runs do not emit stale counts. Mounting with an empty
-query emits nothing. Debounce search-as-you-type because each settled query
-change participates in the parse memo key.
+query emits nothing. Set `searchDebounce` for search-as-you-type because each
+settled query change participates in the parse memo key.
 
 #### Mermaid editor
 

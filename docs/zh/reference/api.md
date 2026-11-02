@@ -92,6 +92,7 @@ const source = '# 你好\n\n一段 **加粗** 文字。'
 | `tocPlacement` | `'top' \| 'left' \| 'right' \| 'hidden'` | 目录置顶、放左侧/右侧或隐藏；默认 `'top'`。 |
 | `search` | `string` | 高亮匹配项并触发 `search-change`。 |
 | `searchCaseSensitive` | `boolean` | 让 `search` 区分大小写。 |
+| `searchDebounce` | `number` | 新查询解析前的等待毫秒数；默认 `0`。 |
 | `showError` | `boolean` | 失败时渲染错误区域；默认 `true`。 |
 | `tokens` | `Record<string, string>` | 内联 `--vmd-*` 自定义属性。 |
 | `theme` | `'light' \| 'dark' \| 'auto' \| 'custom'` | 设置 `data-vmd-theme`。 |
@@ -561,6 +562,10 @@ export const myPlugin = defineMarkdownPlugin({
 | `frontmatterPlugin` | frontmatter 捕获 |
 | `defaultPlugins` / `fullPlugins` | 内置插件集合 |
 
+`disablePlugins` 匹配插件的 `name`：`toc`、`code`、`link`、`search`、`custom-tags`、
+`gfm`、`frontmatter`、`html`、`math`、`mermaid`。未知名称会被忽略并报告
+`plugin-unknown` 警告。完整列表见[禁用名称](../guide/plugins.md#disableplugins-名称)。
+
 排序是 `pre` → `normal` → `post`，然后按注册顺序。内核不变标记不能被禁用。详见
 [插件](../guide/plugins.md)。
 
@@ -622,6 +627,7 @@ const {
   pipeline,
   plugins,
   refresh,
+  clearDiagnostics,
   resolvedComponents,
   resolvedNodeComponents,
   resolvedRegions,
@@ -639,6 +645,7 @@ const {
 | `pipeline` | `ComputedRef<string>` |
 | `plugins` | `ComputedRef<string[]>` |
 | `refresh` | `() => Promise<void>` |
+| `clearDiagnostics` | `() => void`；清空已发布的诊断，不改变文档。每次运行本来就会替换并去重诊断；只有 code、message、severity、phase、plugin、来源范围和 details 都相同时才视为重复。 |
 | `resolvedComponents` | `ComputedRef<MarkdownTagComponents>` |
 | `resolvedNodeComponents` | `ComputedRef<MarkdownNodeComponents>` |
 | `resolvedRegions` | `ComputedRef<MarkdownRegionComponents>` |
@@ -655,7 +662,7 @@ const {
 | URL | `defaultUrlTransform`、`isExternalUrl`、`resolveUrl` |
 | 诊断 | `createDiagnostic`、`errorMessage` |
 | 记忆化 | `memoGet`、`memoSet`、`memoClear`、`memoSize` |
-| Slug | `withUniqueSlugs` |
+| Slug | `createDefaultSlugger`、`withUniqueSlugs` |
 | 清单 | `COMPONENT_MANIFESTS`、`getComponentManifest`、`validateManifest`、`validateManifestRegistry` |
 | 配置/预设 | `mergeMarkdownConfig`、`mergeMarkdownPreset`、`defineMarkdownPreset`、`composePresets`、`resolvePreset` |
 | 适配器守卫 | `isValidHighlighter`、`isValidMathEngine`、`isValidMermaidRenderer`、`isValidDiagnosticFormatter`、`isValidSlugger`、`isValidUrlTransform` |

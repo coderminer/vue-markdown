@@ -30,7 +30,7 @@ import '@coderminer/vue-markdown/style.css'
 | `labels` | `Partial<MarkdownLabels>` | Default `{}`. String or function labels for built-in text. |
 | `preset` | `MarkdownPreset \| MarkdownPreset[]` | Applies one or more presets. |
 | `plugins` | `PluginInput[]` | Default `defaultPlugins`. Replaces the default plugin set when provided. Add `htmlPlugin()` from `@coderminer/vue-markdown/html` for sanitized raw HTML. |
-| `disablePlugins` | `string[]` | Default `[]`. Removes named plugins from the resolved set. |
+| `disablePlugins` | `string[]` | Default `[]`. Removes named plugins from the resolved set; unknown names report a `plugin-unknown` warning. See [disable names](../guide/plugins.md#disableplugins-names). |
 | `remarkPlugins` | `PluggableList` | Default `[]`. Runs after library remark plugins. |
 | `rehypePlugins` | `PluggableList` | Default `[]`. Runs after library rehype plugins and the built-in sanitizer. |
 | `remarkRehypeOptions` | `Record<string, unknown>` | Default `{}`. Merged into the conversion step. |
@@ -55,10 +55,15 @@ import '@coderminer/vue-markdown/style.css'
 | `tocPlacement` | `'top' \| 'left' \| 'right' \| 'hidden'` | Default `'top'`. Stacks the TOC above the content, places it in a side column, or hides it. |
 | `search` | `string` | Default `''`. Highlights text matches and emits `search-change`. |
 | `searchCaseSensitive` | `boolean` | Default `false`. Makes `search` case-sensitive. |
+| `searchDebounce` | `number` | Default `0`. Milliseconds to wait after the last query change before parsing. |
 | `showError` | `boolean` | Default `true`. Renders the error region on failure. |
 | `tokens` | `Record<string, string>` | Default `{}`. Inline `--vmd-*` custom properties on the root. |
 | `theme` | `'light' \| 'dark' \| 'auto' \| 'custom'` | Default `'light'`. Sets `data-vmd-theme` on the root. |
 | `as` | `string \| Component` | Default `'div'`. Root element or component. |
+
+Scalar props are validated at runtime. An invalid enum, boolean, string, or
+numeric value is replaced by the documented default and reported as a
+`render-error` diagnostic with a `prop-*` code.
 
 ::: tip Multiple renderers on one page
 Heading slugs are only unique inside one document. Give each renderer a distinct
@@ -70,9 +75,10 @@ the renderer's own root when markup is scoped this way.
 Keep plugin arrays stable as well. Inline factory calls create new plugin
 objects on every parent render and invalidate the parse memo.
 
-`search` is parse-affecting: changing it re-parses the document. Debounce host
-input (for example 200–300 ms) when implementing search-as-you-type on large
-documents. When both are present, the explicit `search` option wins over
+`search` is parse-affecting: each settled query change re-parses the document.
+Set `searchDebounce` (for example `200`) for search-as-you-type on large
+documents. The initial query is applied immediately so server rendering still
+includes matches. When both are present, the explicit `search` option wins over
 segments contributed by `searchPlugin()`. `search-change` is emitted only when
 the rendered document belongs to the current query, so pending or failed runs
 do not report stale match counts. Mounting with an empty query emits nothing;
@@ -83,7 +89,7 @@ a later case-sensitivity toggle is a real state change and does emit.
 | Event | Payload | Notes |
 | --- | --- | --- |
 | `update:source` | `source: string` | Emitted by `updateSource` and `v-model:source`. |
-| `toc-change` | `TocItem[]` | Signature-gated; fires only when the serialized TOC changes. |
+| `toc-change` | `TocItem[]` | Signature-gated; fires only when the TOC content changes. |
 | `link-click` | `{ url, target, node, event }` | Fires after a rendered link is activated. |
 | `custom-tag-click` | `{ tag, props, node, event }` | Props are normalized and safe. |
 | `task-change` | `{ checked, node }` | Fires when a GFM task checkbox changes. |
@@ -91,6 +97,27 @@ a later case-sensitivity toggle is a real state change and does emit.
 | `math-error` | `MarkdownDiagnostic` | Fires when math rendering produces a diagnostic. |
 | `render-error` | `MarkdownDiagnostic` | Parse, plugin, adapter, and configuration failures. |
 | `ready` | `MarkdownDocument` | Fires once for the first successful document. |
+
+### Payload conventions
+
+Every payload is a library-owned value: a document model, diagnostic,
+primitive, or plain record. The renderer never emits a Vue component, VNode,
+DOM node, or processor object. Interaction events also carry the originating
+DOM `MouseEvent` so a listener can cancel the default behavior.
+
+- `toc-change` and `ready` deliver model values directly (`TocItem[]` and
+  `MarkdownDocument`) because they represent the document snapshot.
+- Interaction events (`link-click`, `custom-tag-click`, `task-change`) use a
+  plain object with named fields, include the originating `node`, and the click
+  events include the DOM `event`.
+- Failure events (`math-error`, `render-error`) use `MarkdownDiagnostic`.
+- Mermaid primitive notifications (`copy`, `export`, `fullscreen`, `action`)
+  stay as strings or booleans; `rendered` carries a structured
+  `MermaidRenderResult`.
+
+Host wrappers can import `MarkdownRendererEvents` or `MermaidBlockEvents` from
+`@coderminer/vue-markdown` and pass the map to `defineEmits` instead of
+re-declaring each payload shape.
 
 ## Exposed actions
 

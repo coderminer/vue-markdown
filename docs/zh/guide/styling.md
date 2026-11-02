@@ -120,7 +120,7 @@ Preview/Source 分段标签。不需要图标包或额外标记；即使可见�
 | 代码 | `inline-code`、`code`、`code-header`、`code-heading`、`code-title`、`code-file-name`、`code-lang`、`code-toolbar`、`code-actions`、`code-action`、`code-body`、`code-feedback` |
 | 独立高亮器 | `highlighter`、`highlighter-header`、`highlighter-actions`、`highlighter-footer`、`highlighter-body`、`highlighter-gutter`、`highlighter-line`、`highlighter-hidden`、`highlighter-empty`、`highlighter-toggle` |
 | 数学 | `math`、`math-error` |
-| Mermaid | `mermaid`、`mermaid-header`、`mermaid-tabs`、`mermaid-actions`、`mermaid-action`、`mermaid-preview`、`mermaid-source`、`mermaid-pending`、`mermaid-error`、`mermaid-fallback`、`mermaid-fullscreen` |
+| Mermaid | `mermaid`、`mermaid-header`、`mermaid-tabs`、`mermaid-actions`、`mermaid-action`、`mermaid-preview`、`mermaid-source`、`mermaid-pending`、`mermaid-error`、`mermaid-fallback`、`mermaid-retry`、`mermaid-fullscreen` |
 | 编辑器 | `editor`、`editor-pane`、`editor-divider`、`editor-preview`、`editor-diagnostics`、`editor-empty`、`editor-toolbar`、`editor-fullscreen` |
 | 扩展节点 | `html`、`custom-tag`、`task-item`、`task-checkbox`、`footnote-reference`、`footnotes` |
 

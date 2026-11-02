@@ -50,6 +50,104 @@ export const search = defineMarkdownPlugin((options: { query: string }) => ({
 }))
 ```
 
+## Complete example: a sample plugin
+
+The demo ships [`demo/plugins/samplePlugin.ts`](https://github.com/coderminer/vue-markdown/blob/main/demo/plugins/samplePlugin.ts).
+It exercises every public hook: a source transform, a remark plugin, a rehype
+plugin, a component contribution, a document transform, labels, tokens, setup,
+cleanup, and `onError`.
+
+```ts
+// sample-plugin.ts
+import { defineComponent, h } from 'vue'
+import { visit } from 'unist-util-visit'
+import type { MarkdownNodeRenderContext } from '@coderminer/vue-markdown'
+import { defineMarkdownPlugin } from '@coderminer/vue-markdown/plugins'
+
+const SampleCallout = defineComponent({
+  setup(_, { slots }) {
+    return () => h('aside', { class: 'sample-callout' }, slots.default?.())
+  },
+})
+
+const uppercaseKeyword = () => (tree) => {
+  visit(tree, 'text', (node) => {
+    node.value = node.value.split('plugin').join('PLUGIN')
+  })
+}
+
+const markHeadings = () => (tree) => {
+  visit(tree, 'element', (node) => {
+    if (/^h[1-6]$/.test(node.tagName)) {
+      node.properties = { ...node.properties, 'data-sample-heading': 'yes' }
+    }
+  })
+}
+
+export const samplePlugin = defineMarkdownPlugin({
+  name: 'sample-plugin',
+  phase: 'normal',
+  // Runs before parsing. Returning a non-string keeps the previous source.
+  transformSource(source) {
+    return source.replace('[[sample]]', '> Injected before parsing.')
+  },
+  // Runs inside the official pipeline after remark-parse / remark-rehype.
+  remarkPlugins: [uppercaseKeyword],
+  rehypePlugins: [markHeadings],
+  // Replaces blockquote rendering; use ctx.defaultRender() for normal children.
+  nodeComponents: {
+    blockquote: (ctx: MarkdownNodeRenderContext) =>
+      h(SampleCallout, null, { default: () => ctx.defaultRender() }),
+  },
+  // Runs after sanitization and model construction.
+  transformDocument(document) {
+    return {
+      ...document,
+      frontmatter: { ...(document.frontmatter ?? {}), samplePlugin: true },
+    }
+  },
+  labels: { toc: 'Sample contents' },
+  tokens: { '--vmd-color-accent': '#8250df' },
+  setup(ctx) {
+    // Runs once per resolved plugin set; register listeners only if you return
+    // a cleanup that removes them.
+    return () => {
+      // Runs on reconfiguration and unmount.
+    }
+  },
+  onError(error, phase, ctx) {
+    ctx.addDiagnostic({
+      code: 'sample-plugin-failed',
+      message: String(error),
+      severity: 'warning',
+      phase,
+      plugin: 'sample-plugin',
+    })
+  },
+})
+```
+
+Register it exactly like a built-in plugin. Create the instance once; returning a
+new plugin from the template re-parses the document on every parent render.
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
+import { MarkdownRenderer } from '@coderminer/vue-markdown'
+import { samplePlugin } from './sample-plugin'
+
+const source = ref('# Plugin demo\n\n[[sample]]\n\nThis paragraph mentions plugin.')
+</script>
+
+<template>
+  <MarkdownRenderer :source="source" :plugins="[samplePlugin]" toc />
+</template>
+```
+
+Remove `samplePlugin` from the array to disable every contribution at once. The
+demo adds `setups` and `cleanups` counters so you can see the lifecycle run when
+the plugin array changes.
+
 `transformSource` runs in resolved plugin order before parsing. A transform that
 throws or returns a non-string keeps the previous source and reports
 `plugin-source`; `onError` receives the `source` phase.
@@ -72,7 +170,9 @@ Order is `pre` → `normal` → `post`, then registration order. A duplicate nam
 replaces the earlier registration deterministically and reports a diagnostic.
 `disablePlugins` removes non-core plugins from the resolved set. Core invariant
 markers (`toc`, `code`, `link`) cannot be disabled; requesting it reports a
-`plugin-core` diagnostic and keeps the marker in place.
+`plugin-core` diagnostic and keeps the marker in place. A name that is not in
+the resolved set is ignored and reports a `plugin-unknown` warning. See
+[disable names](#disableplugins-names) for the complete built-in list.
 
 ```vue
 <MarkdownRenderer :source="source" :disable-plugins="['search']" />
@@ -168,11 +268,34 @@ enabled through `rehypePlugins`: use `htmlPlugin()` from
 | `frontmatterPlugin` | `remark-frontmatter` + YAML capture. |
 | `htmlPlugin()` | Optional `@coderminer/vue-markdown/html` entry; sanitized raw HTML. |
 
-`defaultPlugins` is `[toc, code, link, search, custom-tags]`. The first three are
-core invariant markers: they remain in the resolved set for ordering and
-diagnostics, but `disablePlugins` reports a warning instead of removing them.
-`search` and `custom-tags` are real transforms and can be disabled. `fullPlugins`
-adds GFM and frontmatter.
+`defaultPlugins` is `[toc, code, link, search, custom-tags]`; `fullPlugins` adds
+`gfm` and `frontmatter`.
+
+### `disablePlugins` names
+
+`disablePlugins` matches the plugin `name`, not the exported factory name. This
+is the complete built-in name list:
+
+| Name | Factory | Included by | Can disable |
+| --- | --- | --- | --- |
+| `toc` | `tocPlugin` | `defaultPlugins` | No, core invariant |
+| `code` | `codePlugin` | `defaultPlugins` | No, core invariant |
+| `link` | `linkPlugin` | `defaultPlugins` | No, core invariant |
+| `search` | `searchPlugin()` | `defaultPlugins` | Yes |
+| `custom-tags` | `customTagsPlugin()` | `defaultPlugins` | Yes |
+| `gfm` | `gfmPlugin` | `fullPlugins` | Yes |
+| `frontmatter` | `frontmatterPlugin` | `fullPlugins` | Yes |
+| `html` | `htmlPlugin()` | opt-in | Yes |
+| `math` | `mathPlugin()` | opt-in | Yes |
+| `mermaid` | `mermaidPlugin()` | opt-in | Yes |
+
+`customTagsPlugin` registers as `custom-tags`, not `customTags`. If you pass a
+custom `plugins` array, only names in that array are recognized; the others
+report `plugin-unknown`.
+
+The first three are core invariant markers: they remain in the resolved set for
+ordering and diagnostics, but `disablePlugins` reports `plugin-core` instead of
+removing them.
 
 The renderer-level `search` prop is a core convenience in addition to
 `searchPlugin()`. When both are present, the explicit prop wins; disabling the

@@ -139,7 +139,7 @@ function onError(diagnostic) {
 | `render-error` | `MarkdownDiagnostic` |
 | `ready` | `MarkdownDocument` |
 
-`toc-change` is signature-gated: it only fires when the serialized TOC changes.
+`toc-change` is signature-gated: it only fires when the TOC content changes.
 `ready` fires once for the first successful document.
 
 ## Exposed actions

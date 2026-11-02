@@ -30,9 +30,12 @@ export default defineConfig({
     alias: {
       '@coderminer/vue-markdown': resolveSrc('./src/index.ts'),
     },
-    // Prefer the DOM-free implementations so the built library can be
-    // imported by Node/SSR as well as bundled for browsers.
-    conditions: ['node', 'import', 'module', 'default'],
+    // Resolve portable default conditions. Selecting the `node` condition
+    // would bake in `node:process`, `node:path`, and `node:url` through
+    // dependencies such as vfile; selecting `browser` would pick DOM-dependent
+    // modules that cannot be imported during SSR. The defaults keep the built
+    // library importable by Node/SSR and safe to bundle for browsers.
+    conditions: ['import', 'module', 'default'],
   },
   build: {
     // Runtime JavaScript follows Vue 3's baseline: native ES2016, no IE11.
@@ -65,7 +68,10 @@ export default defineConfig({
         /^vue$/,
         /^vue\//,
         /^node:/,
-        'highlight.js',
+        // Match the adapter's deep language imports as well as the core
+        // module. Bundling them would ship a second copy of the peer
+        // dependency inside the optional highlight entry.
+        /^highlight\.js(\/|$)/,
         'katex',
         'shiki',
         'mermaid',
@@ -79,7 +85,9 @@ export default defineConfig({
       },
     },
     cssCodeSplit: false,
-    sourcemap: true,
+    // Maps are not published, so do not emit sourceMappingURL comments that
+    // would point at missing files in consumer devtools.
+    sourcemap: false,
     emptyOutDir: true,
   },
 })

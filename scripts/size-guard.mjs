@@ -21,13 +21,24 @@ const entries = [
   'html/index.js',
 ]
 
-const heavy = ['mermaid', 'shiki', 'katex', 'highlight.js', '@codemirror/', 'rehype-raw']
+const heavy = [
+  'mermaid',
+  'shiki',
+  'katex',
+  'highlight.js',
+  '@codemirror/',
+  'rehype-raw',
+  // The HTML parser is only needed by entries that convert engine output.
+  // It must stay out of the base renderer and the headless entry.
+  'hast-util-from-html',
+  'parse5',
+]
 
 const allowed = {
   'highlight/index.js': ['highlight.js'],
   'highlight/shiki.js': ['shiki'],
-  'math/index.js': ['katex'],
-  'mermaid/index.js': ['mermaid'],
+  'math/index.js': ['katex', 'hast-util-from-html', 'parse5'],
+  'mermaid/index.js': ['mermaid', 'hast-util-from-html', 'parse5'],
   'editor/index.js': ['@codemirror/'],
   'html/index.js': ['rehype-raw'],
 }
@@ -55,6 +66,10 @@ function importsOf(source) {
   return { staticSpecifiers, dynamicSpecifiers }
 }
 
+function isNodeBuiltin(specifier) {
+  return specifier.startsWith('node:')
+}
+
 function forbiddenFor(entry, specifier) {
   const name = packageName(specifier)
   const allow = allowed[entry] ?? []
@@ -77,6 +92,7 @@ async function graph(entry) {
   const staticFiles = new Set()
   const dynamicFiles = new Set()
   const heavyHits = []
+  const nodeHits = []
   const queue = [start]
   let bytes = 0
 
@@ -90,6 +106,10 @@ async function graph(entry) {
     const { staticSpecifiers, dynamicSpecifiers } = importsOf(source)
 
     for (const specifier of staticSpecifiers) {
+      if (isNodeBuiltin(specifier)) {
+        nodeHits.push({ file: file.replace(dist, ''), specifier })
+        continue
+      }
       const hit = forbiddenFor(entry, specifier)
       if (hit) {
         heavyHits.push({ file: file.replace(dist, ''), specifier })
@@ -115,6 +135,7 @@ async function graph(entry) {
     staticModules: staticFiles.size,
     lazyModules: dynamicFiles.size,
     heavyHits,
+    nodeHits,
   }
 }
 
@@ -129,12 +150,21 @@ for (const entry of entries) {
       staticModules: result.staticModules,
       lazyModules: result.lazyModules,
       forbidden: result.heavyHits.length,
+      nodeBuiltins: result.nodeHits.length,
     })
     if (result.heavyHits.length > 0) {
       failed = true
       for (const hit of result.heavyHits) {
         console.error(
           `Size guard: ${entry} statically reaches ${hit.specifier} via ${hit.file}.`,
+        )
+      }
+    }
+    if (result.nodeHits.length > 0) {
+      failed = true
+      for (const hit of result.nodeHits) {
+        console.error(
+          `Browser guard: ${entry} statically imports ${hit.specifier} via ${hit.file}.`,
         )
       }
     }

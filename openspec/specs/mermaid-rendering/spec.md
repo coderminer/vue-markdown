@@ -19,7 +19,7 @@ The Mermaid entry SHALL provide an opt-in document plugin that converts fenced c
 
 ### Requirement: Diagram rendering
 
-A Mermaid block SHALL render valid diagram source into an SVG preview using the configured theme, with `securityLevel: 'strict'`. Rendering SHALL occur in the browser and SHALL NOT execute scripts or arbitrary HTML embedded in diagram labels. Rendered SVG SHALL be parsed into nodes and sanitized; it SHALL NOT be injected with `v-html`. The Mermaid runtime SHALL be loaded lazily, only when a diagram actually needs rendering. Concurrent renders SHALL be serialized, SHALL use unique IDs, and SHALL discard stale results.
+A Mermaid block SHALL render valid diagram source into an SVG preview using the configured theme, with `securityLevel: 'strict'`. Rendering SHALL occur in the browser and SHALL NOT execute scripts or arbitrary HTML embedded in diagram labels. Rendered SVG SHALL be parsed into nodes and sanitized; it SHALL NOT be injected with `v-html`. The Mermaid runtime SHALL be loaded lazily, only when a diagram actually needs rendering. Concurrent renders SHALL be serialized, SHALL use unique IDs, and SHALL discard stale results. A failed lazy import SHALL NOT be cached, so a retry can recover from a transient chunk or network failure. Initialization SHALL be keyed by the effective Mermaid configuration and checked inside the serialized render queue so blocks with different themes cannot reuse stale global state. Component unmount SHALL NOT reset the shared runtime; `resetMermaidRuntime()` is an explicit test or reinitialization hook and cannot unload the browser module cache.
 
 #### Scenario: Valid diagram renders
 - **WHEN** a block receives valid flowchart source
@@ -39,7 +39,7 @@ A Mermaid block SHALL render valid diagram source into an SVG preview using the 
 
 ### Requirement: Injectable diagram renderer
 
-The block SHALL accept a renderer function or adapter that replaces the default Mermaid runtime. The injected renderer SHALL receive the source, theme, and a render identifier, and SHALL return SVG nodes or a structured result. The block SHALL NOT inject raw SVG markup returned as a string. Invalid results SHALL be reported as render errors without replacing the last good preview.
+The block SHALL accept a renderer function or adapter that replaces the default Mermaid runtime. The injected renderer SHALL receive the source, theme, and a render identifier, and SHALL return SVG nodes or a structured result. The block SHALL NOT inject raw SVG markup returned as a string. Invalid results SHALL be reported as render errors without replacing the last good preview. Renderer resolution SHALL follow per-block `renderer` > nearest provider or preset `mermaidRenderer` > built-in runtime. `renderMermaid()` SHALL be documented as the built-in async function, not a `MermaidRenderer` adapter. Unusable output SHALL distinguish an invalid result shape, empty output, and output rejected completely by sanitization, and each diagnostic SHALL include a corrective hint.
 
 #### Scenario: Custom renderer
 - **WHEN** a host injects a renderer backed by a different Mermaid build or a remote service
@@ -79,7 +79,7 @@ The block SHALL offer a toggle between a rendered preview and the original Merma
 
 ### Requirement: Zoom and pan
 
-The preview SHALL support zoom within documented minimum and maximum bounds and SHALL allow panning when the diagram overflows the viewport. Reset SHALL restore the initial zoom and position. Zoom and pan SHALL NOT modify the diagram source, and controls SHALL expose current zoom.
+The preview SHALL support zoom within documented minimum and maximum bounds and SHALL allow panning when the diagram overflows the viewport. Reset SHALL restore the initial zoom and position. Every re-render, including a retry, theme change, renderer change, or source update, SHALL start from the initial zoom, and returning from the source view SHALL also restore it. Zoom and pan SHALL NOT modify the diagram source, and controls SHALL expose current zoom.
 
 #### Scenario: Zoom bounds
 - **WHEN** the user zooms beyond the maximum or minimum

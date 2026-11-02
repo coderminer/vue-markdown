@@ -4,10 +4,10 @@ import type {
   MarkdownNode,
   MarkdownTheme,
   MermaidAction,
-  MermaidRenderResult,
   MermaidRenderer,
 } from '../core/types'
 import { useRenderContext } from './context'
+import type { MermaidBlockEvents } from './types'
 import MermaidBlock from './MermaidBlock.vue'
 
 const props = withDefaults(
@@ -35,14 +35,7 @@ const props = withDefaults(
   },
 )
 
-const emit = defineEmits<{
-  rendered: [result: MermaidRenderResult]
-  error: [message: string]
-  copy: [source: string]
-  export: [format: 'png' | 'svg']
-  fullscreen: [active: boolean]
-  action: [key: string]
-}>()
+const emit = defineEmits<MermaidBlockEvents>()
 
 const context = useRenderContext()
 const block = ref<InstanceType<typeof MermaidBlock>>()

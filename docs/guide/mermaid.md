@@ -11,6 +11,17 @@ Mermaid block or the live editor renders.
 import { mermaidPlugin, renderMermaid } from '@coderminer/vue-markdown/mermaid'
 ```
 
+`renderMermaid()` is asynchronous because the Mermaid runtime is loaded lazily
+and rendering itself is asynchronous. Await its result before using it as a
+diagram source:
+
+```ts
+const result = await renderMermaid('graph TD; A-->B')
+```
+
+Passing the un-awaited Promise to `MermaidBlock`'s `source` prop (or to
+`renderMermaid()` itself) reports a clear error instead of throwing.
+
 `MermaidBlock` is exported from the package root. It renders a deterministic
 placeholder during SSR, then loads the runtime after mount.
 
@@ -37,6 +48,47 @@ The plugin is opt-in because Mermaid is an optional peer. Without it, a Mermaid
 fence stays a normal code block. Without the `mermaid` package or a custom
 renderer, the block keeps the source available and reports a
 `mermaid-unavailable` diagnostic instead of collapsing to an empty region.
+
+`mermaidPlugin()` reads only the `languages` option. Configure the renderer and
+theme on `MarkdownRenderer` with `mermaidRenderer` and `theme`; those are not
+plugin arguments.
+
+## Choosing a renderer
+
+Mermaid has one rendering pipeline with three configuration layers. Use the
+highest layer only when you need to override the one below:
+
+1. **Built-in runtime (default).** When no renderer is configured,
+   `MermaidBlock` calls `renderMermaid()` lazily. This is the normal setup.
+2. **App-wide adapter.** Set `mermaidRenderer` on `MarkdownRenderer`,
+   `MarkdownConfigProvider`, or a preset. Use this for a different Mermaid
+   build, a remote service, or pre-rendered output.
+3. **Per-block adapter.** Set `renderer` on `MermaidBlock` or
+   `MarkdownMermaid`. It wins over the provider, preset, and built-in runtime.
+
+The precedence is local prop > nearest provider > preset > built-in.
+`mermaidPlugin()` is not a renderer: it only converts fenced code into Mermaid
+nodes. `renderMermaid()` is the async function behind the built-in runtime, not
+a `MermaidRenderer` object. It has no `id`, so do not pass it directly as
+`mermaidRenderer` or `renderer`; wrap it when you need an explicit adapter:
+
+```ts
+const renderer = {
+  id: 'mermaid',
+  render: (source, options) => renderMermaid(source, options),
+}
+```
+
+For most applications, do not configure a renderer at all: add
+`mermaidPlugin()`, set the theme, and let the built-in runtime load on demand.
+
+## Runtime lifecycle
+
+The Mermaid runtime is a process-wide singleton. All blocks share one lazy
+import, configuration, and render queue. Unmounting a block does not reset or
+unload it: the cache holds no per-block state, and another block may still be
+rendering. `resetMermaidRuntime()` is for tests or an explicit reinitialization,
+not a component lifecycle hook, and it cannot unload the browser's module cache.
 
 <script setup>
 import { MermaidBlock } from '@coderminer/vue-markdown'

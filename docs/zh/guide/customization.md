@@ -369,6 +369,15 @@ import { customTagsPlugin } from '@coderminer/vue-markdown/plugins'
 const plugins = [customTagsPlugin({ tags: ['x-note'] })]
 ```
 
+自定义标签属性会从 kebab-case 归一化为 camelCase：`<x-note start-line="2">` 在组件
+和 `custom-tag-click` 负载中都是 `startLine`。`data-*` 和 `aria-*` 保持带连字符的
+DOM 属性形式。HTML 解析器会把原始属性名转成小写，因此请写 `start-line` 而不是
+`startLine`；HTML 解析后无法恢复 camelCase 拼写。
+
+`MarkdownCustomTag` 还接受 `customProps` 对象。它最后合并，位于归一化属性和
+`node.props` 之后，因此其中的 key 会原样传递，不参与大小写归一化。宿主包装组件
+需要直接添加或覆盖 props、又不经过 HTML 解析时，可以使用它。
+
 ::: tip 富组件
 同样的组件优先模式也适用于富组件。参见[用 CodeBlock 搭一个自定义代码块](./rich-components.md)，
 它覆盖了所有公共能力。

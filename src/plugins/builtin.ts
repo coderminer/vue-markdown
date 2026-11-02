@@ -2,6 +2,7 @@ import remarkGfm from 'remark-gfm'
 import remarkFrontmatter from 'remark-frontmatter'
 import { parse as parseYaml } from 'yaml'
 import type { MarkdownNode, MarkdownPlugin, SearchOptions } from '../core/types'
+import { normalizeCustomTagProps } from '../core/normalize'
 import { searchDocument } from '../core/search'
 
 export const tocPlugin: MarkdownPlugin = {
@@ -24,6 +25,9 @@ export function searchPlugin(options: SearchOptions = {}): MarkdownPlugin {
   return {
     name: 'search',
     transformDocument(document) {
+      // A fresh document has no segments. Avoid walking the whole tree when the
+      // query is empty; the default plugin set includes `searchPlugin()`.
+      if (!options.query?.trim()) return document
       return searchDocument(document, options)
     },
   }
@@ -46,7 +50,7 @@ export function customTagsPlugin(
           kind: 'custom',
           key: node.key,
           tag: node.tag,
-          props: { ...node.attrs },
+          props: normalizeCustomTagProps(node.attrs),
           attrs: node.attrs,
           children: convert(node.children),
           source: node.source,

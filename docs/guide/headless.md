@@ -30,6 +30,7 @@ const {
   pipeline,     // ComputedRef<string>
   plugins,      // ComputedRef<string[]>
   refresh,      // () => Promise<void>
+  clearDiagnostics, // () => void
 } = useMarkdownDocument(source)
 ```
 
@@ -159,6 +160,12 @@ const activeId = useActiveHeading(ids, true, { root: documentElement })
 - `ready` — the current source produced a document.
 - `error` — the run failed; the previous document is retained and diagnostics
   explain why.
+
+Diagnostics are replaced on each run, including failed runs, and identical
+entries are collapsed. Diagnostics added during plugin setup are snapshotted
+when setup runs, so they cannot accumulate if a plugin keeps the setup context.
+Call `clearDiagnostics()` to empty the published list without re-running the
+pipeline.
 
 ## Next
 

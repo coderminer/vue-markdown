@@ -1,4 +1,4 @@
-import hljs from 'highlight.js/lib/core'
+import { createLowlight } from 'lowlight'
 import bash from 'highlight.js/lib/languages/bash'
 import c from 'highlight.js/lib/languages/c'
 import cpp from 'highlight.js/lib/languages/cpp'
@@ -26,7 +26,8 @@ import typescript from 'highlight.js/lib/languages/typescript'
 import xml from 'highlight.js/lib/languages/xml'
 import yaml from 'highlight.js/lib/languages/yaml'
 import type { MarkdownHighlighter } from '../core/types'
-import { highlightedNodesFromHtml, plaintextHighlight } from './shared'
+import { highlightedNodesFromHast } from './convert-hast'
+import { plaintextHighlight } from './shared'
 
 const languages = {
   bash,
@@ -57,13 +58,14 @@ const languages = {
   yaml,
 }
 
-for (const [name, language] of Object.entries(languages)) {
-  hljs.registerLanguage(name, language)
+const lowlight = createLowlight()
+for (const name of Object.keys(languages) as Array<keyof typeof languages>) {
+  lowlight.register(name, languages[name])
 }
-hljs.registerAliases(['js', 'jsx'], { languageName: 'javascript' })
-hljs.registerAliases(['ts', 'tsx'], { languageName: 'typescript' })
-hljs.registerAliases(['html', 'svg'], { languageName: 'xml' })
-hljs.registerAliases(['sh', 'zsh'], { languageName: 'bash' })
+lowlight.registerAlias('javascript', ['js', 'jsx'])
+lowlight.registerAlias('typescript', ['ts', 'tsx'])
+lowlight.registerAlias('xml', ['html', 'svg'])
+lowlight.registerAlias('bash', ['sh', 'zsh'])
 
 /**
  * Default highlight.js adapter. It is intentionally synchronous so the
@@ -73,16 +75,12 @@ export const highlightjs: MarkdownHighlighter = {
   id: 'highlight.js',
   languages: Object.keys(languages),
   highlight(code, language) {
-    if (!language || !hljs.getLanguage(language)) {
+    if (!language || !lowlight.registered(language)) {
       return plaintextHighlight(code, language)
     }
-    const value = hljs.highlight(code, {
-      language,
-      ignoreIllegals: true,
-    }).value
     return {
       language,
-      nodes: highlightedNodesFromHtml(value),
+      nodes: highlightedNodesFromHast(lowlight.highlight(language, code).children),
     }
   },
 }

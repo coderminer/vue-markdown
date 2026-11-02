@@ -1,4 +1,3 @@
-import GithubSlugger from 'github-slugger'
 import {
   computed,
   effectScope,
@@ -30,7 +29,7 @@ import { createDiagnostic, errorMessage } from '../core/diagnostics'
 import { finalizeMarkdownDocument } from '../core/finalize'
 import { identityOf } from '../core/identity'
 import { memoGet, memoSet } from '../core/memo'
-import { withUniqueSlugs } from '../core/slugger'
+import { createDefaultSlugger, withUniqueSlugs } from '../core/slugger'
 import { createPluginContext } from '../plugins/define'
 import { applySourceTransforms } from '../plugins/source'
 import { defaultPlugins } from '../plugins/builtin'
@@ -58,6 +57,8 @@ export interface UseMarkdownDocumentReturn {
   /** Design tokens contributed by plugins. */
   resolvedTokens: ComputedRef<Record<string, string>>
   refresh: () => Promise<void>
+  /** Clear the published diagnostics without changing the document. */
+  clearDiagnostics: () => void
 }
 
 function isAsyncError(error: unknown): boolean {
@@ -75,6 +76,35 @@ export function useMarkdownDocument(
   const status = shallowRef<MarkdownStatus>('idle')
   const diagnostics = shallowRef<MarkdownDiagnostic[]>([])
   const setupDiagnostics = shallowRef<MarkdownDiagnostic[]>([])
+  /**
+   * Publish the latest run's diagnostics. Identical entries are collapsed so a
+   * plugin that reports the same failure twice, or a cached processor that
+   * replays an error, cannot grow the exposed list across runs. The source
+   * range and details are part of the signature so distinct occurrences of the
+   * same message are preserved.
+   */
+  const publishDiagnostics = (list: readonly MarkdownDiagnostic[]): void => {
+    const seen = new Set<string>()
+    const next: MarkdownDiagnostic[] = []
+    for (const diagnostic of list) {
+      const source = diagnostic.source
+        ? `${diagnostic.source.start.line}:${diagnostic.source.start.column}:${diagnostic.source.start.offset ?? ''}-${diagnostic.source.end.line}:${diagnostic.source.end.column}:${diagnostic.source.end.offset ?? ''}`
+        : ''
+      const signature = [
+        diagnostic.code,
+        diagnostic.message,
+        diagnostic.severity,
+        diagnostic.plugin ?? '',
+        diagnostic.phase ?? '',
+        source,
+        diagnostic.details ?? '',
+      ].join('\u001f')
+      if (seen.has(signature)) continue
+      seen.add(signature)
+      next.push(diagnostic)
+    }
+    diagnostics.value = next
+  }
   const optionsRef = computed(() => toValue(options) ?? {})
   const sourceRef = computed(() => {
     const value = toValue(source)
@@ -104,7 +134,7 @@ export function useMarkdownDocument(
     ...(optionsRef.value.remarkRehypeOptions ?? {}),
   }))
 
-  const defaultSlugger: MarkdownSlugger = new GithubSlugger()
+  const defaultSlugger: MarkdownSlugger = createDefaultSlugger()
   const baseSlugger = computed(() => optionsRef.value.slugger ?? defaultSlugger)
   const slugger = computed(() => withUniqueSlugs(baseSlugger.value))
   const idPrefix = computed(() => optionsRef.value.idPrefix ?? '')
@@ -140,12 +170,12 @@ export function useMarkdownDocument(
     }
     cleanups = []
     scope = effectScope(true)
-    setupDiagnostics.value = []
 
+    const collected: MarkdownDiagnostic[] = []
     const context = createPluginContext(
       sourceRef.value,
       optionsRef.value,
-      setupDiagnostics.value as MarkdownDiagnostic[],
+      collected,
     )
     for (const plugin of resolved.value.plugins) {
       if (!plugin.setup) continue
@@ -153,14 +183,27 @@ export function useMarkdownDocument(
         const cleanup = plugin.setup(context)
         if (typeof cleanup === 'function') cleanups.push(cleanup)
       } catch (error) {
-        const diagnostic = createDiagnostic('plugin-setup', errorMessage(error), {
-          phase: 'setup',
-          plugin: plugin.name,
-        })
-        setupDiagnostics.value = [...setupDiagnostics.value, diagnostic]
-        plugin.onError?.(error, 'setup', context)
+        collected.push(
+          createDiagnostic('plugin-setup', errorMessage(error), {
+            phase: 'setup',
+            plugin: plugin.name,
+          }),
+        )
+        try {
+          plugin.onError?.(error, 'setup', context)
+        } catch (secondary) {
+          collected.push(
+            createDiagnostic('plugin-onerror', errorMessage(secondary), {
+              phase: 'setup',
+              plugin: plugin.name,
+            }),
+          )
+        }
       }
     }
+    // Publish a snapshot. A plugin that retains the setup context must not be
+    // able to append to the list that every later run spreads.
+    setupDiagnostics.value = collected.slice()
   }
 
   const teardown = (): void => {
@@ -224,7 +267,7 @@ export function useMarkdownDocument(
     cache: boolean,
   ): void => {
     const next = finalize(source, result, nextDiagnostics)
-    diagnostics.value = nextDiagnostics
+    publishDiagnostics(nextDiagnostics)
     if (cache) memoSet(key, next)
     apply(next)
   }
@@ -246,12 +289,12 @@ export function useMarkdownDocument(
     } catch (error) {
       if (isAsyncError(error)) return 'async'
       status.value = 'error'
-      diagnostics.value = [
+      publishDiagnostics([
         ...nextDiagnostics,
         createDiagnostic('pipeline-sync', errorMessage(error), {
           phase: 'pipeline',
         }),
-      ]
+      ])
       return 'done'
     }
   }
@@ -274,42 +317,54 @@ export function useMarkdownDocument(
     } catch (error) {
       if (id !== runId) return
       status.value = 'error'
-      diagnostics.value = [
+      publishDiagnostics([
         ...nextDiagnostics,
         createDiagnostic('pipeline-process', errorMessage(error), {
           phase: 'pipeline',
         }),
-      ]
+      ])
     }
   }
 
   const run = (force = false): Promise<void> => {
     const id = ++runId
-    const nextDiagnostics: MarkdownDiagnostic[] = [
-      ...pipelineResult.value.diagnostics,
-      ...resolved.value.diagnostics,
-      ...setupDiagnostics.value,
-    ]
-    const source = applySourceTransforms(
-      sourceRef.value,
-      resolved.value.plugins,
-      optionsRef.value,
-      nextDiagnostics,
-    )
-    const key = createMemoKey(source, pipelineIdentity.value)
+    try {
+      const nextDiagnostics: MarkdownDiagnostic[] = [
+        ...pipelineResult.value.diagnostics,
+        ...resolved.value.diagnostics,
+        ...setupDiagnostics.value,
+      ]
+      const source = applySourceTransforms(
+        sourceRef.value,
+        resolved.value.plugins,
+        optionsRef.value,
+        nextDiagnostics,
+      )
+      const key = createMemoKey(source, pipelineIdentity.value)
 
-    if (!force) {
-      const cached = memoGet(key)
-      if (cached) {
-        diagnostics.value = nextDiagnostics
-        apply(cached)
-        return Promise.resolve()
+      if (!force) {
+        const cached = memoGet(key)
+        if (cached) {
+          publishDiagnostics(nextDiagnostics)
+          apply(cached)
+          return Promise.resolve()
+        }
       }
-    }
 
-    const sync = runSync(source, key, !force, nextDiagnostics)
-    if (sync === 'done') return Promise.resolve()
-    return runAsync(id, source, key, !force, nextDiagnostics)
+      const sync = runSync(source, key, !force, nextDiagnostics)
+      if (sync === 'done') return Promise.resolve()
+      return runAsync(id, source, key, !force, nextDiagnostics)
+    } catch (error) {
+      // Configuration failures before the pipeline starts must replace the
+      // published diagnostics, not leave the previous run's list in place.
+      status.value = 'error'
+      publishDiagnostics([
+        createDiagnostic('pipeline-run', errorMessage(error), {
+          phase: 'pipeline',
+        }),
+      ])
+      return Promise.resolve()
+    }
   }
 
   const refresh = (): Promise<void> => run(true)
@@ -332,5 +387,8 @@ export function useMarkdownDocument(
     resolvedLabels: computed(() => resolved.value.labels),
     resolvedTokens: computed(() => resolved.value.tokens),
     refresh,
+    clearDiagnostics: () => {
+      diagnostics.value = []
+    },
   }
 }

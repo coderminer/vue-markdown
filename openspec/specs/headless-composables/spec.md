@@ -7,7 +7,7 @@ Exposes the library's parsing, document model, search, TOC, Mermaid, and interac
 
 ### Requirement: Document pipeline composable
 
-The library SHALL provide a composable that accepts Markdown source and options and returns a shallow-reactive document model, table of contents, render status, diagnostics, pipeline identity, and actions to update the source, options, or refresh. Options SHALL accept a pipeline, plugins, tag components, region components, node components, element filters, URL transform, `remarkPlugins` / `rehypePlugins` / `remarkRehypeOptions`, and injected behavior using the same contracts as the preset components. When no pipeline is supplied, the composable SHALL use the official `unified`/`remark` pipeline. The document SHALL be stored in a `shallowRef`, replaced atomically, and never wrapped in a deep reactive proxy. The composable SHALL be usable without mounting any preset component.
+The library SHALL provide a composable that accepts Markdown source and options and returns a shallow-reactive document model, table of contents, render status, diagnostics, pipeline identity, and actions to update the source, options, or refresh. Diagnostics SHALL be replaced and deduplicated for each run, including failed runs; entries are identical only when their code, message, severity, phase, plugin, source range, and details match, so distinct occurrences remain visible. The composable SHALL expose an action that clears the published diagnostics without changing the document. Diagnostics added during plugin setup SHALL be snapshotted when setup runs so a retained setup context cannot grow the list on later runs. Options SHALL accept a pipeline, plugins, tag components, region components, node components, element filters, URL transform, `remarkPlugins` / `rehypePlugins` / `remarkRehypeOptions`, and injected behavior using the same contracts as the preset components. When no pipeline is supplied, the composable SHALL use the official `unified`/`remark` pipeline. The document SHALL be stored in a `shallowRef`, replaced atomically, and never wrapped in a deep reactive proxy. The composable SHALL be usable without mounting any preset component.
 
 #### Scenario: Build a custom renderer
 - **WHEN** a host calls the document composable with Markdown source
@@ -16,6 +16,10 @@ The library SHALL provide a composable that accepts Markdown source and options 
 #### Scenario: Reactive updates
 - **WHEN** the source or a rendering option changes
 - **THEN** the document model and TOC update reactively and diagnostics reflect the latest result
+
+#### Scenario: Repeated failures
+- **WHEN** a run fails after a previous run published diagnostics
+- **THEN** the published list is replaced with the failed run's diagnostics instead of retaining or appending the previous entries
 
 #### Scenario: Injected pipeline
 - **WHEN** a host supplies a custom `MarkdownPipeline` to the composable

@@ -36,7 +36,7 @@ Markdown 直接渲染成 Vue VNode：不经过 HTML 字符串往返，也不使�
 npm install @coderminer/vue-markdown
 ```
 
-需要 Node 20+ 和 Vue 3.5+。
+需要 Node 20+ 和 Vue 3.3+。
 
 可选引擎都是 peer 依赖，只安装实际用到的部分：
 
@@ -319,7 +319,9 @@ const plugins = [docsPlugin]
 会被隔离，不会破坏上一份正常文档。
 
 `toc`、`code`、`link` 是内核不变标记：即使写进 `disablePlugins` 也不会被移除，只会
-报告一条 `plugin-core` 诊断。
+报告一条 `plugin-core` 诊断。`disablePlugins` 匹配插件的 `name`，不是导出的工厂函数名；
+未知名称会报告 `plugin-unknown` 警告。完整列表见
+[插件名称表](docs/zh/guide/plugins.md#disableplugins-名称)。
 
 ### 无头渲染
 
@@ -411,7 +413,7 @@ const asyncHtml = await exportMarkdownHtml(source, { plugins: [docsPlugin] })
 | `labels` | `Partial<MarkdownLabels>` | `{}` | 内置文案，支持字符串或函数。 |
 | `preset` | `MarkdownPreset \| MarkdownPreset[]` | — | 应用一个或多个预设。 |
 | `plugins` | `PluginInput[]` | `defaultPlugins` | 传入后替换默认插件集合；加入 `htmlPlugin()` 可启用净化后的原始 HTML。 |
-| `disablePlugins` | `string[]` | `[]` | 按名称移除解析后的非内核插件。 |
+| `disablePlugins` | `string[]` | `[]` | 按名称移除解析后的非内核插件；未知名称会报告 `plugin-unknown` 警告。 |
 | `remarkPlugins` | `PluggableList` | `[]` | 在库内置 remark 插件之后运行。 |
 | `rehypePlugins` | `PluggableList` | `[]` | 在库内置 rehype 插件和内置净化器之后运行。 |
 | `remarkRehypeOptions` | `Record<string, unknown>` | `{}` | 合并到 mdast → hast 转换步骤。 |
@@ -436,6 +438,7 @@ const asyncHtml = await exportMarkdownHtml(source, { plugins: [docsPlugin] })
 | `tocPlacement` | `'top' \| 'left' \| 'right' \| 'hidden'` | `'top'` | 目录置顶、放在内容左侧/右侧，或隐藏。 |
 | `search` | `string` | `''` | 高亮匹配项并触发 `search-change`。 |
 | `searchCaseSensitive` | `boolean` | `false` | 让 `search` 区分大小写。 |
+| `searchDebounce` | `number` | `0` | 新查询解析前的等待毫秒数。 |
 | `showError` | `boolean` | `true` | 失败时渲染错误区域。 |
 | `tokens` | `Record<string, string>` | `{}` | 写在根元素上的内联 `--vmd-*` 自定义属性。 |
 | `theme` | `'light' \| 'dark' \| 'auto' \| 'custom'` | `'light'` | 设置根元素的 `data-vmd-theme`。 |

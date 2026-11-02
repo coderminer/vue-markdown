@@ -12,8 +12,9 @@ description: highlight.js 与 Shiki 适配器、缓存和服务端渲染。
 `CodeBlock` 会懒加载 highlight.js 适配器。适配器显式注册了一组语言：Bash、C、C++、
 C#、CSS、Diff、Go、INI、Java、JavaScript、JSON、Kotlin、Less、Lua、Markdown、PHP、
 Python、Ruby、Rust、SCSS、Shell、SQL、Swift、TypeScript、HTML/XML、YAML，以及
-`js`/`jsx`、`ts`/`tsx`、`html`/`svg`、`sh`/`zsh` 等别名。它同步高亮；文档里没有代码时
-根本不会加载。
+`js`/`jsx`、`ts`/`tsx`、`html`/`svg`、`sh`/`zsh` 等别名。它内部使用 `lowlight`
+直接生成 hast 节点，不经过 HTML 字符串往返。它同步高亮；文档里没有代码时根本不会
+加载。
 
 ```ts
 import { highlightjs } from '@coderminer/vue-markdown/highlight'

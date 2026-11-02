@@ -48,6 +48,13 @@ import { mermaidPlugin, renderMermaid } from '@coderminer/vue-markdown/mermaid'
 import { htmlPlugin } from '@coderminer/vue-markdown/html'
 ```
 
+The Mermaid entry also exports `resetMermaidRuntime()`. It clears the lazily
+loaded module reference and configuration key for tests or an explicit
+reinitialization. It cannot unload the browser's module cache, and it must not
+run in a component lifecycle: Mermaid keeps process-wide configuration, and one
+block unmounting must not reset the runtime that another block is still using.
+The cache holds no per-block data, so unmounting a block does not leak it.
+
 ## Bundle boundaries
 
 ::: warning Keep engines optional
@@ -58,9 +65,14 @@ own entries or dynamic chunks.
 
 - A document without code never loads the highlighter.
 - A document without math never loads KaTeX.
-- Mermaid loads only when a Mermaid component renders.
+- Mermaid loads only when a Mermaid component renders. Its SVG sanitizer loads
+  the HTML parser only after a diagram has rendered.
 - The Mermaid editor loads CodeMirror only when mounted.
-- The HTML parser loads only when `@coderminer/vue-markdown/html` is imported.
+- Converting math or Mermaid output loads the HTML parser only in the optional
+  `math` or `mermaid` entry. The `highlight` entry produces hast through
+  `lowlight`; the base renderer does not include the parser.
+- The raw HTML parser loads only when `@coderminer/vue-markdown/html` is
+  imported.
 - The core is DOM-free and Vue-free; the Vue adapter depends downward on it.
 
 ## Styles

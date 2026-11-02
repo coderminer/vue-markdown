@@ -171,7 +171,7 @@ The renderer SHALL use the official `unified`/`remark` pipeline by default and S
 
 ### Requirement: Base URL and heading ID policy
 
-The renderer SHALL support a `baseUrl` option that resolves relative link and image destinations without rewriting absolute URLs. Base URL resolution SHALL occur before `urlTransform`, and the transformed result SHALL still be validated. The renderer SHALL support an `idPrefix` option applied to generated heading identifiers, and duplicate handling SHALL remain unique after prefixing. The renderer SHALL expose `scrollToHeading` and SHALL optionally update the URL hash when `syncHash` is enabled. These options SHALL NOT change the document model's text content.
+The renderer SHALL support a `baseUrl` option that resolves relative link and image destinations without rewriting absolute URLs. Base URL resolution SHALL occur before `urlTransform`, and the transformed result SHALL still be validated. The renderer SHALL support an `idPrefix` option applied to generated heading identifiers, and duplicate handling SHALL remain unique after prefixing. Default heading identifiers SHALL collapse consecutive whitespace and hyphen runs into a single hyphen. The renderer SHALL expose `scrollToHeading` and SHALL optionally update the URL hash when `syncHash` is enabled. These options SHALL NOT change the document model's text content.
 
 #### Scenario: Relative URL resolution
 - **WHEN** `baseUrl` is set and a document contains a relative image source
@@ -180,6 +180,10 @@ The renderer SHALL support a `baseUrl` option that resolves relative link and im
 #### Scenario: Heading ID prefix
 - **WHEN** `idPrefix` is set to `doc-` and a heading generates the slug `intro`
 - **THEN** the heading ID is `doc-intro` and the TOC links to it
+
+#### Scenario: Readable heading IDs
+- **WHEN** a heading contains consecutive spaces or hyphens such as `My   -   Heading`
+- **THEN** its generated ID is `my-heading`
 
 #### Scenario: Multiple renderers with colliding IDs
 - **WHEN** two renderers on one page generate the same heading ID
@@ -261,9 +265,17 @@ Raw HTML SHALL be disabled by default. When a host explicitly enables it through
 - **WHEN** a host supplies a sanitizer rehype plugin
 - **THEN** raw HTML passes through that plugin in the documented order and core URL and attribute rules still apply
 
+### Requirement: Scalar prop validation
+
+The renderer SHALL validate scalar props at runtime so a host that bypasses TypeScript cannot inject an invalid enum, boolean, string, or numeric value into rendering or the document pipeline. An invalid value SHALL be replaced by the documented default (or ignored when the prop is optional) and SHALL report a `render-error` diagnostic with a `prop-*` code. Validation SHALL NOT throw.
+
+#### Scenario: Invalid scalar props
+- **WHEN** a host passes an unsupported `theme`, `tocPlacement`, `externalLinkTarget`, or a non-boolean flag
+- **THEN** the renderer uses the documented fallback value and reports one warning for each invalid prop
+
 ### Requirement: Search highlighting
 
-A host-provided search string SHALL highlight matching text in the rendered content. The renderer SHALL accept the query through the `search` prop (or the headless `search` option) and case sensitivity through `searchCaseSensitive`. Matching SHALL be case-insensitive by default and MAY be made case-sensitive. Highlighting SHALL affect text nodes only, SHALL preserve existing markup and link destinations, and SHALL be removed when the search string becomes empty. The match renderer SHALL be replaceable through the customization contract.
+A host-provided search string SHALL highlight matching text in the rendered content. The renderer SHALL accept the query through the `search` prop (or the headless `search` option) and case sensitivity through `searchCaseSensitive`. Matching SHALL be case-insensitive by default and MAY be made case-sensitive. Highlighting SHALL affect text nodes only, SHALL preserve existing markup and link destinations, and SHALL be removed when the search string becomes empty. The match renderer SHALL be replaceable through the customization contract. The renderer SHALL accept an optional `searchDebounce` delay in milliseconds, defaulting to `0`; the initial query SHALL apply immediately, and rapid query changes SHALL produce at most one parse for the settled value.
 
 #### Scenario: Highlight matches without breaking markup
 - **WHEN** the search text matches words inside a paragraph and a link label
@@ -276,6 +288,10 @@ A host-provided search string SHALL highlight matching text in the rendered cont
 #### Scenario: Search state event
 - **WHEN** the `search` query changes or the rendered document for that query reports a different match count
 - **THEN** `search-change` reports the current query, case sensitivity, and match count, and pending or failed runs do not emit a stale count
+
+#### Scenario: Debounced search
+- **WHEN** `searchDebounce` is set and the host changes `search` several times within the delay
+- **THEN** only the settled query is parsed and matches are highlighted once
 
 ### Requirement: Generic custom tags
 
@@ -315,7 +331,7 @@ When parsing or rendering fails, the renderer SHALL preserve the last successful
 
 ### Requirement: Events and exposed actions
 
-The renderer SHALL emit `toc-change` when the effective TOC changes, `link-click` when a link is activated, `task-change` when a task checkbox changes, `custom-tag-click` when a mapped custom tag is activated, `search-change` with the current query, case sensitivity, and match count when search state changes, `render-error` on failure, `math-error` with the math diagnostic on math failure (alongside the general diagnostic stream), and `ready` when the first document is available. It SHALL expose `scrollToHeading`, `getDocument`, `getToc`, and `refresh` actions.
+The renderer SHALL emit `toc-change` when the effective TOC changes, `link-click` when a link is activated, `task-change` when a task checkbox changes, `custom-tag-click` when a mapped custom tag is activated, `search-change` with the current query, case sensitivity, and match count when search state changes, `render-error` on failure, `math-error` with the math diagnostic on math failure (alongside the general diagnostic stream), and `ready` when the first document is available. It SHALL expose `scrollToHeading`, `getDocument`, `getToc`, and `refresh` actions. Event payloads SHALL be library-owned values: document models, diagnostics, plain records, or primitives, without Vue components, VNodes, DOM nodes, or processor objects. Interaction events MAY include the originating DOM event so a listener can cancel the default behavior. The library SHALL export a typed event map describing every payload.
 
 #### Scenario: Link event
 - **WHEN** the user activates a rendered link

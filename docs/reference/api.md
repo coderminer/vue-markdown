@@ -94,6 +94,7 @@ renders the normalized document.
 | `tocPlacement` | `'top' \| 'left' \| 'right' \| 'hidden'` | Stacks, sides, or hides the TOC. Default `'top'`. |
 | `search` | `string` | Highlights matches and emits `search-change`. |
 | `searchCaseSensitive` | `boolean` | Makes `search` case-sensitive. |
+| `searchDebounce` | `number` | Milliseconds before a new query is parsed. Default `0`. |
 | `showError` | `boolean` | Renders the error region on failure. Default `true`. |
 | `tokens` | `Record<string, string>` | Inline `--vmd-*` custom properties. |
 | `theme` | `'light' \| 'dark' \| 'auto' \| 'custom'` | Sets `data-vmd-theme`. |
@@ -573,6 +574,11 @@ export const myPlugin = defineMarkdownPlugin({
 | `frontmatterPlugin` | Frontmatter capture |
 | `defaultPlugins` / `fullPlugins` | Built-in plugin sets |
 
+`disablePlugins` matches the plugin `name`: `toc`, `code`, `link`, `search`,
+`custom-tags`, `gfm`, `frontmatter`, `html`, `math`, and `mermaid`. Unknown names
+are ignored and report a `plugin-unknown` warning. See
+[disable names](../guide/plugins.md#disableplugins-names).
+
 Ordering is `pre` → `normal` → `post`, then registration order. Core invariant
 markers cannot be disabled. See [Plugins](../guide/plugins.md).
 
@@ -634,6 +640,7 @@ const {
   pipeline,
   plugins,
   refresh,
+  clearDiagnostics,
   resolvedComponents,
   resolvedNodeComponents,
   resolvedRegions,
@@ -651,6 +658,7 @@ const {
 | `pipeline` | `ComputedRef<string>` |
 | `plugins` | `ComputedRef<string[]>` |
 | `refresh` | `() => Promise<void>` |
+| `clearDiagnostics` | `() => void`; clears the published list without changing the document. Each run already replaces and deduplicates diagnostics, treating entries as identical only when their code, message, severity, phase, plugin, source range, and details match. |
 | `resolvedComponents` | `ComputedRef<MarkdownTagComponents>` |
 | `resolvedNodeComponents` | `ComputedRef<MarkdownNodeComponents>` |
 | `resolvedRegions` | `ComputedRef<MarkdownRegionComponents>` |
@@ -667,7 +675,7 @@ const {
 | URL | `defaultUrlTransform`, `isExternalUrl`, `resolveUrl` |
 | Diagnostics | `createDiagnostic`, `errorMessage` |
 | Memoization | `memoGet`, `memoSet`, `memoClear`, `memoSize` |
-| Slugs | `withUniqueSlugs` |
+| Slugs | `createDefaultSlugger`, `withUniqueSlugs` |
 | Manifest | `COMPONENT_MANIFESTS`, `getComponentManifest`, `validateManifest`, `validateManifestRegistry` |
 | Config/presets | `mergeMarkdownConfig`, `mergeMarkdownPreset`, `defineMarkdownPreset`, `composePresets`, `resolvePreset` |
 | Adapter guards | `isValidHighlighter`, `isValidMathEngine`, `isValidMermaidRenderer`, `isValidDiagnosticFormatter`, `isValidSlugger`, `isValidUrlTransform` |

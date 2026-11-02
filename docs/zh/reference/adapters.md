@@ -31,7 +31,8 @@ const highlighter: MarkdownHighlighter = {
 纯源码。结果按适配器身份、源码、语言、主题和选项缓存。
 
 内置适配器：`@coderminer/vue-markdown/highlight` 的 `highlightjs`，以及
-`@coderminer/vue-markdown/highlight/shiki` 的 `shiki`。
+`@coderminer/vue-markdown/highlight/shiki` 的 `shiki`。默认的 `highlightjs`
+适配器内部使用 `lowlight`，直接返回 hast 派生的节点，不经过 HTML 字符串往返。
 
 ## 数学引擎
 
@@ -69,10 +70,14 @@ const renderer: MermaidRenderer = {
 }
 ```
 
-自定义输出会被净化。渲染器可以直接返回节点或 SVG 标记；非法输出会保留上一次成功预览，
-并报告诊断。
+自定义输出会被净化。渲染器可以直接返回节点或 SVG 标记，`render` 也可以返回 Promise；
+`MermaidBlock` 会等待两种形式。非法输出会保留上一次成功预览，并报告诊断。
 
-内置渲染器：`@coderminer/vue-markdown/mermaid` 的 `renderMermaid`。
+没有配置 `mermaidRenderer` 时会自动使用内置运行时。`@coderminer/vue-markdown/mermaid`
+的 `renderMermaid()` 是它背后的异步函数，不是 `MermaidRenderer` 对象：它没有 `id`，
+不要直接传给 `mermaidRenderer` 或 `renderer`。使用其结果作为 source 前需要先 await；
+需要显式适配器时，用 `{ id, render }` 包装它。[Mermaid 指南](../guide/mermaid.md#选择渲染器)
+说明了单块属性、provider、预设和内置运行时之间的优先级。
 
 ## Slugger 与 URL 变换
 
