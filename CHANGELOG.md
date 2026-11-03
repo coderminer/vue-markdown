@@ -4,13 +4,51 @@ All notable changes to `@coderminer/vue-markdown` are documented here.
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-11-03
+
+Patch release focused on Mermaid rendering quality and document stability. The
+TOC is now an unnumbered list by default.
+
+### Added
+
+- `MermaidBlock` and `MarkdownMermaid` accept `deferRendering`, and
+  `MarkdownRenderer`/`MarkdownConfigProvider` accept `mermaidDeferRendering`, so
+  print, PDF, and screenshot pipelines can render every diagram before
+  snapshotting. `MarkdownRenderer` emits `mermaid-rendered` when a diagram
+  finishes rendering.
+- Mermaid previews support drag and keyboard panning based on actual overflow,
+  expose `data-pannable` and `data-dragging`, and leave text selection and
+  ordinary pointer interaction untouched while a diagram fits.
+- `--vmd-mermaid-min-height` reserves height for the pending state.
+- Mermaid PNG export rasterizes at up to 3x with an 8192 px edge and a
+  16-megapixel budget, so labels stay crisp and oversized canvases cannot fail
+  the export.
+
 ### Changed
 
+- Mermaid nodes use content-derived keys, so editing one block no longer
+  remounts every later diagram.
+- The published npm tarball includes `src/` so consumers can inspect the
+  source.
+- The TOC renders as a `<ul role="list">` without numbering by default. Hosts
+  that want numbering can opt in with `list-style: decimal` and marker padding.
 - The Vue peer range is now `>=3.3.0 <4.0.0`. CI runs the full suite against
   Vue 3.3 and 3.4 in addition to the latest 3.x release.
 
 ### Fixed
 
+- Mermaid renders measure in a reusable offscreen host instead of appending a
+  temporary node to `document.body`, eliminating the layout jump and scrollbar
+  flash while diagrams render.
+- Diagrams keep the intrinsic pixel width Mermaid reports and are capped at the
+  preview width, so small diagrams no longer stretch and wide ones shrink to
+  fit instead of overflowing.
+- Deferred diagrams render when printing starts, and one shared print listener
+  replaces a per-block subscription.
+- A pan drag no longer gets stuck when the pointer is released outside the
+  preview.
+- `sanitizeSvg()` keeps Mermaid's `useMaxWidth` pixel width after inline styles
+  are stripped.
 - String tag overrides (`components: { h1: 'h2' }`), unknown-tag fallbacks, and
   raw HTML element nodes render their children on Vue 3.3 and 3.4. The renderer
   passed a slot function to an element vnode, which only Vue 3.5 resolves.

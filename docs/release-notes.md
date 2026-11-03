@@ -4,6 +4,33 @@ description: Release notes and upgrade guidance for @coderminer/vue-markdown 1.0
 
 # Release notes
 
+## 1.0.2 — 2026-11-03
+
+Patch release focused on Mermaid rendering quality and document stability.
+
+- Mermaid blocks render in a reusable offscreen measuring host, so the diagram
+  no longer briefly enters page flow and shifts content or flashes a scrollbar.
+  Diagrams keep the intrinsic width Mermaid reports, capped at the preview
+  width, instead of stretching small diagrams to fill the block.
+- First renders are deferred until a block nears the viewport. Deferral is
+  abandoned when printing starts, and `deferRendering` on `MermaidBlock` /
+  `MarkdownMermaid` or `mermaidDeferRendering` on `MarkdownRenderer` /
+  `MarkdownConfigProvider` disables it for print, PDF, and screenshot
+  pipelines. `MarkdownRenderer` now emits `mermaid-rendered`.
+- The Mermaid preview supports drag and keyboard panning based on actual
+  overflow, with `data-pannable` and `data-dragging` state attributes. Pending
+  height is reserved through `--vmd-mermaid-min-height`.
+- PNG export rasterizes at up to 3x within an 8192 px edge and 16-megapixel
+  budget, so labels stay crisp and oversized canvases cannot fail the export.
+- Mermaid node keys are content-derived, so editing one diagram does not
+  remount the diagrams after it.
+- The published npm tarball includes `src/` so consumers can inspect the
+  source.
+- The TOC renders as an unnumbered `<ul role="list">` by default. Hosts can opt
+  back into numbering with `list-style: decimal` and marker padding.
+- The Vue peer range is now `>=3.3.0 <4.0.0`, and children render correctly for
+  string tag overrides and raw HTML on Vue 3.3 and 3.4.
+
 ## 1.0.1 — 2026-11-02
 
 Patch release with post-1.0 runtime fixes. The package has no external users

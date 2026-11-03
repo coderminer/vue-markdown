@@ -4,6 +4,28 @@ description: '@coderminer/vue-markdown 1.0 发布说明与升级指南。'
 
 # 发布说明
 
+## 1.0.2 — 2026-11-03
+
+聚焦 Mermaid 渲染质量和文档稳定性的补丁版本。
+
+- Mermaid 块在可复用的离屏测量容器中渲染，图表不再短暂进入页面流导致内容跳动或
+  滚动条闪烁。图表保持 Mermaid 报告的固有宽度并以预览区宽度为上限，小图不再被拉伸
+  铺满整个块。
+- 首次渲染会推迟到块接近视口时；开始打印时会放弃推迟。可通过 `MermaidBlock` /
+  `MarkdownMermaid` 的 `deferRendering`，或 `MarkdownRenderer` /
+  `MarkdownConfigProvider` 的 `mermaidDeferRendering` 关闭推迟，供打印、PDF 和
+  截图流水线使用。`MarkdownRenderer` 新增 `mermaid-rendered` 事件。
+- Mermaid 预览按真实溢出启用拖拽和键盘平移，并提供 `data-pannable`、
+  `data-dragging` 状态属性。pending 高度由 `--vmd-mermaid-min-height` 预留。
+- PNG 导出按最高 3 倍栅格化，并受 8192 px 最长边和 1600 万像素预算约束，文字清晰且
+  不会因画布超限导致导出失败。
+- Mermaid 节点使用基于内容的键，编辑一个图表不会让后面的图表重新挂载。
+- npm 包同时包含 `src/` 源码，便于使用方查看。
+- 目录默认渲染为不编号的 `<ul role="list">`；需要编号的宿主可用
+  `list-style: decimal` 和标记内边距自行开启。
+- Vue peer 范围调整为 `>=3.3.0 <4.0.0`，字符串标签覆盖和原始 HTML 的子节点在
+  Vue 3.3 / 3.4 上也能正确渲染。
+
 ## 1.0.1 — 2026-11-02
 
 修复 1.0.0 发布后发现的运行时问题。由于包还没有外部使用者，这个补丁版本也包含
