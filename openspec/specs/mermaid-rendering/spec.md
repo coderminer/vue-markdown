@@ -21,9 +21,27 @@ The Mermaid entry SHALL provide an opt-in document plugin that converts fenced c
 
 A Mermaid block SHALL render valid diagram source into an SVG preview using the configured theme, with `securityLevel: 'strict'`. Rendering SHALL occur in the browser and SHALL NOT execute scripts or arbitrary HTML embedded in diagram labels. Rendered SVG SHALL be parsed into nodes and sanitized; it SHALL NOT be injected with `v-html`. The Mermaid runtime SHALL be loaded lazily, only when a diagram actually needs rendering. Concurrent renders SHALL be serialized, SHALL use unique IDs, and SHALL discard stale results. A failed lazy import SHALL NOT be cached, so a retry can recover from a transient chunk or network failure. Initialization SHALL be keyed by the effective Mermaid configuration and checked inside the serialized render queue so blocks with different themes cannot reuse stale global state. Component unmount SHALL NOT reset the shared runtime; `resetMermaidRuntime()` is an explicit test or reinitialization hook and cannot unload the browser module cache.
 
+Rendering SHALL NOT disturb document flow: the runtime SHALL measure each diagram in a reusable offscreen container instead of inserting temporary nodes into normal page flow, and the pending state SHALL reserve a documented height so the first render does not shift following content. A block whose first render is far outside the viewport MAY defer it until the block approaches the viewport; deferral SHALL be skipped when intersection cannot be observed, so headless and server-rendered shells still render. Deferral SHALL be abandoned when printing starts, and a documented option at both the block and renderer levels SHALL allow disabling it so print, PDF, or capture pipelines can render every diagram before snapshotting; the renderer SHALL expose when a deferred diagram finishes rendering. A rendered diagram SHALL keep the intrinsic pixel width reported by the runtime and SHALL be capped at the preview width, so a small diagram is not stretched to fill the block and a large one does not overflow it.
+
 #### Scenario: Valid diagram renders
 - **WHEN** a block receives valid flowchart source
 - **THEN** an SVG preview of the diagram is displayed with the configured theme
+
+#### Scenario: Rendering does not shift the page
+- **WHEN** a document contains several diagrams that render at different times
+- **THEN** temporary measuring nodes never enter normal flow and the reserved pending height keeps following content stable
+
+#### Scenario: Offscreen diagram defers
+- **WHEN** a diagram is far outside the viewport and intersection can be observed
+- **THEN** its first render waits until the block approaches the viewport, and an explicit render or retry bypasses the wait
+
+#### Scenario: Printing a deferred document
+- **WHEN** printing starts while diagrams are still deferred
+- **THEN** their renders are started, and a block created with deferral disabled has already rendered before the snapshot
+
+#### Scenario: Deferral disabled through the renderer
+- **WHEN** a host sets the renderer-level deferral option to `false`
+- **THEN** every Mermaid block renders on mount and the renderer emits `mermaid-rendered` for each finished diagram
 
 #### Scenario: Runtime is lazy
 - **WHEN** a page imports the library but contains no Mermaid blocks
@@ -79,11 +97,15 @@ The block SHALL offer a toggle between a rendered preview and the original Merma
 
 ### Requirement: Zoom and pan
 
-The preview SHALL support zoom within documented minimum and maximum bounds and SHALL allow panning when the diagram overflows the viewport. Reset SHALL restore the initial zoom and position. Every re-render, including a retry, theme change, renderer change, or source update, SHALL start from the initial zoom, and returning from the source view SHALL also restore it. Zoom and pan SHALL NOT modify the diagram source, and controls SHALL expose current zoom.
+The preview SHALL support zoom within documented minimum and maximum bounds and SHALL allow panning when the diagram overflows the preview bounds. Panning SHALL be offered based on actual overflow, not on the zoom level, and SHALL work by dragging with a pointer and with arrow keys while the preview is focused, so ordinary pointer interactions and page scrolling are unaffected while the diagram fits. Reset SHALL restore the initial zoom and position. Every re-render, including a retry, theme change, renderer change, or source update, SHALL start from the initial zoom, and returning from the source view SHALL also restore it. Zoom and pan SHALL NOT modify the diagram source, and controls SHALL expose current zoom.
 
 #### Scenario: Zoom bounds
 - **WHEN** the user zooms beyond the maximum or minimum
 - **THEN** the zoom stops at the bound and the diagram remains rendered
+
+#### Scenario: Drag to pan
+- **WHEN** the diagram overflows the preview bounds and the user drags inside the preview
+- **THEN** the visible portion follows the pointer without moving page content
 
 #### Scenario: Pan overflowing diagram
 - **WHEN** a zoomed diagram overflows its container and the user drags
@@ -111,11 +133,11 @@ The block SHALL offer a copy action that copies the exact current Mermaid source
 
 ### Requirement: PNG export
 
-The block SHALL export the currently rendered diagram as a PNG when export is available. Export SHALL use the sanitized SVG currently displayed, not an in-flight source update. Export SHALL be unavailable or clearly rejected when no diagram has rendered. A host-provided export function SHALL be able to replace the default export pipeline.
+The block SHALL export the currently rendered diagram as a PNG when export is available. Export SHALL use the sanitized SVG currently displayed, not an in-flight source update. Export SHALL be unavailable or clearly rejected when no diagram has rendered. The PNG SHALL be rasterized at the diagram's intrinsic aspect ratio and at a higher pixel density than its layout size, instead of upscaling a one-pixel-density bitmap, so lines and labels stay crisp; a diagram whose intrinsic size exceeds the documented bitmap budget SHALL be downscaled so canvas dimension and area limits cannot fail the export. A host-provided export function SHALL be able to replace the default export pipeline.
 
 #### Scenario: Export rendered diagram
 - **WHEN** the user exports a successfully rendered diagram
-- **THEN** a PNG file representing the displayed diagram is downloaded
+- **THEN** a PNG file representing the displayed diagram is downloaded at a higher pixel density than its layout size
 
 #### Scenario: Export failure preserves preview
 - **WHEN** the export pipeline fails

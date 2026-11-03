@@ -129,6 +129,8 @@ const props = withDefaults(
     highlighter?: MarkdownHighlighter
     mathEngine?: MathEngine
     mermaidRenderer?: MermaidRenderer
+    /** Defer Mermaid first renders until the block approaches the viewport. */
+    mermaidDeferRendering?: boolean
     diagnosticsFormatter?: DiagnosticFormatter
     allowedElements?: string[]
     disallowedElements?: string[]
@@ -170,6 +172,7 @@ const props = withDefaults(
     highlighter: undefined,
     mathEngine: undefined,
     mermaidRenderer: undefined,
+    mermaidDeferRendering: undefined,
     diagnosticsFormatter: undefined,
     allowedElements: undefined,
     disallowedElements: undefined,
@@ -324,6 +327,7 @@ const localConfig = computed<MarkdownConfig>(() => ({
   highlighter: props.highlighter,
   mathEngine: props.mathEngine,
   mermaidRenderer: props.mermaidRenderer,
+  mermaidDeferRendering: props.mermaidDeferRendering,
   diagnosticsFormatter: props.diagnosticsFormatter,
   slugger: props.slugger,
   urlTransform: props.urlTransform,
@@ -539,6 +543,7 @@ const renderContext = shallowReactive<RenderContext>({
   highlighter: validHighlighter.value,
   mathEngine: validMathEngine.value,
   mermaidRenderer: validMermaidRenderer.value,
+  mermaidDeferRendering: effectiveConfig.value.mermaidDeferRendering,
   diagnosticsFormatter: validDiagnosticsFormatter.value,
   slots,
   renderHostSlot(name, slotProps, fallback) {
@@ -555,6 +560,9 @@ const renderContext = shallowReactive<RenderContext>({
   },
   onTaskChange(payload) {
     emit('task-change', payload)
+  },
+  onMermaidRendered(result) {
+    emit('mermaid-rendered', result)
   },
   onMathError(diagnostic) {
     emit('math-error', diagnostic)
@@ -600,6 +608,13 @@ watch(
     renderContext.mathEngine = nextMath
     renderContext.mermaidRenderer = nextMermaid
     renderContext.diagnosticsFormatter = nextFormatter
+  },
+)
+
+watch(
+  () => effectiveConfig.value.mermaidDeferRendering,
+  (value) => {
+    renderContext.mermaidDeferRendering = value
   },
 )
 

@@ -566,6 +566,28 @@ function modelScope(nodes: readonly MarkdownNode[]): string | undefined {
 }
 
 /**
+ * Mermaid implements `useMaxWidth` by writing `width="100%"` plus an inline
+ * `max-width: <px>` on the root SVG. Inline styles are dropped from sanitized
+ * output, so keep the intended pixel width as a plain `width` attribute.
+ * Without it a small diagram stretches to the full container and renders
+ * oversized. CSS then caps the width at the container so large diagrams still
+ * scale down instead of overflowing.
+ */
+function applyRootSize(
+  element: Element,
+  attrs: Record<string, string>,
+): void {
+  const width = String(element.properties?.width ?? '').trim()
+  if (/^\d+(?:\.\d+)?$/.test(width)) return
+  const style = element.properties?.style
+  if (typeof style !== 'string') return
+  const match = /(?:^|;)\s*max-width\s*:\s*(\d+(?:\.\d+)?)px\s*(?:;|$)/i.exec(
+    style,
+  )
+  if (match && match[1]) attrs.width = match[1]
+}
+
+/**
  * Sanitize parsed SVG markup into normalized nodes. Prefer the root SVG
  * element so the stylesheet scope is derived from its id.
  */
@@ -576,9 +598,15 @@ export function sanitizeHastNodes(
     (node): node is Element =>
       node.type === 'element' && node.tagName.toLowerCase() === 'svg',
   )
-  return svgElement
+  const result = svgElement
     ? sanitizeNodes([svgElement], '', svgScope(svgElement))
     : sanitizeNodes(nodes)
+  const root = result.find(
+    (node): node is Extract<MarkdownNode, { kind: 'element' }> =>
+      node.kind === 'element' && node.tag.toLowerCase() === 'svg',
+  )
+  if (svgElement && root) applyRootSize(svgElement, root.attrs)
+  return result
 }
 
 function safeModelAttributes(

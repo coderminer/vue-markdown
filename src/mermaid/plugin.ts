@@ -17,6 +17,21 @@ export interface MermaidPluginOptions {
 
 const DEFAULT_LANGUAGES = ['mermaid', 'mmd']
 
+/**
+ * FNV-1a over the diagram source. Mermaid nodes are keyed by content instead of
+ * document position so that editing an unrelated block, or inserting one above
+ * a diagram, does not change the key of every later diagram. Without this Vue
+ * unmounts and re-renders every following diagram on each edit.
+ */
+function sourceHash(value: string): string {
+  let hash = 0x811c9dc5
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index)
+    hash = Math.imul(hash, 0x01000193)
+  }
+  return (hash >>> 0).toString(36)
+}
+
 function normalizeLanguages(
   value: MermaidPluginOptions['languages'],
 ): Set<string> {
@@ -36,12 +51,21 @@ function convert(
   nodes: readonly MarkdownNode[],
   languages: ReadonlySet<string>,
   counter: { index: number },
+  seen: Map<string, number>,
 ): MarkdownNode[] {
   return nodes.map((node) => {
     if (node.kind === 'code' && languages.has(node.language.toLowerCase())) {
+      const hash = sourceHash(node.code)
+      // Identical diagrams still need distinct keys within one sibling list, so
+      // the n-th occurrence of the same source gets a suffix. Editing one of
+      // two identical diagrams therefore moves the suffix of the other and
+      // re-renders it once, which is the accepted cost of stable keys for the
+      // common case.
+      const occurrence = (seen.get(hash) ?? 0) + 1
+      seen.set(hash, occurrence)
       return {
         kind: 'mermaid',
-        key: node.key,
+        key: `mermaid:${hash}:${occurrence}`,
         code: node.code,
         complete: true,
         index: counter.index++,
@@ -51,7 +75,7 @@ function convert(
     if ('children' in node && Array.isArray(node.children)) {
       return {
         ...node,
-        children: convert(node.children, languages, counter),
+        children: convert(node.children, languages, counter, seen),
       } as MarkdownNode
     }
     return node
@@ -79,7 +103,7 @@ export function mermaidPlugin(
       const counter = { index: 0 }
       return {
         ...document,
-        nodes: convert(document.nodes, languages, counter),
+        nodes: convert(document.nodes, languages, counter, new Map<string, number>()),
       }
     },
   }

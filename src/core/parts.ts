@@ -125,6 +125,7 @@ export const TOKENS = {
   mathBg: '--vmd-math-bg',
   mermaidBg: '--vmd-mermaid-bg',
   mermaidBorder: '--vmd-mermaid-border',
+  mermaidMinHeight: '--vmd-mermaid-min-height',
   zFullscreen: '--vmd-z-fullscreen',
 } as const
 

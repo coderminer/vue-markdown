@@ -3,7 +3,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import MarkdownRenderer from '../../src/components/MarkdownRenderer.vue'
 import { mermaidPlugin } from '../../src/mermaid/plugin'
 import type { MermaidPluginOptions } from '../../src/mermaid/plugin'
-import type { MermaidRenderer } from '../../src/core/types'
+import type { MermaidRenderer, PluginContext } from '../../src/core/types'
 
 const renderer: MermaidRenderer = {
   id: 'plugin-test',
@@ -12,6 +12,13 @@ const renderer: MermaidRenderer = {
     nodes: [],
   }),
 }
+
+const pluginContext = {
+  source: '',
+  options: {},
+  diagnostics: [],
+  addDiagnostic: () => undefined,
+} as unknown as PluginContext
 
 describe('mermaidPlugin', () => {
   it('renders fenced mermaid blocks through MermaidBlock', async () => {
@@ -54,6 +61,64 @@ describe('mermaidPlugin', () => {
     })
     await flushPromises()
     expect(wrapper.find('[data-vmd-part="mermaid"]').exists()).toBe(true)
+  })
+
+  it('keys diagrams by source so unrelated edits keep their identity', () => {
+    const plugin = mermaidPlugin()
+    const transform = (codes: string[]) =>
+      plugin.transformDocument?.(
+        {
+          nodes: codes.map((code, index) => ({
+            kind: 'code' as const,
+            key: String(index),
+            code,
+            language: index === 0 && code === 'ts' ? 'ts' : 'mermaid',
+            complete: true,
+          })),
+          toc: [],
+          customTags: [],
+          plugins: [],
+          pipeline: 'test',
+        },
+        pluginContext,
+      )
+    const keys = (nodes: unknown[] | undefined) =>
+      (nodes ?? [])
+        .filter((node) => (node as { kind: string }).kind === 'mermaid')
+        .map((node) => (node as { key: string }).key)
+
+    const before = keys(transform(['graph TD; A-->B', 'graph TD; C-->D'])?.nodes)
+    // Inserting an unrelated fenced block above the diagrams must not change
+    // their keys, otherwise Vue remounts and re-renders every diagram.
+    const after = keys(
+      transform(['ts', 'graph TD; A-->B', 'graph TD; C-->D'])?.nodes,
+    )
+
+    expect(before).toHaveLength(2)
+    expect(after).toEqual(before)
+  })
+
+  it('gives identical diagrams distinct keys', () => {
+    const plugin = mermaidPlugin()
+    const document = plugin.transformDocument?.(
+      {
+        nodes: ['graph TD; A-->B', 'graph TD; A-->B'].map((code, index) => ({
+          kind: 'code' as const,
+          key: String(index),
+          code,
+          language: 'mermaid',
+          complete: true,
+        })),
+        toc: [],
+        customTags: [],
+        plugins: [],
+        pipeline: 'test',
+      },
+      pluginContext,
+    )
+    const keys = (document?.nodes ?? []).map((node) => node.key)
+
+    expect(keys[0]).not.toBe(keys[1])
   })
 
   it('rejects renderer arguments instead of ignoring them', () => {

@@ -78,6 +78,7 @@ renders the normalized document.
 | `highlighter` | `MarkdownHighlighter` | Syntax highlighting adapter. |
 | `mathEngine` | `MathEngine` | Math rendering adapter. |
 | `mermaidRenderer` | `MermaidRenderer` | Mermaid rendering adapter. |
+| `mermaidDeferRendering` | `boolean` | Defers Mermaid first renders until each block nears the viewport. Default `true`; set `false` for print, PDF, or screenshot pipelines. |
 | `diagnosticsFormatter` | `DiagnosticFormatter` | Formats render errors. |
 | `allowedElements` | `string[]` | Allow list. Wins over `disallowedElements`. |
 | `disallowedElements` | `string[]` | Deny list. |
@@ -111,6 +112,7 @@ renders the normalized document.
 | `task-change` | `{ checked, node }` |
 | `search-change` | `{ query, caseSensitive, matches }` |
 | `math-error` | `MarkdownDiagnostic` |
+| `mermaid-rendered` | `MermaidRenderResult` |
 | `render-error` | `MarkdownDiagnostic` |
 | `ready` | `MarkdownDocument` |
 
@@ -405,7 +407,7 @@ SSR-safe.
 | --- | --- | --- | --- | --- |
 | `CodeBlock` | `node`, `code`, `language`, `highlighter`, `theme`, `actions`, `showActions`, `showDownload`, `title`, `fileName`, `lineNumbers`, `highlightLines`, `maxLines`, `virtual`, `virtualThreshold`, `lineHeight`, `delay`, `standalone`, `ignoreRegion` | `copy`, `download`, `action`, `error` | `code`, `code-actions`, `header`, `toolbar` | `copy`, `download`, `getHighlighted`, `highlighted` |
 | `VueSyntaxHighlighter` | `source`, `language`, `theme`, `highlighter`, `lineNumbers`, `highlightLines`, `maxLines`, `virtual`, `virtualThreshold`, `lineHeight`, `delay` | `copy`, `error` | `header`, `footer`, `empty`, `actions`, `highlighter` | `copy`, `getHighlighted`, `highlighted` |
-| `MermaidBlock` | `node`, `source`, `renderer`, `theme`, `showErrors`, `enableZoom`, `allowFullscreen`, `compact`, `actions` | `rendered`, `error`, `copy`, `export`, `fullscreen`, `action` | `header`, `tabs`, `actions`, `mermaid`, `mermaid-error` | `render`, `copy`, `exportPng`, `downloadSvg`, `toggleFullscreen` |
+| `MermaidBlock` | `node`, `source`, `renderer`, `theme`, `showErrors`, `enableZoom`, `allowFullscreen`, `compact`, `deferRendering`, `actions` | `rendered`, `error`, `copy`, `export`, `fullscreen`, `action` | `header`, `tabs`, `actions`, `mermaid`, `mermaid-error` | `render`, `copy`, `exportPng`, `downloadSvg`, `toggleFullscreen` |
 | `MermaidLiveEditor` | `modelValue`, `debounce`, `theme`, `renderer`, `diagnosticsFormatter`, `compact`, `rawDetails`, `autoFocus`, `initialRatio`, `minRatio` | `update:modelValue`, `preview`, `error` | `toolbar`, `editor`, `preview`, `editor-diagnostics`, `empty`, `fullscreen` | `focus`, `refreshPreview`, `toggleFullscreen`, `getDiagnostics` |
 | `MarkdownMath` | `node`, `tex`, `displayMode`, `rendered`, `error`, `mathEngine` | — | `math`, `math-error` | — |
 
@@ -431,6 +433,7 @@ interface MarkdownConfig {
   highlighter?: MarkdownHighlighter
   mathEngine?: MathEngine
   mermaidRenderer?: MermaidRenderer
+  mermaidDeferRendering?: boolean
   diagnosticsFormatter?: DiagnosticFormatter
   slugger?: MarkdownSlugger
   urlTransform?: MarkdownUrlTransform

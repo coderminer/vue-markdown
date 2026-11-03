@@ -422,6 +422,7 @@ const diagram = `flowchart LR
 | `enableZoom` | `boolean` | `true` | Shows zoom controls. |
 | `allowFullscreen` | `boolean` | `true` | Allows fullscreen. |
 | `compact` | `boolean` | `false` | Hides the block action toolbar for embedded previews. |
+| `deferRendering` | `boolean` | `true` | Defers the first render until the block nears the viewport. Set to `false` for print, PDF, or screenshot pipelines. |
 | `actions` | `MermaidAction[]` | `[]` | Extra toolbar buttons with `key`, `label`, and `run`. |
 
 Events: `rendered(result)`, `error(message)`, `copy(source)`,
@@ -599,7 +600,7 @@ readable and reports `math-engine-unavailable` instead of rendering nothing.
 
 `MarkdownMermaid` is the semantic node wrapper used by the renderer. It forwards
 `node`, `code`, `renderer`, `theme`, `showErrors`, `enableZoom`,
-`allowFullscreen`, `compact`, and `actions` to `MermaidBlock`, forwards the
+`allowFullscreen`, `compact`, `deferRendering`, and `actions` to `MermaidBlock`, forwards the
 `header`, `tabs`, `actions`, `mermaid`, and `mermaid-error` slots, and exposes
 the same `render()`, `copy()`, `exportPng()`, `downloadSvg()`, and
 `toggleFullscreen()` actions. Use it when you need the semantic wrapper or want to replace

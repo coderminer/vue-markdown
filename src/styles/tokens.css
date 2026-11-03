@@ -43,6 +43,9 @@
   --vmd-math-bg: transparent;
   --vmd-mermaid-bg: #ffffff;
   --vmd-mermaid-border: #d1d9e0;
+  /* Space reserved while a diagram renders, so a tall diagram does not push the
+     page content down when it appears. Hosts can tune or zero it. */
+  --vmd-mermaid-min-height: 12rem;
 
   --vmd-z-fullscreen: 1000;
 }

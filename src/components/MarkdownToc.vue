@@ -36,7 +36,7 @@ const itemComponent = computed(() => props.tocItem ?? MarkdownTocItem)
 
 <template>
   <nav data-vmd-part="toc" class="vmd-toc" :aria-label="label">
-    <ol data-vmd-part="toc-nav" class="vmd-toc-nav">
+    <ul data-vmd-part="toc-nav" class="vmd-toc-nav" role="list">
       <template v-for="item in visibleItems" :key="item.id">
         <slot
           name="toc-item"
@@ -52,6 +52,6 @@ const itemComponent = computed(() => props.tocItem ?? MarkdownTocItem)
           />
         </slot>
       </template>
-    </ol>
+    </ul>
   </nav>
 </template>

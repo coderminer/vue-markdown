@@ -101,6 +101,9 @@ describe('server rendering', () => {
     })
     expect(toc).toContain('vmd-toc')
     expect(toc).toContain('href="#one"')
+    // The TOC is unnumbered by default, so the list must not be an <ol>.
+    expect(toc).toContain('<ul')
+    expect(toc).not.toContain('<ol')
 
     expect(await renderComponent(MarkdownError, { label: 'Broken' })).toContain(
       'Broken',

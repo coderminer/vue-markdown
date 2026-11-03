@@ -59,7 +59,7 @@ import '@coderminer/vue-markdown/styles/components.css'
 | 圆角与阴影 | `--vmd-radius-sm`、`--vmd-radius-md`、`--vmd-radius-lg`、`--vmd-shadow-sm`、`--vmd-shadow-md` |
 | 动效 | `--vmd-motion-duration`、`--vmd-motion-easing` |
 | 代码 | `--vmd-code-bg`、`--vmd-code-text`、`--vmd-code-border`、`--vmd-code-toolbar-bg` |
-| 数学与图表 | `--vmd-math-color`、`--vmd-math-bg`、`--vmd-mermaid-bg`、`--vmd-mermaid-border` |
+| 数学与图表 | `--vmd-math-color`、`--vmd-math-bg`、`--vmd-mermaid-bg`、`--vmd-mermaid-border`、`--vmd-mermaid-min-height` |
 | 层级 | `--vmd-z-fullscreen` |
 
 ## 主题
@@ -125,7 +125,8 @@ Preview/Source 分段标签。不需要图标包或额外标记；即使可见�
 | 扩展节点 | `html`、`custom-tag`、`task-item`、`task-checkbox`、`footnote-reference`、`footnotes` |
 
 全屏状态使用 `data-fullscreen`；Mermaid 还使用 `data-status`、`data-view` 和
-`data-renderer`。目录侧栏布局在根元素上使用 `data-vmd-toc-placement` 和
+`data-renderer`，其预览区在图表溢出时加上 `data-pannable`，拖动过程中加上
+`data-dragging`。目录侧栏布局在根元素上使用 `data-vmd-toc-placement` 和
 `data-vmd-toc-layout`。
 
 ## 替换组件

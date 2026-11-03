@@ -7,7 +7,11 @@ import { sanitizeSvgAsync } from './sanitize-svg-lazy'
 
 interface MermaidApi {
   initialize(config: Record<string, unknown>): void | Promise<void>
-  render(id: string, source: string): Promise<{ svg: string }>
+  render(
+    id: string,
+    source: string,
+    container?: Element | null,
+  ): Promise<{ svg: string }>
 }
 
 interface MermaidRuntimeState {
@@ -21,6 +25,8 @@ interface MermaidRuntimeState {
   /** Serializes renders because Mermaid keeps configuration and IDs globally. */
   queue: Promise<unknown>
   counter: number
+  /** Offscreen host that keeps Mermaid's temporary measuring node out of flow. */
+  host: HTMLElement | undefined
 }
 
 function createRuntimeState(): MermaidRuntimeState {
@@ -29,6 +35,7 @@ function createRuntimeState(): MermaidRuntimeState {
     initializedKey: undefined,
     queue: Promise.resolve(),
     counter: 0,
+    host: undefined,
   }
 }
 
@@ -122,6 +129,59 @@ export function createMermaidRenderId(): string {
 }
 
 /**
+ * Create the offscreen host Mermaid writes its temporary `dvmd-mermaid-*`
+ * measuring node into.
+ *
+ * Mermaid's `render()` appends a real `<div><svg>` to `document.body` when it
+ * is called without a container, sizes the diagram, and removes it again. That
+ * node sits in normal flow, so every render briefly grows the document, flashes
+ * a raw diagram at the end of the page, and can move the scrollbar. Passing a
+ * containing element keeps the same measuring behaviour while `position: fixed`
+ * takes the node out of flow and out of the page's scrollable area.
+ *
+ * The host cannot be detached: Mermaid measures labels with `getBBox` and
+ * `getBoundingClientRect`, which report zero for nodes that are not laid out.
+ * `visibility: hidden` keeps the layout but skips painting.
+ */
+function createMeasureHost(): HTMLElement {
+  const host = document.createElement('div')
+  host.setAttribute('data-vmd-mermaid-measure', '')
+  host.setAttribute('aria-hidden', 'true')
+  host.style.position = 'fixed'
+  host.style.top = '0'
+  host.style.left = '-100000px'
+  host.style.width = '1200px'
+  host.style.visibility = 'hidden'
+  host.style.pointerEvents = 'none'
+  host.style.zIndex = '-1'
+  document.body.appendChild(host)
+  return host
+}
+
+/**
+ * Return the shared measuring host, recreating it when the document replaced
+ * `body` (tests, full page swaps) or when a host was never created.
+ */
+function measureHost(state: MermaidRuntimeState): HTMLElement | undefined {
+  if (typeof document === 'undefined' || !document.body) return undefined
+  const current = state.host
+  if (current && document.body.contains(current)) return current
+  const host = createMeasureHost()
+  state.host = host
+  return host
+}
+
+/**
+ * Drop whatever Mermaid left behind. Mermaid removes its own temporary node on
+ * success, but a parse error thrown after the error diagram is drawn can leave
+ * it in place, and the host is invisible either way. Only nodes are removed, so
+ * no markup is parsed.
+ */
+function clearHost(host: HTMLElement): void {
+  while (host.firstChild) host.removeChild(host.firstChild)
+}
+
+/**
  * Render one diagram through a single lazy Mermaid instance. Renders are
  * serialized so Mermaid's global configuration cannot be changed while another
  * diagram is rendering. The configuration key is checked inside that queue, so
@@ -156,14 +216,19 @@ export async function renderMermaid(
 
   const state = runtime
   const run = async (): Promise<MermaidRenderResult> => {
+    const host = measureHost(state)
     try {
       const api = await loadMermaid(state)
       await initialize(state, api, options.theme)
       const id = options.id ?? createMermaidRenderId()
-      const { svg } = await api.render(id, source)
+      const { svg } = host
+        ? await api.render(id, source, host)
+        : await api.render(id, source)
       return { svg, nodes: await sanitizeSvgAsync(svg) }
     } catch (error) {
       return { nodes: [], error: classifyMermaidError(error) }
+    } finally {
+      if (host) clearHost(host)
     }
   }
 

@@ -19,6 +19,7 @@ import type {
   MarkdownTheme,
   MathEngine,
   MermaidRenderer,
+  MermaidRenderResult,
 } from '../core/types'
 import { DEFAULT_LABELS } from '../core/labels'
 
@@ -53,6 +54,8 @@ export interface RenderContext {
   highlighter?: MarkdownHighlighter
   mathEngine?: MathEngine
   mermaidRenderer?: MermaidRenderer
+  /** Defer Mermaid first renders until the block approaches the viewport. */
+  mermaidDeferRendering?: boolean
   diagnosticsFormatter?: DiagnosticFormatter
   /** Host-authored region slots keyed by documented slot name. */
   slots?: Readonly<Record<string, Slot | undefined>>
@@ -65,6 +68,7 @@ export interface RenderContext {
   onLinkClick(payload: LinkClickPayload): void
   onCustomTagClick(payload: CustomTagClickPayload): void
   onTaskChange(payload: TaskChangePayload): void
+  onMermaidRendered?(result: MermaidRenderResult): void
   onRenderError?(diagnostic: import('../core/types').MarkdownDiagnostic): void
   onMathError?(diagnostic: import('../core/types').MarkdownDiagnostic): void
 }

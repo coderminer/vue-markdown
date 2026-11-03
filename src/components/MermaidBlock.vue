@@ -3,6 +3,7 @@ import {
   computed,
   defineComponent,
   h,
+  nextTick,
   onMounted,
   onUnmounted,
   ref,
@@ -23,6 +24,7 @@ import { resolveLabel } from '../core/labels'
 import { isValidMermaidRenderer } from '../core/adapters'
 import { isEmptySlotContent, useRenderContext } from './context'
 import { renderNodes } from './render'
+import { onPrintStart } from './print-deferral'
 import { createMermaidRenderId, renderMermaid } from '../mermaid/runtime'
 import Icon, { type IconName } from './Icon'
 import { sanitizeMermaidNodes } from '../mermaid/sanitize'
@@ -38,6 +40,12 @@ const props = withDefaults(
     enableZoom?: boolean
     allowFullscreen?: boolean
     compact?: boolean
+    /**
+     * Render immediately on mount instead of waiting until the block nears the
+     * viewport. Disable deferral when the page is printed or captured without
+     * scrolling, for example for PDF or screenshot pipelines.
+     */
+    deferRendering?: boolean
     actions?: MermaidAction[]
   }>(),
   {
@@ -49,6 +57,7 @@ const props = withDefaults(
     enableZoom: true,
     allowFullscreen: true,
     compact: false,
+    deferRendering: true,
     actions: () => [],
   },
 )
@@ -75,11 +84,22 @@ const lastGood = shallowRef<MermaidRenderResult>()
 const error = ref('')
 const view = ref<'preview' | 'source'>('preview')
 const scale = ref(1)
+const dragging = ref(false)
+// Panning is offered for actual overflow, not for the zoom level: a small
+// diagram can stay fully visible while zoomed, and a host-scoped max-height can
+// make a diagram overflow without any zoom.
+const pannable = ref(false)
 const fullscreen = ref(false)
 const root = ref<HTMLElement>()
 const copied = ref(false)
 let mounted = false
+let observer: IntersectionObserver | undefined
+let stopPrint: (() => void) | undefined
+let overflowObserver: ResizeObserver | undefined
 let copiedTimer: ReturnType<typeof setTimeout> | undefined
+let dragStart:
+  | { x: number; y: number; left: number; top: number }
+  | undefined
 
 const renderer = computed(() =>
   props.renderer && isValidMermaidRenderer(props.renderer)
@@ -141,12 +161,16 @@ async function render(): Promise<void> {
   // A render may be triggered through the exposed API after unmount. Do not
   // start new work, and let an in-flight render settle without writing state.
   if (!mounted) return
+  // An explicit render (exposed API, retry, source change) supersedes a pending
+  // visibility wait, otherwise the block would render twice.
+  stopObserver()
   const token = ++renderToken
   status.value = 'pending'
   error.value = ''
   // Every render starts from the default view. This covers retries, renderer
   // or theme changes, and source updates, not only the source watcher below.
   scale.value = 1
+  resetPan()
   const active = renderer.value
   const id = createMermaidRenderId()
   let next: MermaidRenderResult
@@ -201,12 +225,78 @@ async function render(): Promise<void> {
   }
 }
 
+function renderForPrint(): void {
+  // Printing and full-page capture snapshot the document without scrolling, so
+  // a deferred diagram would be captured as its pending placeholder. Abandon
+  // the wait; an opt-out of deferral stays available for deterministic output.
+  if (!observer) return
+  stopObserver()
+  void render()
+}
+
+function stopObserver(): void {
+  observer?.disconnect()
+  observer = undefined
+  stopPrint?.()
+  stopPrint = undefined
+}
+
+/**
+ * Defer the first render while the block is far outside the viewport.
+ *
+ * Every render costs a Mermaid parse, a synchronous layout pass, a full SVG
+ * sanitize, and a node tree build, and renders are serialized. A long document
+ * would pay all of that for diagrams the reader has not reached yet.
+ *
+ * Deferral is skipped when the environment cannot report intersection: the API
+ * may be missing, and a block without a layout box (server shells, headless
+ * DOMs) never reports one, so it would stay pending forever. It is also skipped
+ * when `deferRendering` is false and abandoned when printing starts.
+ */
+function deferRender(): boolean {
+  if (props.deferRendering === false) return false
+  const element = root.value
+  if (!element || typeof IntersectionObserver !== 'function') return false
+  const rect = element.getBoundingClientRect()
+  if (rect.width <= 0 && rect.height <= 0) return false
+  const margin = 400
+  const viewport = typeof window === 'undefined' ? 0 : window.innerHeight || 0
+  // Already near the viewport: render now instead of waiting for a callback.
+  if (rect.top < viewport + margin && rect.bottom > -margin) return false
+  observer = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue
+        stopObserver()
+        void render()
+        return
+      }
+    },
+    { rootMargin: `${margin}px 0px` },
+  )
+  observer.observe(element)
+  stopPrint = onPrintStart(renderForPrint)
+  return true
+}
+
 onMounted(() => {
   mounted = true
-  void render()
+  if (!deferRender()) void render()
+  scheduleOverflowMeasure()
+  observeOverflow()
+  if (typeof window !== 'undefined') {
+    window.addEventListener('resize', scheduleOverflowMeasure)
+  }
 })
 onUnmounted(() => {
   mounted = false
+  stopObserver()
+  overflowObserver?.disconnect()
+  overflowObserver = undefined
+  clearDrag()
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('resize', scheduleOverflowMeasure)
+  }
   // Invalidate any in-flight render so it cannot emit events or write state
   // after the component is gone.
   renderToken += 1
@@ -218,7 +308,21 @@ onUnmounted(() => {
 watch(
   () => [sourceText.value, renderer.value, resolvedTheme.value] as const,
   () => {
-    if (mounted) void render()
+    if (!mounted) return
+    // A deferred block applies the latest source when it becomes visible.
+    if (observer) return
+    void render()
+  },
+)
+// Zoom and content changes both change the scrollable overflow, so the pan
+// affordance is measured after paint instead of derived from `scale`.
+watch([scale, lastGood], scheduleOverflowMeasure)
+// Turning deferral off after mount (for example when a capture pipeline starts)
+// abandons a pending visibility wait immediately.
+watch(
+  () => props.deferRendering,
+  (value) => {
+    if (value === false) renderForPrint()
   },
 )
 async function copy(): Promise<void> {
@@ -257,24 +361,115 @@ function download(blob: Blob, name: string): void {
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
+interface SvgSize {
+  width: number
+  height: number
+}
+
+const EXPORT_MAX_SCALE = 3
+const EXPORT_MAX_EDGE = 8192
+// Canvas backends also enforce a total-pixel limit (iOS Safari is the strictest),
+// so a very large square diagram needs an area cap on top of the edge cap.
+const EXPORT_MAX_AREA = 16000000
+
+function rootSvgTag(svg: string): { tag: string; index: number } | undefined {
+  const match = /<svg\b[^>]*>/i.exec(svg)
+  return match ? { tag: match[0], index: match.index } : undefined
+}
+
+function svgAttribute(tag: string, name: string): string | undefined {
+  const match = new RegExp(
+    `\\s${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)')`,
+    'i',
+  ).exec(tag)
+  if (!match) return undefined
+  return match[1] ?? match[2] ?? ''
+}
+
+/**
+ * Intrinsic size of a diagram. The viewBox is preferred because Mermaid's
+ * default `useMaxWidth` output has `width="100%"` and only carries the real
+ * width in an inline `max-width`.
+ */
+function svgIntrinsicSize(svg: string): SvgSize | undefined {
+  const root = rootSvgTag(svg)
+  if (!root) return undefined
+  const viewBox = svgAttribute(root.tag, 'viewBox')
+  if (viewBox) {
+    const parts = viewBox.trim().split(/[\s,]+/).map(Number)
+    if (parts.length === 4 && parts[2] > 0 && parts[3] > 0) {
+      return { width: parts[2], height: parts[3] }
+    }
+  }
+  const height = Number.parseFloat(svgAttribute(root.tag, 'height') ?? '')
+  const width = Number.parseFloat(svgAttribute(root.tag, 'width') ?? '')
+  if (height > 0 && width > 0) return { width, height }
+  const maxWidth = /max-width\s*:\s*(\d+(?:\.\d+)?)px/i.exec(
+    svgAttribute(root.tag, 'style') ?? '',
+  )
+  if (maxWidth && maxWidth[1] && height > 0) {
+    return { width: Number.parseFloat(maxWidth[1]), height }
+  }
+  return undefined
+}
+
+/** Pin the root SVG to its pixel size so an image decode has no ratio guess. */
+function withPixelSize(svg: string, size: SvgSize): string {
+  const root = rootSvgTag(svg)
+  if (!root) return svg
+  let tag = root.tag
+  for (const [name, value] of [
+    ['width', Math.round(size.width)],
+    ['height', Math.round(size.height)],
+  ] as const) {
+    const pattern = new RegExp(`\\s${name}\\s*=\\s*(?:"[^"]*"|'[^']*')`, 'i')
+    tag = pattern.test(tag)
+      ? tag.replace(pattern, ` ${name}="${value}"`)
+      : tag.replace(/>$/, ` ${name}="${value}">`)
+  }
+  return svg.slice(0, root.index) + tag + svg.slice(root.index + root.tag.length)
+}
+
 async function exportPng(): Promise<void> {
   const svg = lastGood.value?.svg
   if (!svg || typeof document === 'undefined' || typeof Image === 'undefined') {
     return
   }
+  const size = svgIntrinsicSize(svg) ?? { width: 800, height: 600 }
+  // Rasterize the vector at a higher density instead of drawing a 1x bitmap,
+  // which is what made exports blurry next to the on-screen diagram. Very large
+  // diagrams are scaled down instead, because canvas dimension and area limits
+  // (notably in iOS Safari) make `toBlob` fail for oversized bitmaps.
+  const edge = Math.max(size.width, size.height)
+  const area = size.width * size.height
+  const factor =
+    edge > 0 && area > 0
+      ? Math.min(
+          EXPORT_MAX_SCALE,
+          EXPORT_MAX_EDGE / edge,
+          Math.sqrt(EXPORT_MAX_AREA / area),
+        )
+      : 1
+  const width = Math.max(1, Math.round(size.width * factor))
+  const height = Math.max(1, Math.round(size.height * factor))
+  let objectUrl: string | undefined
   try {
-    const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }))
+    objectUrl = URL.createObjectURL(
+      new Blob([withPixelSize(svg, size)], {
+        type: 'image/svg+xml;charset=utf-8',
+      }),
+    )
+    const source = objectUrl
     const image = new Image()
     await new Promise<void>((resolve, reject) => {
       image.onload = () => resolve()
       image.onerror = () => reject(new Error('Mermaid SVG could not be decoded.'))
-      image.src = url
+      image.src = source
     })
     const canvas = document.createElement('canvas')
-    canvas.width = image.width || 800
-    canvas.height = image.height || 600
-    canvas.getContext('2d')?.drawImage(image, 0, 0)
-    URL.revokeObjectURL(url)
+    canvas.width = width
+    canvas.height = height
+    canvas.getContext('2d')?.drawImage(image, 0, 0, width, height)
     const blob = await new Promise<Blob | null>((resolve) =>
       canvas.toBlob(resolve, 'image/png'),
     )
@@ -284,6 +479,8 @@ async function exportPng(): Promise<void> {
     }
   } catch {
     // PNG export is best-effort; the source remains available.
+  } finally {
+    if (objectUrl) URL.revokeObjectURL(objectUrl)
   }
 }
 
@@ -327,12 +524,151 @@ async function toggleFullscreen(next = !fullscreen.value): Promise<void> {
   emit('fullscreen', fullscreen.value)
 }
 
+function previewElement(): HTMLElement | undefined {
+  const element = root.value?.querySelector('[data-vmd-part="mermaid-preview"]')
+  return element instanceof HTMLElement ? element : undefined
+}
+
+/**
+ * Pan is only useful when the diagram overflows the preview box. Measuring the
+ * scroll box instead of testing `scale > 1` keeps pointer interaction and text
+ * selection intact for a small diagram that still fits while zoomed, and offers
+ * panning for a diagram that already overflows at 1x.
+ */
+function measureOverflow(): void {
+  const element = previewElement()
+  // The pending and error fallbacks are not pannable diagrams, even when a
+  // host-capped preview makes their content overflow.
+  if (!element || !lastGood.value) {
+    pannable.value = false
+    return
+  }
+  // A one-pixel tolerance absorbs sub-pixel layout and scrollbar rounding.
+  pannable.value =
+    element.scrollWidth - element.clientWidth > 1 ||
+    element.scrollHeight - element.clientHeight > 1
+  if (!pannable.value) clearDrag()
+}
+
+/**
+ * Re-measure after container changes that do not fire `window.resize`, such as
+ * a hidden tab becoming visible, a collapsing side column, or fullscreen.
+ * `ResizeObserver` is not part of the documented browser baseline, so the
+ * window resize listener above remains the fallback.
+ */
+function observeOverflow(): void {
+  if (typeof ResizeObserver !== 'function') return
+  const element = root.value
+  if (!element) return
+  overflowObserver?.disconnect()
+  overflowObserver = new ResizeObserver(scheduleOverflowMeasure)
+  overflowObserver.observe(element)
+}
+
+function scheduleOverflowMeasure(): void {
+  void nextTick(measureOverflow)
+}
+
+function resetPan(): void {
+  const element = previewElement()
+  if (!element) return
+  element.scrollLeft = 0
+  element.scrollTop = 0
+}
+
 function zoom(delta: number): void {
   scale.value = Math.min(4, Math.max(0.25, Number((scale.value + delta).toFixed(2))))
+  if (scale.value <= 1) resetPan()
 }
 
 function resetZoom(): void {
   scale.value = 1
+  resetPan()
+}
+
+// Drag-to-pan works on the preview's native scroll box, so the browser clamps
+// the range and touch scrolling keeps working without extra code.
+function onPreviewPointerDown(event: PointerEvent): void {
+  if (!pannable.value || event.pointerType === 'touch' || event.button !== 0) {
+    return
+  }
+  const element = event.currentTarget
+  if (!(element instanceof HTMLElement)) return
+  dragStart = {
+    x: event.clientX,
+    y: event.clientY,
+    left: element.scrollLeft,
+    top: element.scrollTop,
+  }
+  dragging.value = true
+  if (typeof element.setPointerCapture === 'function') {
+    try {
+      element.setPointerCapture(event.pointerId)
+    } catch {
+      // Pointer capture is an optimization; dragging still tracks the pointer.
+    }
+  }
+  // `preventDefault` keeps SVG text from being selected while dragging, but it
+  // also suppresses the default focus, so focus the preview for keyboard pan.
+  element.focus?.({ preventScroll: true })
+  event.preventDefault()
+}
+
+function onPreviewPointerMove(event: PointerEvent): void {
+  if (!dragStart) return
+  // Pointer capture can fail (the call is explicitly tolerated) and the release
+  // can then happen outside the preview, where no `pointerup` reaches the block.
+  // A move without a pressed button proves the drag is over.
+  if (event.buttons === 0) {
+    clearDrag()
+    return
+  }
+  const element = event.currentTarget
+  if (!(element instanceof HTMLElement)) return
+  element.scrollLeft = dragStart.left - (event.clientX - dragStart.x)
+  element.scrollTop = dragStart.top - (event.clientY - dragStart.y)
+}
+
+function clearDrag(): void {
+  dragStart = undefined
+  dragging.value = false
+}
+
+function stopDragging(event: PointerEvent): void {
+  if (!dragStart) return
+  clearDrag()
+  const element = event.currentTarget
+  if (element instanceof HTMLElement && typeof element.releasePointerCapture === 'function') {
+    try {
+      element.releasePointerCapture(event.pointerId)
+    } catch {
+      // The pointer may already be released.
+    }
+  }
+}
+
+function onPreviewKeydown(event: KeyboardEvent): void {
+  if (!pannable.value) return
+  const element = event.currentTarget
+  if (!(element instanceof HTMLElement)) return
+  const step = event.shiftKey ? 160 : 40
+  switch (event.key) {
+    case 'ArrowLeft':
+      element.scrollLeft -= step
+      break
+    case 'ArrowRight':
+      element.scrollLeft += step
+      break
+    case 'ArrowUp':
+      element.scrollTop -= step
+      break
+    case 'ArrowDown':
+      element.scrollTop += step
+      break
+    default:
+      return
+  }
+  event.preventDefault()
 }
 
 function retryControl(): ReturnType<typeof h> {
@@ -359,10 +695,15 @@ function showPreview(): void {
   // Returning from the source tab shows the initial diagram view rather than
   // the zoom level that happened to be active before the tab switch.
   scale.value = 1
+  resetPan()
+  scheduleOverflowMeasure()
 }
 
 function showSource(): void {
   view.value = 'source'
+  // A drag interrupted by the tab switch would otherwise leave `data-dragging`
+  // on the hidden preview.
+  clearDrag()
 }
 
 const actionHandlers = computed(() => ({
@@ -779,6 +1120,15 @@ defineExpose({ render, copy, exportPng, downloadSvg, toggleFullscreen })
         v-if="view === 'preview'"
         data-vmd-part="mermaid-preview"
         class="vmd-mermaid-preview"
+        :data-pannable="pannable ? 'true' : undefined"
+        :data-dragging="dragging ? 'true' : undefined"
+        :tabindex="pannable ? 0 : undefined"
+        @pointerdown="onPreviewPointerDown"
+        @pointermove="onPreviewPointerMove"
+        @pointerup="stopDragging"
+        @pointercancel="stopDragging"
+        @lostpointercapture="stopDragging"
+        @keydown="onPreviewKeydown"
       >
         <div
           v-if="lastGood && status === 'error' && showErrors"

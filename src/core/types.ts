@@ -334,6 +334,12 @@ export interface MarkdownConfig {
   highlighter?: MarkdownHighlighter
   mathEngine?: MathEngine
   mermaidRenderer?: MermaidRenderer
+  /**
+   * Defer each Mermaid block's first render until it approaches the viewport.
+   * Set to `false` for print, PDF, or screenshot pipelines that snapshot the
+   * document without scrolling.
+   */
+  mermaidDeferRendering?: boolean
   diagnosticsFormatter?: DiagnosticFormatter
   slugger?: MarkdownSlugger
   urlTransform?: MarkdownUrlTransform

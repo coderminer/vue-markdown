@@ -31,6 +31,8 @@ export function mergeMarkdownConfig(
     highlighter: next.highlighter ?? base.highlighter,
     mathEngine: next.mathEngine ?? base.mathEngine,
     mermaidRenderer: next.mermaidRenderer ?? base.mermaidRenderer,
+    mermaidDeferRendering:
+      next.mermaidDeferRendering ?? base.mermaidDeferRendering,
     diagnosticsFormatter:
       next.diagnosticsFormatter ?? base.diagnosticsFormatter,
     slugger: next.slugger ?? base.slugger,

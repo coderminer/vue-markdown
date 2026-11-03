@@ -39,6 +39,7 @@ import '@coderminer/vue-markdown/style.css'
 | `highlighter` | `MarkdownHighlighter` | Syntax highlighting adapter. |
 | `mathEngine` | `MathEngine` | Math rendering adapter. |
 | `mermaidRenderer` | `MermaidRenderer` | Mermaid rendering adapter. |
+| `mermaidDeferRendering` | `boolean` | Default `true`. Defers Mermaid first renders until each block nears the viewport. Set `false` for print, PDF, or screenshot pipelines. |
 | `diagnosticsFormatter` | `DiagnosticFormatter` | Formats render errors. |
 | `allowedElements` | `string[]` | Mutually exclusive with `disallowedElements`; wins on conflict. |
 | `disallowedElements` | `string[]` | Deny list. |
@@ -95,6 +96,7 @@ a later case-sensitivity toggle is a real state change and does emit.
 | `task-change` | `{ checked, node }` | Fires when a GFM task checkbox changes. |
 | `search-change` | `{ query, caseSensitive, matches }` | Signature-gated; follows the `search` prop and its match count. |
 | `math-error` | `MarkdownDiagnostic` | Fires when math rendering produces a diagnostic. |
+| `mermaid-rendered` | `MermaidRenderResult` | Fires when a Mermaid diagram finishes rendering. |
 | `render-error` | `MarkdownDiagnostic` | Parse, plugin, adapter, and configuration failures. |
 | `ready` | `MarkdownDocument` | Fires once for the first successful document. |
 

@@ -155,7 +155,9 @@ The stylesheet includes hooks for the renderer layout and rich catalog:
 `editor`, `editor-toolbar`,
 `editor-pane`, `editor-divider`, `editor-preview`, `editor-diagnostics`,
 `editor-empty`, and `editor-fullscreen`. Fullscreen state is exposed with
-`data-fullscreen`; Mermaid uses `data-status`, `data-view`, and `data-renderer`.
+`data-fullscreen`; Mermaid uses `data-status`, `data-view`, and `data-renderer`,
+and its preview adds `data-pannable` while the diagram overflows and
+`data-dragging` while a drag is in progress.
 Side TOC placement adds `data-vmd-toc-placement` and `data-vmd-toc-layout` on the
 root.
 

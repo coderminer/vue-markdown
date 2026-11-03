@@ -20,6 +20,7 @@ const props = withDefaults(
     enableZoom?: boolean
     allowFullscreen?: boolean
     compact?: boolean
+    deferRendering?: boolean
     actions?: MermaidAction[]
   }>(),
   {
@@ -31,6 +32,7 @@ const props = withDefaults(
     enableZoom: true,
     allowFullscreen: true,
     compact: false,
+    deferRendering: true,
     actions: () => [],
   },
 )
@@ -85,6 +87,7 @@ defineExpose({
     :enable-zoom="enableZoom"
     :allow-fullscreen="allowFullscreen"
     :compact="compact"
+    :defer-rendering="deferRendering"
     :actions="actions"
     @rendered="emit('rendered', $event)"
     @error="emit('error', $event)"
@@ -120,6 +123,7 @@ defineExpose({
     :enable-zoom="enableZoom"
     :allow-fullscreen="allowFullscreen"
     :compact="compact"
+    :defer-rendering="deferRendering"
     :actions="actions"
     @rendered="emit('rendered', $event)"
     @error="emit('error', $event)"

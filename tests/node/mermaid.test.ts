@@ -129,6 +129,30 @@ describe('Mermaid sanitization', () => {
     expect(html).toContain('#d .edge')
   })
 
+  it('keeps Mermaid useMaxWidth output at its intended pixel size', () => {
+    // Mermaid writes `width="100%"` plus an inline `max-width`, and inline
+    // styles are dropped while sanitizing. Keeping the pixel width prevents the
+    // diagram from stretching to the full container.
+    const nodes = sanitizeSvg(
+      '<svg id="d" width="100%" style="max-width: 640px;" viewBox="0 0 640 480"><rect/></svg>',
+    )
+    const html = JSON.stringify(nodes)
+    expect(html).toContain('"width":"640"')
+    expect(html).not.toContain('"width":"100%"')
+    expect(html).not.toContain('max-width')
+
+    const fixed = sanitizeSvg('<svg width="320" height="200"><rect/></svg>')
+    const fixedHtml = JSON.stringify(fixed)
+    expect(fixedHtml).toContain('"width":"320"')
+    expect(fixedHtml).toContain('"height":"200"')
+
+    // A max-width in another unit is not a pixel size and stays unsized.
+    const relative = sanitizeSvg(
+      '<svg width="100%" style="max-width: 80%"><rect/></svg>',
+    )
+    expect(JSON.stringify(relative)).toContain('"width":"100%"')
+  })
+
   it('applies the same scoping rule to injected renderer nodes', () => {
     const styleNode = (css: string) => ({
       kind: 'element' as const,

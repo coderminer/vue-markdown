@@ -209,10 +209,12 @@
 .vmd-toc-nav[data-vmd-part='toc-nav'] {
   max-height: calc(100vh - var(--vmd-space-6));
   margin: 0;
-  padding-left: 2.25rem;
-  padding-inline-start: 2.25rem;
+  padding: 0;
   overflow: auto;
-  list-style: decimal outside;
+  /* The TOC is intentionally unnumbered. It is a <ul> so no browser default
+     marker appears, and hosts that want numbering can opt in with
+     `list-style: decimal` plus their own marker padding. */
+  list-style: none;
 }
 
 .vmd-toc-entry {
@@ -220,6 +222,8 @@
 }
 
 .vmd-toc-entry::marker {
+  /* Only visible when a host opts back into numbering with `list-style`; the
+     default unnumbered list never renders a marker. */
   color: var(--vmd-color-muted);
   font-variant-numeric: tabular-nums;
 }
@@ -561,6 +565,35 @@
   transform-origin: top left;
 }
 
+/* Mermaid sizes diagrams for `useMaxWidth`; the sanitizer keeps that width as a
+   plain attribute. Rendering at the natural size keeps small diagrams from
+   stretching, and the cap keeps large ones inside the block. */
+.vmd-mermaid-diagram svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* Drag-to-pan scrolls the preview natively once the diagram is zoomed. */
+[data-vmd-part='mermaid-preview'][data-pannable='true'] {
+  cursor: grab;
+}
+
+[data-vmd-part='mermaid-preview'][data-pannable='true'][data-dragging='true'] {
+  cursor: grabbing;
+  user-select: none;
+}
+
+[data-vmd-part='mermaid-preview']:focus {
+  outline: 2px solid var(--vmd-color-accent);
+  outline-offset: -2px;
+}
+
+[data-vmd-part='mermaid-preview']:focus-visible {
+  outline: 2px solid var(--vmd-color-accent);
+  outline-offset: -2px;
+}
+
 [data-vmd-part='mermaid-source'] {
   margin: 0;
   padding: var(--vmd-space-3);
@@ -572,6 +605,12 @@
 [data-vmd-part='mermaid-error'] {
   padding: var(--vmd-space-3);
   color: var(--vmd-color-muted);
+}
+
+/* Only the first render of a diagram reserves height. Later updates keep the
+   last good preview, so they never change the document height. */
+[data-vmd-part='mermaid-pending'] {
+  min-height: var(--vmd-mermaid-min-height, 12rem);
 }
 
 [data-vmd-part='mermaid-error'] {

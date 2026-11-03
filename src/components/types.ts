@@ -31,6 +31,7 @@ export interface MarkdownRendererEvents {
   'task-change': [payload: TaskChangePayload]
   'search-change': [payload: SearchChangePayload]
   'math-error': [diagnostic: MarkdownDiagnostic]
+  'mermaid-rendered': [result: MermaidRenderResult]
   'render-error': [diagnostic: MarkdownDiagnostic]
   ready: [document: MarkdownDocument]
 }

@@ -37,6 +37,7 @@ const props = defineProps<{
   highlighter?: MarkdownHighlighter
   mathEngine?: MathEngine
   mermaidRenderer?: MermaidRenderer
+  mermaidDeferRendering?: boolean
   diagnosticsFormatter?: DiagnosticFormatter
   slugger?: MarkdownSlugger
   urlTransform?: MarkdownUrlTransform
@@ -60,6 +61,7 @@ const own = computed<MarkdownConfig>(() => {
     highlighter: props.highlighter,
     mathEngine: props.mathEngine,
     mermaidRenderer: props.mermaidRenderer,
+    mermaidDeferRendering: props.mermaidDeferRendering,
     diagnosticsFormatter: props.diagnosticsFormatter,
     slugger: props.slugger,
     urlTransform: props.urlTransform,

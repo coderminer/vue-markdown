@@ -76,6 +76,7 @@ const source = '# 你好\n\n一段 **加粗** 文字。'
 | `highlighter` | `MarkdownHighlighter` | 语法高亮适配器。 |
 | `mathEngine` | `MathEngine` | 数学渲染适配器。 |
 | `mermaidRenderer` | `MermaidRenderer` | Mermaid 渲染适配器。 |
+| `mermaidDeferRendering` | `boolean` | 把 Mermaid 首次渲染推迟到每个块接近视口时。默认 `true`；打印、PDF 或截图流水线应设为 `false`。 |
 | `diagnosticsFormatter` | `DiagnosticFormatter` | 格式化渲染错误。 |
 | `allowedElements` | `string[]` | 允许列表，优先于 `disallowedElements`。 |
 | `disallowedElements` | `string[]` | 拒绝列表。 |
@@ -109,6 +110,7 @@ const source = '# 你好\n\n一段 **加粗** 文字。'
 | `task-change` | `{ checked, node }` |
 | `search-change` | `{ query, caseSensitive, matches }` |
 | `math-error` | `MarkdownDiagnostic` |
+| `mermaid-rendered` | `MermaidRenderResult` |
 | `render-error` | `MarkdownDiagnostic` |
 | `ready` | `MarkdownDocument` |
 
@@ -397,7 +399,7 @@ const activeId = useActiveHeading(ids, true, { root: myRootElement })
 | --- | --- | --- | --- | --- |
 | `CodeBlock` | `node`、`code`、`language`、`highlighter`、`theme`、`actions`、`showActions`、`showDownload`、`title`、`fileName`、`lineNumbers`、`highlightLines`、`maxLines`、`virtual`、`virtualThreshold`、`lineHeight`、`delay`、`standalone`、`ignoreRegion` | `copy`、`download`、`action`、`error` | `code`、`code-actions`、`header`、`toolbar` | `copy`、`download`、`getHighlighted`、`highlighted` |
 | `VueSyntaxHighlighter` | `source`、`language`、`theme`、`highlighter`、`lineNumbers`、`highlightLines`、`maxLines`、`virtual`、`virtualThreshold`、`lineHeight`、`delay` | `copy`、`error` | `header`、`footer`、`empty`、`actions`、`highlighter` | `copy`、`getHighlighted`、`highlighted` |
-| `MermaidBlock` | `node`、`source`、`renderer`、`theme`、`showErrors`、`enableZoom`、`allowFullscreen`、`compact`、`actions` | `rendered`、`error`、`copy`、`export`、`fullscreen`、`action` | `header`、`tabs`、`actions`、`mermaid`、`mermaid-error` | `render`、`copy`、`exportPng`、`downloadSvg`、`toggleFullscreen` |
+| `MermaidBlock` | `node`、`source`、`renderer`、`theme`、`showErrors`、`enableZoom`、`allowFullscreen`、`compact`、`deferRendering`、`actions` | `rendered`、`error`、`copy`、`export`、`fullscreen`、`action` | `header`、`tabs`、`actions`、`mermaid`、`mermaid-error` | `render`、`copy`、`exportPng`、`downloadSvg`、`toggleFullscreen` |
 | `MermaidLiveEditor` | `modelValue`、`debounce`、`theme`、`renderer`、`diagnosticsFormatter`、`compact`、`rawDetails`、`autoFocus`、`initialRatio`、`minRatio` | `update:modelValue`、`preview`、`error` | `toolbar`、`editor`、`preview`、`editor-diagnostics`、`empty`、`fullscreen` | `focus`、`refreshPreview`、`toggleFullscreen`、`getDiagnostics` |
 | `MarkdownMath` | `node`、`tex`、`displayMode`、`rendered`、`error`、`mathEngine` | — | `math`、`math-error` | — |
 
@@ -421,6 +423,7 @@ interface MarkdownConfig {
   highlighter?: MarkdownHighlighter
   mathEngine?: MathEngine
   mermaidRenderer?: MermaidRenderer
+  mermaidDeferRendering?: boolean
   diagnosticsFormatter?: DiagnosticFormatter
   slugger?: MarkdownSlugger
   urlTransform?: MarkdownUrlTransform

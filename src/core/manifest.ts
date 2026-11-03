@@ -339,7 +339,7 @@ export const COMPONENT_MANIFESTS: Record<string, MarkdownComponentManifest> = {
       'mermaid-fallback',
       'mermaid-fullscreen',
     ],
-    tokens: ['--vmd-mermaid-bg', '--vmd-mermaid-border'],
+    tokens: ['--vmd-mermaid-bg', '--vmd-mermaid-border', '--vmd-mermaid-min-height'],
     slots: ['mermaid', 'mermaid-error', 'header', 'tabs', 'actions'],
     labels: [
       'mermaid',
@@ -416,7 +416,7 @@ export const COMPONENT_MANIFESTS: Record<string, MarkdownComponentManifest> = {
       'mermaid-fallback',
       'mermaid-fullscreen',
     ],
-    tokens: ['--vmd-mermaid-bg', '--vmd-mermaid-border'],
+    tokens: ['--vmd-mermaid-bg', '--vmd-mermaid-border', '--vmd-mermaid-min-height'],
     slots: ['mermaid', 'mermaid-error', 'header', 'tabs', 'actions'],
     labels: [
       'mermaid',

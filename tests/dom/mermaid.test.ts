@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
-import { h } from 'vue'
+import { defineComponent, h, onMounted } from 'vue'
 import MermaidBlock from '../../src/components/MermaidBlock.vue'
 import MarkdownMermaid from '../../src/components/MarkdownMermaid.vue'
+import MarkdownRenderer from '../../src/components/MarkdownRenderer.vue'
+import { mermaidPlugin } from '../../src/mermaid/plugin'
 import type { MermaidRenderer, MermaidRenderOptions, MermaidRenderResult } from '../../src/core/types'
 
 const safeSvg = '<svg viewBox="0 0 10 10"><text>Hello diagram</text></svg>'
@@ -27,6 +29,22 @@ function mountBlock(
     },
     slots: slots as never,
   })
+}
+
+/**
+ * happy-dom has no layout, so the preview reports a zero scroll box. Stub it to
+ * simulate a diagram that does or does not overflow.
+ */
+function setPreviewOverflow(element: HTMLElement, overflow: boolean): void {
+  const metrics = overflow
+    ? { scrollWidth: 1200, scrollHeight: 900, clientWidth: 600, clientHeight: 400 }
+    : { scrollWidth: 600, scrollHeight: 400, clientWidth: 600, clientHeight: 400 }
+  for (const key of Object.keys(metrics) as Array<keyof typeof metrics>) {
+    Object.defineProperty(element, key, {
+      configurable: true,
+      value: metrics[key],
+    })
+  }
 }
 
 describe('MermaidBlock', () => {
@@ -608,5 +626,744 @@ describe('MermaidBlock', () => {
     })
     await flushPromises()
     expect(slotWrapper.find('[data-custom-mermaid]').text()).toContain('graph TD')
+  })
+
+  it('renders immediately when the block has no layout box', async () => {
+    // Headless DOMs report a zero rect, so intersection can never be reported
+    // and deferring would leave the block pending forever.
+    const render = vi.fn(() => ({ svg: safeSvg, nodes: [] }))
+    const wrapper = mountBlock({ renderer: renderer({ render }) })
+    await flushPromises()
+    await vi.waitFor(() => {
+      expect(render).toHaveBeenCalledTimes(1)
+    })
+    expect(wrapper.attributes('data-status')).toBe('ready')
+  })
+
+  it('defers the first render until the block nears the viewport', async () => {
+    const callbacks: IntersectionObserverCallback[] = []
+    const original = globalThis.IntersectionObserver
+    globalThis.IntersectionObserver = class {
+      constructor(callback: IntersectionObserverCallback) {
+        callbacks.push(callback)
+      }
+      observe(): void {}
+      unobserve(): void {}
+      disconnect(): void {}
+      takeRecords(): IntersectionObserverEntry[] {
+        return []
+      }
+    } as never
+    const rect = vi
+      .spyOn(Element.prototype, 'getBoundingClientRect')
+      .mockReturnValue({
+        x: 0,
+        y: 5000,
+        top: 5000,
+        left: 0,
+        right: 600,
+        bottom: 5400,
+        width: 600,
+        height: 400,
+        toJSON: () => ({}),
+      } as DOMRect)
+    const render = vi.fn(() => ({ svg: safeSvg, nodes: [] }))
+    const wrapper = mountBlock({ renderer: renderer({ render }) })
+
+    try {
+      await flushPromises()
+      expect(render).not.toHaveBeenCalled()
+      expect(wrapper.attributes('data-status')).toBe('idle')
+      expect(wrapper.find('[data-vmd-part="mermaid-pending"]').exists()).toBe(true)
+
+      callbacks[0]?.(
+        [{ isIntersecting: true } as IntersectionObserverEntry],
+        {} as IntersectionObserver,
+      )
+      await vi.waitFor(() => {
+        expect(render).toHaveBeenCalledTimes(1)
+      })
+      await flushPromises()
+      expect(wrapper.attributes('data-status')).toBe('ready')
+    } finally {
+      rect.mockRestore()
+      globalThis.IntersectionObserver = original
+      wrapper.unmount()
+    }
+  })
+
+  it('renders a deferred block when the source changes and it stays hidden', async () => {
+    const callbacks: IntersectionObserverCallback[] = []
+    const original = globalThis.IntersectionObserver
+    globalThis.IntersectionObserver = class {
+      constructor(callback: IntersectionObserverCallback) {
+        callbacks.push(callback)
+      }
+      observe(): void {}
+      unobserve(): void {}
+      disconnect(): void {}
+      takeRecords(): IntersectionObserverEntry[] {
+        return []
+      }
+    } as never
+    const rect = vi
+      .spyOn(Element.prototype, 'getBoundingClientRect')
+      .mockReturnValue({
+        x: 0,
+        y: 5000,
+        top: 5000,
+        left: 0,
+        right: 600,
+        bottom: 5400,
+        width: 600,
+        height: 400,
+        toJSON: () => ({}),
+      } as DOMRect)
+    const render = vi.fn(() => ({ svg: safeSvg, nodes: [] }))
+    const wrapper = mountBlock({ renderer: renderer({ render }) })
+
+    try {
+      await flushPromises()
+      await wrapper.setProps({ source: 'graph TD; C-->D' })
+      await flushPromises()
+      expect(render).not.toHaveBeenCalled()
+      expect(callbacks).toHaveLength(1)
+
+      callbacks[0]?.(
+        [{ isIntersecting: true } as IntersectionObserverEntry],
+        {} as IntersectionObserver,
+      )
+      await vi.waitFor(() => {
+        expect(render).toHaveBeenCalledTimes(1)
+      })
+      expect(render).toHaveBeenCalledWith(
+        'graph TD; C-->D',
+        expect.objectContaining({ id: expect.any(String) }),
+      )
+    } finally {
+      rect.mockRestore()
+      globalThis.IntersectionObserver = original
+      wrapper.unmount()
+    }
+  })
+
+  it('pans the preview by scrolling once the diagram overflows', async () => {
+    const wrapper = mountBlock()
+    await flushPromises()
+    await vi.waitFor(() => {
+      expect(wrapper.attributes('data-status')).toBe('ready')
+    })
+
+    const preview = () => wrapper.get('[data-vmd-part="mermaid-preview"]')
+    expect(preview().attributes('data-pannable')).toBeUndefined()
+
+    const element = preview().element as HTMLElement
+    setPreviewOverflow(element, true)
+    await wrapper.get('[data-action="zoom-in"]').trigger('click')
+    await flushPromises()
+    expect(preview().attributes('data-pannable')).toBe('true')
+
+    element.scrollLeft = 40
+    element.scrollTop = 20
+    const dispatch = (type: string, init: PointerEventInit) => {
+      element.dispatchEvent(
+        new PointerEvent(type, { bubbles: true, cancelable: true, ...init }),
+      )
+    }
+
+    dispatch('pointerdown', {
+      button: 0,
+      buttons: 1,
+      pointerId: 1,
+      pointerType: 'mouse',
+      clientX: 100,
+      clientY: 100,
+    })
+    await wrapper.vm.$nextTick()
+    expect(preview().attributes('data-dragging')).toBe('true')
+
+    dispatch('pointermove', { pointerId: 1, buttons: 1, clientX: 70, clientY: 80 })
+    expect(element.scrollLeft).toBe(70)
+    expect(element.scrollTop).toBe(40)
+
+    dispatch('pointerup', { pointerId: 1 })
+    await wrapper.vm.$nextTick()
+    expect(preview().attributes('data-dragging')).toBeUndefined()
+
+    // Zooming back out to a diagram that fits makes the block non-pannable and
+    // rewinds the scroll box.
+    setPreviewOverflow(element, false)
+    await wrapper.get('[data-action="reset-zoom"]').trigger('click')
+    await flushPromises()
+    expect(preview().attributes('data-pannable')).toBeUndefined()
+    expect(element.scrollLeft).toBe(0)
+    expect(element.scrollTop).toBe(0)
+  })
+
+  it('clears a stuck drag when no pointerup arrives', async () => {
+    const wrapper = mountBlock()
+    await flushPromises()
+    await vi.waitFor(() => {
+      expect(wrapper.attributes('data-status')).toBe('ready')
+    })
+    const preview = () => wrapper.get('[data-vmd-part="mermaid-preview"]')
+    const element = preview().element as HTMLElement
+    setPreviewOverflow(element, true)
+    await wrapper.get('[data-action="zoom-in"]').trigger('click')
+    await flushPromises()
+
+    const dispatch = (type: string, init: PointerEventInit) => {
+      element.dispatchEvent(
+        new PointerEvent(type, { bubbles: true, cancelable: true, ...init }),
+      )
+    }
+
+    dispatch('pointerdown', {
+      button: 0,
+      buttons: 1,
+      pointerId: 1,
+      pointerType: 'pen',
+      clientX: 100,
+      clientY: 100,
+    })
+    await wrapper.vm.$nextTick()
+    expect(preview().attributes('data-dragging')).toBe('true')
+
+    // The pointer was released outside the preview and its capture failed, so
+    // the next move reports no pressed button. It must not pan.
+    element.scrollLeft = 40
+    element.scrollTop = 20
+    dispatch('pointermove', { pointerId: 1, buttons: 0, clientX: 70, clientY: 80 })
+    await wrapper.vm.$nextTick()
+    expect(preview().attributes('data-dragging')).toBeUndefined()
+    expect(element.scrollLeft).toBe(40)
+    expect(element.scrollTop).toBe(20)
+
+    // A regained pointer capture can also be lost without a release.
+    dispatch('pointerdown', {
+      button: 0,
+      buttons: 1,
+      pointerId: 2,
+      pointerType: 'pen',
+      clientX: 100,
+      clientY: 100,
+    })
+    await wrapper.vm.$nextTick()
+    expect(preview().attributes('data-dragging')).toBe('true')
+    dispatch('lostpointercapture', { pointerId: 2, buttons: 0 })
+    await wrapper.vm.$nextTick()
+    expect(preview().attributes('data-dragging')).toBeUndefined()
+  })
+
+  it('offers panning for real overflow instead of the zoom level', async () => {
+    const wrapper = mountBlock()
+    await flushPromises()
+    await vi.waitFor(() => {
+      expect(wrapper.attributes('data-status')).toBe('ready')
+    })
+    const preview = () => wrapper.get('[data-vmd-part="mermaid-preview"]')
+    const element = preview().element as HTMLElement
+
+    // A host-scoped max-height can make a diagram overflow at 1x, before any
+    // zoom happens.
+    setPreviewOverflow(element, true)
+    window.dispatchEvent(new Event('resize'))
+    await flushPromises()
+    expect(preview().attributes('data-pannable')).toBe('true')
+    expect(preview().attributes('tabindex')).toBe('0')
+
+    // Zoomed, but the diagram still fits: no pan affordance, so pointer events
+    // and text selection stay untouched.
+    setPreviewOverflow(element, false)
+    await wrapper.get('[data-action="zoom-in"]').trigger('click')
+    await flushPromises()
+    expect(preview().attributes('data-pannable')).toBeUndefined()
+    expect(preview().attributes('tabindex')).toBeUndefined()
+  })
+
+  it('pans the preview with the keyboard while it overflows', async () => {
+    const wrapper = mountBlock()
+    await flushPromises()
+    await vi.waitFor(() => {
+      expect(wrapper.attributes('data-status')).toBe('ready')
+    })
+
+    const preview = wrapper.get('[data-vmd-part="mermaid-preview"]')
+    const element = preview.element as HTMLElement
+    setPreviewOverflow(element, true)
+    await wrapper.get('[data-action="zoom-in"]').trigger('click')
+    await flushPromises()
+
+    element.scrollLeft = 100
+    element.scrollTop = 100
+    await preview.trigger('keydown', { key: 'ArrowRight' })
+    await preview.trigger('keydown', { key: 'ArrowDown', shiftKey: true })
+    expect(element.scrollLeft).toBe(140)
+    expect(element.scrollTop).toBe(260)
+  })
+
+  function stubPngExport() {
+    const drawImage = vi.fn()
+    const canvas = document.createElement('canvas')
+    vi.spyOn(canvas, 'getContext').mockReturnValue({ drawImage } as never)
+    canvas.toBlob = ((callback: BlobCallback) => {
+      callback(new Blob(['png'], { type: 'image/png' }))
+    }) as never
+    const createElement = document.createElement.bind(document)
+    vi.spyOn(document, 'createElement').mockImplementation(((
+      tag: string,
+    ) => (tag === 'canvas' ? canvas : createElement(tag))) as typeof document.createElement)
+
+    const createObjectURL = vi.fn((_blob: Blob) => 'blob:mock')
+    const revokeObjectURL = vi.fn((_url: string) => undefined)
+    const originalCreate = URL.createObjectURL
+    const originalRevoke = URL.revokeObjectURL
+    URL.createObjectURL = createObjectURL as never
+    URL.revokeObjectURL = revokeObjectURL as never
+
+    const anchorClick = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => undefined)
+    const originalImage = globalThis.Image
+    class FakeImage {
+      onload: (() => void) | null = null
+      onerror: (() => void) | null = null
+      width = 0
+      height = 0
+      set src(_value: string) {
+        this.onload?.()
+      }
+    }
+    globalThis.Image = FakeImage as never
+
+    return {
+      canvas,
+      drawImage,
+      createObjectURL,
+      anchorClick,
+      revokeObjectURL,
+      restore() {
+        URL.createObjectURL = originalCreate
+        URL.revokeObjectURL = originalRevoke
+        globalThis.Image = originalImage
+      },
+    }
+  }
+
+  it('exports a PNG at a higher pixel density', async () => {
+    const svg =
+      '<svg width="100%" style="max-width: 640px;" viewBox="0 0 640 480"><text>Hi</text></svg>'
+    const stub = stubPngExport()
+    try {
+      const wrapper = mountBlock({
+        renderer: renderer({ render: () => ({ svg, nodes: [] }) }),
+      })
+      await flushPromises()
+      await vi.waitFor(() => {
+        expect(wrapper.attributes('data-status')).toBe('ready')
+      })
+      await wrapper.get('[data-action="export-png"]').trigger('click')
+      await flushPromises()
+
+      // 640x480 at 3x instead of a 1x bitmap.
+      expect(stub.canvas.width).toBe(1920)
+      expect(stub.canvas.height).toBe(1440)
+      expect(stub.drawImage).toHaveBeenCalledWith(
+        expect.anything(),
+        0,
+        0,
+        1920,
+        1440,
+      )
+      expect(stub.anchorClick).toHaveBeenCalled()
+      expect(stub.revokeObjectURL).toHaveBeenCalled()
+
+      const source = stub.createObjectURL.mock.calls[0]?.[0] as Blob
+      const markup = await source.text()
+      expect(markup).toContain('width="640"')
+      expect(markup).toContain('height="480"')
+      wrapper.unmount()
+    } finally {
+      stub.restore()
+    }
+  })
+
+  it('downscales an oversized diagram instead of exceeding the export cap', async () => {
+    // A viewBox beyond the 8192 px canvas cap must be scaled down: an oversized
+    // bitmap hits canvas limits (notably iOS Safari) and `toBlob` returns null.
+    const svg = '<svg viewBox="0 0 10000 500"><text>Wide</text></svg>'
+    const stub = stubPngExport()
+    try {
+      const wrapper = mountBlock({
+        renderer: renderer({ render: () => ({ svg, nodes: [] }) }),
+      })
+      await flushPromises()
+      await vi.waitFor(() => {
+        expect(wrapper.attributes('data-status')).toBe('ready')
+      })
+      await wrapper.get('[data-action="export-png"]').trigger('click')
+      await flushPromises()
+
+      expect(stub.canvas.width).toBe(8192)
+      expect(stub.canvas.height).toBe(410)
+      expect(stub.drawImage).toHaveBeenCalledWith(
+        expect.anything(),
+        0,
+        0,
+        8192,
+        410,
+      )
+      wrapper.unmount()
+    } finally {
+      stub.restore()
+    }
+  })
+
+  it('keeps an oversized square diagram inside the canvas area budget', async () => {
+    // Aspect ratio alone is not enough: both edges are under the cap here, but
+    // the bitmap would still exceed a canvas backend's total-pixel limit.
+    const svg = '<svg viewBox="0 0 8000 8000"><text>Big</text></svg>'
+    const stub = stubPngExport()
+    try {
+      const wrapper = mountBlock({
+        renderer: renderer({ render: () => ({ svg, nodes: [] }) }),
+      })
+      await flushPromises()
+      await vi.waitFor(() => {
+        expect(wrapper.attributes('data-status')).toBe('ready')
+      })
+      await wrapper.get('[data-action="export-png"]').trigger('click')
+      await flushPromises()
+
+      expect(stub.canvas.width).toBe(4000)
+      expect(stub.canvas.height).toBe(4000)
+      wrapper.unmount()
+    } finally {
+      stub.restore()
+    }
+  })
+
+  it('renders a deferred diagram when printing starts', async () => {
+    const callbacks: IntersectionObserverCallback[] = []
+    const original = globalThis.IntersectionObserver
+    globalThis.IntersectionObserver = class {
+      constructor(callback: IntersectionObserverCallback) {
+        callbacks.push(callback)
+      }
+      observe(): void {}
+      unobserve(): void {}
+      disconnect(): void {}
+      takeRecords(): IntersectionObserverEntry[] {
+        return []
+      }
+    } as never
+    const rect = vi
+      .spyOn(Element.prototype, 'getBoundingClientRect')
+      .mockReturnValue({
+        x: 0,
+        y: 5000,
+        top: 5000,
+        left: 0,
+        right: 600,
+        bottom: 5400,
+        width: 600,
+        height: 400,
+        toJSON: () => ({}),
+      } as DOMRect)
+    const render = vi.fn(() => ({ svg: safeSvg, nodes: [] }))
+    const wrapper = mountBlock({ renderer: renderer({ render }) })
+
+    try {
+      await flushPromises()
+      expect(render).not.toHaveBeenCalled()
+
+      // Printing snapshots without scrolling, so the pending placeholder must
+      // not survive a print.
+      window.dispatchEvent(new Event('beforeprint'))
+      await vi.waitFor(() => {
+        expect(render).toHaveBeenCalledTimes(1)
+      })
+      await flushPromises()
+      expect(wrapper.attributes('data-status')).toBe('ready')
+      expect(callbacks).toHaveLength(1)
+
+      // A later print must not re-render a diagram that already rendered.
+      window.dispatchEvent(new Event('beforeprint'))
+      await flushPromises()
+      expect(render).toHaveBeenCalledTimes(1)
+    } finally {
+      rect.mockRestore()
+      globalThis.IntersectionObserver = original
+      wrapper.unmount()
+    }
+  })
+
+  it('abandons deferral when the print media query matches', async () => {
+    // `beforeprint` is missing in some engines; the print media query covers them.
+    const listeners: Array<(event: { matches: boolean }) => void> = []
+    const originalMatchMedia = window.matchMedia
+    const originalObserver = globalThis.IntersectionObserver
+    globalThis.IntersectionObserver = class {
+      observe(): void {}
+      unobserve(): void {}
+      disconnect(): void {}
+      takeRecords(): IntersectionObserverEntry[] {
+        return []
+      }
+    } as never
+    window.matchMedia = ((query: string) => {
+      if (query !== 'print') return originalMatchMedia.call(window, query)
+      return {
+        matches: false,
+        media: query,
+        addEventListener: (
+          _type: string,
+          listener: (event: { matches: boolean }) => void,
+        ) => listeners.push(listener),
+        removeEventListener: () => undefined,
+      }
+    }) as never
+    const rect = vi
+      .spyOn(Element.prototype, 'getBoundingClientRect')
+      .mockReturnValue({
+        x: 0,
+        y: 5000,
+        top: 5000,
+        left: 0,
+        right: 600,
+        bottom: 5400,
+        width: 600,
+        height: 400,
+        toJSON: () => ({}),
+      } as DOMRect)
+    const render = vi.fn(() => ({ svg: safeSvg, nodes: [] }))
+    const wrapper = mountBlock({ renderer: renderer({ render }) })
+
+    try {
+      await flushPromises()
+      expect(render).not.toHaveBeenCalled()
+
+      listeners[0]?.({ matches: true })
+      await vi.waitFor(() => {
+        expect(render).toHaveBeenCalledTimes(1)
+      })
+    } finally {
+      rect.mockRestore()
+      window.matchMedia = originalMatchMedia
+      globalThis.IntersectionObserver = originalObserver
+      wrapper.unmount()
+    }
+  })
+
+  it('renders offscreen blocks eagerly when deferral is disabled', async () => {
+    const callbacks: IntersectionObserverCallback[] = []
+    const original = globalThis.IntersectionObserver
+    globalThis.IntersectionObserver = class {
+      constructor(callback: IntersectionObserverCallback) {
+        callbacks.push(callback)
+      }
+      observe(): void {}
+      unobserve(): void {}
+      disconnect(): void {}
+      takeRecords(): IntersectionObserverEntry[] {
+        return []
+      }
+    } as never
+    const rect = vi
+      .spyOn(Element.prototype, 'getBoundingClientRect')
+      .mockReturnValue({
+        x: 0,
+        y: 5000,
+        top: 5000,
+        left: 0,
+        right: 600,
+        bottom: 5400,
+        width: 600,
+        height: 400,
+        toJSON: () => ({}),
+      } as DOMRect)
+    const render = vi.fn(() => ({ svg: safeSvg, nodes: [] }))
+    const wrapper = mountBlock({
+      renderer: renderer({ render }),
+      deferRendering: false,
+    })
+
+    try {
+      await flushPromises()
+      await vi.waitFor(() => {
+        expect(render).toHaveBeenCalledTimes(1)
+      })
+      expect(callbacks).toHaveLength(0)
+      expect(wrapper.attributes('data-status')).toBe('ready')
+    } finally {
+      rect.mockRestore()
+      globalThis.IntersectionObserver = original
+      wrapper.unmount()
+    }
+  })
+
+  it('abandons a pending visibility wait when deferral is turned off', async () => {
+    const callbacks: IntersectionObserverCallback[] = []
+    const original = globalThis.IntersectionObserver
+    globalThis.IntersectionObserver = class {
+      constructor(callback: IntersectionObserverCallback) {
+        callbacks.push(callback)
+      }
+      observe(): void {}
+      unobserve(): void {}
+      disconnect(): void {}
+      takeRecords(): IntersectionObserverEntry[] {
+        return []
+      }
+    } as never
+    const rect = vi
+      .spyOn(Element.prototype, 'getBoundingClientRect')
+      .mockReturnValue({
+        x: 0,
+        y: 5000,
+        top: 5000,
+        left: 0,
+        right: 600,
+        bottom: 5400,
+        width: 600,
+        height: 400,
+        toJSON: () => ({}),
+      } as DOMRect)
+    const render = vi.fn(() => ({ svg: safeSvg, nodes: [] }))
+    const wrapper = mountBlock({ renderer: renderer({ render }) })
+
+    try {
+      await flushPromises()
+      expect(render).not.toHaveBeenCalled()
+      expect(callbacks).toHaveLength(1)
+
+      // A host can disable deferral later, for example when a capture pipeline
+      // starts; the wait must end without waiting for intersection.
+      await wrapper.setProps({ deferRendering: false })
+      await vi.waitFor(() => {
+        expect(render).toHaveBeenCalledTimes(1)
+        expect(wrapper.attributes('data-status')).toBe('ready')
+      })
+    } finally {
+      rect.mockRestore()
+      globalThis.IntersectionObserver = original
+      wrapper.unmount()
+    }
+  })
+
+  it('remeasures pan affordance when the container resizes', async () => {
+    const callbacks: ResizeObserverCallback[] = []
+    const original = globalThis.ResizeObserver
+    globalThis.ResizeObserver = class {
+      constructor(callback: ResizeObserverCallback) {
+        callbacks.push(callback)
+      }
+      observe(): void {}
+      unobserve(): void {}
+      disconnect(): void {}
+    } as never
+    const wrapper = mountBlock()
+
+    try {
+      await flushPromises()
+      await vi.waitFor(() => {
+        expect(wrapper.attributes('data-status')).toBe('ready')
+      })
+      const preview = () => wrapper.get('[data-vmd-part="mermaid-preview"]')
+      const element = preview().element as HTMLElement
+      expect(preview().attributes('data-pannable')).toBeUndefined()
+
+      // A hidden tab becoming visible, a collapsing column, or fullscreen
+      // changes the preview box without a window resize event.
+      setPreviewOverflow(element, true)
+      callbacks[0]?.([] as never, {} as never)
+      await flushPromises()
+      expect(preview().attributes('data-pannable')).toBe('true')
+    } finally {
+      globalThis.ResizeObserver = original
+      wrapper.unmount()
+    }
+  })
+
+  it('renders a deferred block when print media already matches', async () => {
+    const originalObserver = globalThis.IntersectionObserver
+    const originalMatchMedia = window.matchMedia
+    globalThis.IntersectionObserver = class {
+      observe(): void {}
+      unobserve(): void {}
+      disconnect(): void {}
+      takeRecords(): IntersectionObserverEntry[] {
+        return []
+      }
+    } as never
+    window.matchMedia = ((query: string) =>
+      query === 'print'
+        ? {
+            matches: true,
+            media: query,
+            addEventListener: () => undefined,
+            removeEventListener: () => undefined,
+          }
+        : originalMatchMedia.call(window, query)) as never
+    const rect = vi
+      .spyOn(Element.prototype, 'getBoundingClientRect')
+      .mockReturnValue({
+        x: 0,
+        y: 5000,
+        top: 5000,
+        left: 0,
+        right: 600,
+        bottom: 5400,
+        width: 600,
+        height: 400,
+        toJSON: () => ({}),
+      } as DOMRect)
+    const render = vi.fn(() => ({ svg: safeSvg, nodes: [] }))
+    const wrapper = mountBlock({ renderer: renderer({ render }) })
+
+    try {
+      await flushPromises()
+      await vi.waitFor(() => {
+        expect(render).toHaveBeenCalledTimes(1)
+      })
+    } finally {
+      rect.mockRestore()
+      window.matchMedia = originalMatchMedia
+      globalThis.IntersectionObserver = originalObserver
+      wrapper.unmount()
+    }
+  })
+
+  it('forwards renderer-level deferral and emits mermaid-rendered', async () => {
+    const seen: Array<boolean | undefined> = []
+    const MermaidStub = defineComponent({
+      name: 'MermaidStub',
+      props: {
+        code: { type: String, default: '' },
+        deferRendering: { type: Boolean, default: true },
+      },
+      emits: ['rendered'],
+      setup(props, { emit }) {
+        seen.push(props.deferRendering)
+        onMounted(() => emit('rendered', { nodes: [], svg: safeSvg }))
+        return () => h('div', { 'data-mermaid-stub': '' }, props.code)
+      },
+    })
+    const wrapper = mount(MarkdownRenderer, {
+      props: {
+        source: '```mermaid\ngraph TD; A-->B\n```',
+        plugins: [mermaidPlugin()],
+        nodeComponents: { mermaid: MermaidStub },
+        mermaidDeferRendering: false,
+      },
+    })
+
+    await flushPromises()
+    await vi.waitFor(() => {
+      expect(wrapper.emitted('mermaid-rendered')).toBeTruthy()
+    })
+    expect(seen).toEqual([false])
+    expect(wrapper.find('[data-mermaid-stub]').exists()).toBe(true)
+    wrapper.unmount()
   })
 })

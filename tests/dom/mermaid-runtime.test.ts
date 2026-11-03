@@ -68,6 +68,31 @@ describe('Mermaid runtime configuration', () => {
     )
   })
 
+  it('renders into an offscreen host instead of the end of the body', async () => {
+    await renderMermaid('graph TD; A-->B')
+
+    const host = document.querySelector('[data-vmd-mermaid-measure]')
+    expect(host).not.toBeNull()
+    expect((host as HTMLElement).style.position).toBe('fixed')
+    expect((host as HTMLElement).style.visibility).toBe('hidden')
+    expect(host?.getAttribute('aria-hidden')).toBe('true')
+    // Exactly one host exists, so a document does not grow per diagram.
+    expect(document.querySelectorAll('[data-vmd-mermaid-measure]').length).toBe(1)
+    expect(mermaidMock.render).toHaveBeenCalledTimes(1)
+    // Mermaid receives the host so its temporary `dvmd-mermaid-*` node never
+    // lands in normal flow at the end of the page.
+    expect(mermaidMock.render.mock.calls[0]?.[2]).toBe(host)
+    // Mermaid's temporary node is removed again, leaving no stray markup.
+    expect(host?.childNodes.length).toBe(0)
+  })
+
+  it('reuses one measuring host across diagrams', async () => {
+    await renderMermaid('graph TD; A-->B')
+    await renderMermaid('graph TD; C-->D')
+    const hosts = document.querySelectorAll('[data-vmd-mermaid-measure]')
+    expect(hosts.length).toBe(1)
+  })
+
   it('serializes renders so a second configuration cannot interleave', async () => {
     let release: () => void = () => undefined
     const gate = new Promise<void>((resolve) => {

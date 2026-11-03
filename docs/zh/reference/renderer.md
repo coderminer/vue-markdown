@@ -38,6 +38,7 @@ import '@coderminer/vue-markdown/style.css'
 | `highlighter` | `MarkdownHighlighter` | 语法高亮适配器。 |
 | `mathEngine` | `MathEngine` | 数学渲染适配器。 |
 | `mermaidRenderer` | `MermaidRenderer` | Mermaid 渲染适配器。 |
+| `mermaidDeferRendering` | `boolean` | 默认 `true`。把 Mermaid 首次渲染推迟到每个块接近视口时；打印、PDF 或截图流水线应设为 `false`。 |
 | `diagnosticsFormatter` | `DiagnosticFormatter` | 格式化渲染错误。 |
 | `allowedElements` | `string[]` | 与 `disallowedElements` 互斥，冲突时优先。 |
 | `disallowedElements` | `string[]` | 拒绝列表。 |
@@ -89,6 +90,7 @@ import '@coderminer/vue-markdown/style.css'
 | `task-change` | `{ checked, node }` | GFM 任务复选框变化时触发。 |
 | `search-change` | `{ query, caseSensitive, matches }` | 跟随 `search` 属性，报告当前匹配数。 |
 | `math-error` | `MarkdownDiagnostic` | 数学渲染产生诊断时触发。 |
+| `mermaid-rendered` | `MermaidRenderResult` | Mermaid 图表渲染完成时触发。 |
 | `render-error` | `MarkdownDiagnostic` | 解析、插件、适配器和配置失败。 |
 | `ready` | `MarkdownDocument` | 第一次成功生成文档时触发一次。 |
 

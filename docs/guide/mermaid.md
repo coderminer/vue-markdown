@@ -90,6 +90,36 @@ unload it: the cache holds no per-block state, and another block may still be
 rendering. `resetMermaidRuntime()` is for tests or an explicit reinitialization,
 not a component lifecycle hook, and it cannot unload the browser's module cache.
 
+Renders are serialized, because Mermaid keeps process-wide configuration and
+generated ids, so two blocks never render at the same time. Each render measures
+inside one reusable offscreen host instead of letting Mermaid append its
+temporary `dvmd-mermaid-*` element to the end of `document.body`. That element
+therefore never enters page flow, which is what caused the document to jump
+while diagrams rendered.
+
+A block that is far outside the viewport defers its first render until it comes
+within 400 px of the viewport. A long document therefore does not pay the parse,
+sanitize, and node-building cost for diagrams the reader has not reached yet,
+and `rendered` fires when that deferred render actually finishes. Deferral is
+skipped when `IntersectionObserver` is unavailable or the block has no layout
+box, so headless and server-rendered shells still render eagerly.
+
+Deferral is abandoned when printing starts: `beforeprint`, or the print media
+query where that event is unavailable, renders the pending diagrams. Because
+rendering stays asynchronous, a print, PDF, or full-page screenshot pipeline
+that snapshots immediately after load should disable deferral and wait for the
+rendered result before capturing. Set `deferRendering` on `MermaidBlock` or
+`MarkdownMermaid`, or `mermaidDeferRendering` on `MarkdownRenderer` and
+`MarkdownConfigProvider`; listen to `rendered` on the block or `mermaid-rendered`
+on `MarkdownRenderer`.
+
+Diagram nodes use content-derived keys, so editing one block does not remount
+the diagrams after it. Identical diagrams inside one sibling list still need
+distinct keys, so each gets an occurrence suffix; editing one of two identical
+diagrams changes the suffix of the remaining duplicate and re-renders it once.
+The output is unchanged, but avoid relying on byte-identical duplicates when
+that extra render matters.
+
 <script setup>
 import { MermaidBlock } from '@coderminer/vue-markdown'
 
@@ -137,6 +167,31 @@ opt-in error display, zoom, fullscreen, copy, SVG download, PNG export, and
 retry. A failed first render always shows a lightweight fallback; `showErrors`
 expands the detailed diagnostic. `theme` overrides the Mermaid theme and the
 block's `data-vmd-theme`, and `compact` hides its toolbar for embedded previews.
+Set `:defer-rendering="false"` to render every diagram on mount, which is the
+safe choice for print, PDF, and screenshot pipelines.
+
+The pending state reserves one diagram's worth of height through
+`--vmd-mermaid-min-height` (12rem by default), so the first render does not push
+the following content down. Later updates keep the last good preview in place
+and never change the block height.
+
+A diagram renders at the intrinsic pixel width Mermaid reports, capped at the
+preview width. Small diagrams therefore keep their natural size instead of
+stretching to the block, and wide diagrams shrink to fit instead of overflowing.
+
+Zoom runs from 0.25x to 4x. Whenever the diagram overflows the preview, either
+because it is zoomed past the preview bounds or because a host caps the preview
+size, drag inside the preview to pan, or focus it and use the arrow keys
+(`Shift` moves further). Panning is not offered while the diagram fits, so text
+selection and ordinary pointer interaction stay untouched. Pan and zoom reset on
+re-render, retry, theme or renderer change, source update, and when returning
+from the source tab.
+
+PNG export rasterizes the diagram at three times its intrinsic size, so exported
+labels and lines stay crisp instead of upscaling a one-pixel-density bitmap.
+Diagrams that are already large are downscaled to stay within an 8192 px longest
+edge and a 16-megapixel bitmap, so a canvas dimension or area limit cannot fail
+the export. SVG download keeps the vector source.
 
 It exposes `mermaid` and `mermaid-error` slots and the `mermaidRenderer`
 injection point. A custom renderer still has its SVG and node output sanitized,

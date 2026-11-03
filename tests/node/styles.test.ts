@@ -173,11 +173,29 @@ describe('stylesheet compatibility fallbacks', () => {
     expect(focus).toBeLessThan(focusVisible)
   })
 
-  it('reserves marker space for multi-digit TOC entries', () => {
+  it('renders the TOC without numbering by default', () => {
     const components = readStyle('components.css')
     expect(components).toContain(".vmd-toc-nav[data-vmd-part='toc-nav']")
-    expect(components).toContain('padding-left: 2.25rem;')
-    expect(components).toContain('list-style: decimal outside;')
+    expect(components).not.toContain('list-style: decimal outside;')
+    expect(components).toMatch(
+      /\.vmd-toc-nav\[data-vmd-part='toc-nav'\]\s*\{[^}]*list-style: none;/,
+    )
+  })
+
+  it('sizes Mermaid diagrams naturally and enables drag panning', () => {
+    const components = readStyle('components.css')
+    const rule = /\.vmd-mermaid-diagram svg\s*\{([^}]*)\}/
+    const body = rule.exec(components)?.[1] ?? ''
+    // Mermaid keeps its intended pixel width as an attribute after sanitizing,
+    // so the block must not stretch it to the container.
+    expect(body).toContain('max-width: 100%;')
+    expect(body).toContain('height: auto;')
+    expect(body).toContain('display: block;')
+    expect(components).toContain(
+      "[data-vmd-part='mermaid-preview'][data-pannable='true']",
+    )
+    expect(components).toContain('cursor: grab;')
+    expect(components).toContain('cursor: grabbing;')
   })
 
   it('supports side TOC placement with flex fallbacks', () => {
@@ -231,6 +249,20 @@ describe('design tokens and theme modes', () => {
     const root = blockBody(tokens, ':root,')
     for (const token of TOKEN_NAMES) {
       expect(root, `${token} must have a default`).toContain(`${token}:`)
+    }
+  })
+
+  it('exports every token that tokens.css defines', () => {
+    // The public `MarkdownToken` union is generated from `TOKENS`, so a token
+    // that only exists in CSS would stay undiscoverable for hosts.
+    const tokens = readStyle('tokens.css')
+    const defined = new Set<string>()
+    for (const match of tokens.matchAll(/^\s*(--vmd-[a-z0-9-]+)\s*:/gm)) {
+      if (match[1]) defined.add(match[1])
+    }
+    expect(defined.size).toBeGreaterThan(0)
+    for (const token of defined) {
+      expect(TOKEN_NAMES, `${token} must be exported from TOKENS`).toContain(token)
     }
   })
 

@@ -601,14 +601,23 @@ function renderNodeDefault(node: MarkdownNode, ctx: RenderContext): VNodeChild {
           rendered: node.rendered,
         },
       )
-    case 'mermaid':
+    case 'mermaid': {
+      const mermaidComponent =
+        resolveNodeComponent(node, ctx) ?? semanticBuiltin('mermaid') ?? 'pre'
       return renderComponent(
-        resolveNodeComponent(node, ctx) ?? semanticBuiltin('mermaid') ?? 'pre',
+        mermaidComponent,
         node,
         ctx,
         {},
-        { code: node.code },
+        typeof mermaidComponent === 'string'
+          ? { code: node.code }
+          : {
+              code: node.code,
+              deferRendering: ctx.mermaidDeferRendering ?? true,
+              onRendered: ctx.onMermaidRendered,
+            },
       )
+    }
     case 'plugin':
       return renderComponent(
         resolveNodeComponent(node, ctx) ??
