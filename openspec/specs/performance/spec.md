@@ -19,7 +19,7 @@ The Vue adapter SHALL store the document model in a `shallowRef` and SHALL repla
 
 ### Requirement: Parse memoization
 
-The library SHALL memoize parsing by source string, pipeline identity, ordered plugin identities, and parse-affecting options. A cache hit SHALL reuse the previous document without re-running the pipeline. The cache SHALL be bounded and SHALL be invalidated when any key component changes.
+The library SHALL memoize parsing by source string, pipeline identity, ordered plugin identities, and parse-affecting options. The pipeline identity SHALL include the pipeline name, its optional `version`, and its process-local instance identity, so two pipelines that share a name cannot reuse each other's cached documents. A cache hit SHALL reuse the previous document without re-running the pipeline and SHALL replay the diagnostics of the run that produced it. The cache SHALL be bounded and SHALL be invalidated when any key component changes.
 
 #### Scenario: Same input
 - **WHEN** the same source and configuration are rendered again
@@ -31,7 +31,7 @@ The library SHALL memoize parsing by source string, pipeline identity, ordered p
 
 ### Requirement: Presentation-only updates
 
-Changing presentation options such as theme, tokens, labels, slots, or CSS parts SHALL NOT re-parse the document. Only changes that affect parsing, normalization, filtering, or URL transformation SHALL invalidate the document.
+Changing presentation options such as theme, tokens, labels, slots, CSS parts, or search state SHALL NOT re-parse the document. Search segments SHALL be derived from an immutable parsed document without mutating the cached base document. Only changes that affect parsing, normalization, filtering, or URL transformation SHALL invalidate the document.
 
 #### Scenario: Theme change
 - **WHEN** the host switches from light to dark theme
@@ -40,6 +40,10 @@ Changing presentation options such as theme, tokens, labels, slots, or CSS parts
 #### Scenario: Label change
 - **WHEN** the host changes a user-facing label
 - **THEN** the document model is reused
+
+#### Scenario: Search change
+- **WHEN** the host changes the search query or case sensitivity
+- **THEN** highlights and match counts update from the parsed document without re-parsing, and the shared base document is not mutated
 
 ### Requirement: Text fast path and stable keys
 
@@ -67,19 +71,35 @@ Asynchronous parsing SHALL coalesce superseded runs, discard stale results, and 
 
 ### Requirement: Lazy heavy engines
 
-Mermaid, Shiki, KaTeX, and CodeMirror SHALL load lazily and SHALL NOT enter the initial render path or unrelated entries. A page without the corresponding content SHALL NOT request the engine.
+Mermaid, Shiki, KaTeX, and CodeMirror SHALL load lazily and SHALL NOT enter the initial render path or unrelated entries. The base renderer SHALL NOT statically reference the Mermaid component, runtime, or SVG parser; `mermaidPlugin()` SHALL contribute the built-in Mermaid node component so it is only reachable when the host opts in. A page without the corresponding content SHALL NOT request the engine.
 
 #### Scenario: No Mermaid content
 - **WHEN** a page imports the renderer and contains no Mermaid blocks
 - **THEN** the Mermaid runtime is not requested
 
+#### Scenario: Base renderer import
+- **WHEN** a host imports `MarkdownRenderer` without `mermaidPlugin()` or the optional engine entries
+- **THEN** the Mermaid runtime, SVG parser, KaTeX, Shiki, and CodeMirror chunks are not part of the rendered bundle
+
 #### Scenario: First math block
 - **WHEN** a document contains math and the math plugin is enabled
 - **THEN** the math engine loads on demand and the rest of the document renders immediately
 
+### Requirement: Stable processor identity
+
+Each document composable SHALL own one stable official pipeline instance. Presentation-only configuration, including components, labels, tokens, and search state, SHALL NOT rebuild the unified processor or invalidate its identity. A host-supplied pipeline SHALL be used as-is.
+
+#### Scenario: Components change
+- **WHEN** the host changes only presentation configuration such as `components`, `labels`, or `tokens`
+- **THEN** the unified processor is reused and its plugins are not re-attached
+
+#### Scenario: Host pipeline
+- **WHEN** the host supplies a pipeline
+- **THEN** the composable uses that instance without replacing or disposing it
+
 ### Requirement: Plugin lifecycle scope
 
-Plugin setup, watchers, and resources SHALL run inside an `effectScope` and SHALL be disposed on unmount, pipeline replacement, or plugin removal. Repeated reconfiguration SHALL NOT leak watchers, timers, or engine instances.
+Plugin setup, watchers, and resources SHALL run inside an `effectScope` and SHALL be disposed on unmount, pipeline replacement, or plugin removal. Setup SHALL execute through `scope.run()` so watchers and scope-registered cleanups belong to the plugin set. Each cleanup SHALL run at most once, and a reconfiguration SHALL stop the previous scope before starting the next one. Repeated reconfiguration SHALL NOT leak watchers, timers, or engine instances.
 
 #### Scenario: Unmount
 - **WHEN** a renderer with plugins unmounts
@@ -87,7 +107,7 @@ Plugin setup, watchers, and resources SHALL run inside an `effectScope` and SHAL
 
 #### Scenario: Reconfiguration
 - **WHEN** a host replaces the plugin list
-- **THEN** removed plugins are cleaned up and retained plugins are not duplicated
+- **THEN** the previous scope stops, removed plugins are cleaned up, and retained plugins are not duplicated
 
 ### Requirement: Server rendering performance
 

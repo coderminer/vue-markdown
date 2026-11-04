@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue'
-import { version } from '@coderminer/vue-markdown'
+import { MarkdownConfigProvider, version } from '@coderminer/vue-markdown'
+import { highlightjs } from '@coderminer/vue-markdown/highlight'
 import PlaygroundSection from './sections/PlaygroundSection.vue'
 import BasicUsageSection from './sections/BasicUsageSection.vue'
 import AdvancedUsageSection from './sections/AdvancedUsageSection.vue'
@@ -119,65 +120,67 @@ onBeforeUnmount(() => {
     </aside>
 
     <main class="demo-main">
-      <section id="overview" class="demo-hero">
-        <p class="demo-eyebrow">Vue 3 Markdown component suite</p>
-        <h1>Markdown that renders as Vue, not HTML strings.</h1>
-        <p class="demo-lede">
-          A plugin-driven renderer built on <code>unified</code>,
-          <code>remark-parse</code>, and <code>remark-rehype</code>. Replace any
-          tag, own the document model, and add code, math, diagrams, and search
-          without giving up accessibility or SSR.
-        </p>
+      <MarkdownConfigProvider :highlighter="highlightjs">
+        <section id="overview" class="demo-hero">
+          <p class="demo-eyebrow">Vue 3 Markdown component suite</p>
+          <h1>Markdown that renders as Vue, not HTML strings.</h1>
+          <p class="demo-lede">
+            A plugin-driven renderer built on <code>unified</code>,
+            <code>remark-parse</code>, and <code>remark-rehype</code>. Replace any
+            tag, own the document model, and add code, math, diagrams, and search
+            without giving up accessibility or SSR.
+          </p>
 
-        <div class="demo-hero-install">
-          <span>Install</span>
-          <code>npm install @coderminer/vue-markdown</code>
+          <div class="demo-hero-install">
+            <span>Install</span>
+            <code>npm install @coderminer/vue-markdown</code>
+          </div>
+
+          <div class="demo-hero-actions">
+            <a class="demo-button demo-button-primary" href="#basic-usage">Get started</a>
+            <a class="demo-button" href="#complete-example">Complete example</a>
+            <a class="demo-button" href="#api">API reference</a>
+            <a class="demo-button" href="https://github.com/coderminer/vue-markdown" target="_blank" rel="noreferrer">GitHub</a>
+          </div>
+
+          <ul class="demo-pills">
+            <li>Vue-native VNodes</li>
+            <li>Typed plugins</li>
+            <li>Headless core</li>
+            <li>SSR and static export</li>
+            <li>Optional highlight.js, Shiki, KaTeX, Mermaid, CodeMirror</li>
+          </ul>
+        </section>
+
+        <BasicUsageSection />
+        <AdvancedUsageSection />
+        <CustomizationGuideSection />
+        <CompleteExampleSection />
+
+        <ApiSection />
+
+        <div class="demo-block-heading">
+          <p class="demo-eyebrow">Interactive demos</p>
+          <h2>Every contract, live</h2>
+          <p>
+            Each section below imports through public entries, so this page also
+            works as a packaging and behavior test.
+          </p>
         </div>
 
-        <div class="demo-hero-actions">
-          <a class="demo-button demo-button-primary" href="#basic-usage">Get started</a>
-          <a class="demo-button" href="#complete-example">Complete example</a>
-          <a class="demo-button" href="#api">API reference</a>
-          <a class="demo-button" href="https://github.com/coderminer/vue-markdown" target="_blank" rel="noreferrer">GitHub</a>
-        </div>
-
-        <ul class="demo-pills">
-          <li>Vue-native VNodes</li>
-          <li>Typed plugins</li>
-          <li>Headless core</li>
-          <li>SSR and static export</li>
-          <li>Optional highlight.js, Shiki, KaTeX, Mermaid, CodeMirror</li>
-        </ul>
-      </section>
-
-      <BasicUsageSection />
-      <AdvancedUsageSection />
-      <CustomizationGuideSection />
-      <CompleteExampleSection />
-
-      <ApiSection />
-
-      <div class="demo-block-heading">
-        <p class="demo-eyebrow">Interactive demos</p>
-        <h2>Every contract, live</h2>
-        <p>
-          Each section below imports through public entries, so this page also
-          works as a packaging and behavior test.
-        </p>
-      </div>
-
-      <PlaygroundSection />
-      <CommonMarkSection />
-      <GfmSection />
-      <ComponentsSection />
-      <FilteringSection />
-      <UrlTransformSection />
-      <RawHtmlSection />
-      <PluginSection />
-      <HeadlessSection />
-      <SsrSection />
-      <CustomizationSection />
-      <V1xSection />
+        <PlaygroundSection />
+        <CommonMarkSection />
+        <GfmSection />
+        <ComponentsSection />
+        <FilteringSection />
+        <UrlTransformSection />
+        <RawHtmlSection />
+        <PluginSection />
+        <HeadlessSection />
+        <SsrSection />
+        <CustomizationSection />
+        <V1xSection />
+      </MarkdownConfigProvider>
     </main>
   </div>
 </template>

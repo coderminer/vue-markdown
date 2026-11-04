@@ -12,6 +12,7 @@ import {
   type TocItem,
   type VueMarkdownNodeComponents,
 } from '@coderminer/vue-markdown'
+import { highlightjs } from '@coderminer/vue-markdown/highlight'
 import {
   codePlugin,
   defineMarkdownPlugin,
@@ -346,6 +347,7 @@ function exportHtml(): void {
           v-model:source="source"
           :plugins="plugins"
           :preset="portalPreset"
+          :highlighter="highlightjs"
           :node-components="nodeComponents"
           :theme="theme"
           show-error

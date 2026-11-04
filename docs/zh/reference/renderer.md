@@ -22,7 +22,7 @@ import '@coderminer/vue-markdown/style.css'
 
 | 属性 | 类型 | 默认值与说明 |
 | --- | --- | --- |
-| `source` | `string` | 默认 `''`。受控 Markdown 输入，优先级高于默认插槽；支持 `v-model:source`。 |
+| `source` | `string` | 受控 Markdown 输入；未传入时使用默认插槽，显式传入 `''` 会渲染空文档。优先级高于默认插槽；支持 `v-model:source`。 |
 | `components` | `Record<string, Component \| string>` | 默认 `{}`。以标签名为键的覆盖。 |
 | `regions` | `Partial<Record<string, Component \| string>>` | 默认 `{}`。根、内容、目录、目录项、代码块、Mermaid 块、错误、空状态、加载状态的区域覆盖。 |
 | `nodeComponents` | `Record<string, Component \| string \| NodeRenderer>` | 默认 `{}`。语义节点覆盖和函数渲染器。 |
@@ -35,7 +35,7 @@ import '@coderminer/vue-markdown/style.css'
 | `remarkRehypeOptions` | `Record<string, unknown>` | 默认 `{}`。合并到转换步骤。 |
 | `pipeline` | `MarkdownPipeline` | 默认官方管线。高级逃生口，必须返回 hast。 |
 | `slugger` | `MarkdownSlugger` | 默认 `github-slugger`。标题 ID 生成器。 |
-| `highlighter` | `MarkdownHighlighter` | 语法高亮适配器。 |
+| `highlighter` | `MarkdownHighlighter` | 语法高亮适配器。从 `@coderminer/vue-markdown/highlight` 传入 `highlightjs`；未配置时按纯文本渲染。 |
 | `mathEngine` | `MathEngine` | 数学渲染适配器。 |
 | `mermaidRenderer` | `MermaidRenderer` | Mermaid 渲染适配器。 |
 | `mermaidDeferRendering` | `boolean` | 默认 `true`。把 Mermaid 首次渲染推迟到每个块接近视口时；打印、PDF 或截图流水线应设为 `false`。 |
@@ -55,7 +55,7 @@ import '@coderminer/vue-markdown/style.css'
 | `tocPlacement` | `'top' \| 'left' \| 'right' \| 'hidden'` | 默认 `'top'`。目录置顶、放左侧/右侧或隐藏。 |
 | `search` | `string` | 默认 `''`。高亮匹配项并触发 `search-change`。 |
 | `searchCaseSensitive` | `boolean` | 默认 `false`。让 `search` 区分大小写。 |
-| `searchDebounce` | `number` | 默认 `0`。查询最后一次变化后等待多少毫秒再解析。 |
+| `searchDebounce` | `number` | 查询最后一次变化后等待多少毫秒再应用到已解析文档。 |
 | `showError` | `boolean` | 默认 `true`。失败时渲染错误区域。 |
 | `tokens` | `Record<string, string>` | 默认 `{}`。根元素上的内联 `--vmd-*` 自定义属性。 |
 | `theme` | `'light' \| 'dark' \| 'auto' \| 'custom'` | 默认 `'light'`。设置根元素的 `data-vmd-theme`。 |
@@ -73,8 +73,9 @@ import '@coderminer/vue-markdown/style.css'
 插件数组也要保持稳定。内联工厂调用会在每次父组件渲染时创建新的插件对象，并使解析缓存
 失效。
 
-`search` 会影响解析：每次稳定后的查询变化都会重新解析文档。大文档的即时搜索可设置
-`searchDebounce`（例如 `200`）。初始查询会立即应用，因此服务端渲染仍然包含匹配项。
+`search` 只影响展示：它在已经解析好的文档上应用，因此查询变化只会更新高亮和匹配数，
+不会重新解析。大文档的即时搜索可设置 `searchDebounce`（例如 `200`）来节流高亮更新。
+初始查询会立即应用，因此服务端渲染仍然包含匹配项。
 两者同时存在时，显式的 `search` 选项会覆盖 `searchPlugin()` 产生的搜索片段。
 `search-change` 只在当前渲染文档对应当前查询时触发，因此等待中或失败的运行不会报告
 旧的匹配数。空查询挂载时不会发事件；之后切换大小写是真实状态变化，会正常触发。

@@ -4,6 +4,81 @@ All notable changes to `@coderminer/vue-markdown` are documented here.
 
 ## [Unreleased]
 
+## [1.1.0-beta.0] - 2026-11-04
+
+Beta release published under the `beta` npm dist-tag; the stable `1.1.0` will
+follow. It fixes runtime correctness issues in the Vue adapter, pipeline
+identity, search derivation, and renderer input precedence, and moves optional
+engines behind explicit entries. Two behavior changes require attention:
+`sanitizeSvg` moved to `@coderminer/vue-markdown/mermaid/sanitize-svg`, and
+syntax highlighting is now opt-in. See the Changed section. Deferred work is
+tracked in `IMPROVEMENTS.md`.
+
+### Added
+
+- `MarkdownPipeline.version` participates in the memoization identity, so a
+  pipeline revision can invalidate cached documents.
+- `withSearchSegments()` derives search segments from an existing document
+  without mutating it.
+- `memoGetEntry()`/`memoSetEntry()` cache a document together with the
+  diagnostics of the run that produced it and replay them on a cache hit.
+- `reportPluginError()` centralizes safe `onError` delivery.
+- `@coderminer/vue-markdown/mermaid/plugin` exports `mermaidPlugin` without the
+  synchronous SVG sanitizer and the HTML parser it statically imports.
+
+### Changed
+
+- Changing the search query or case sensitivity no longer re-parses. Highlights
+  update from the parsed document, and `search-change` emits as soon as the
+  applied query changes. Pending or failed runs still keep the previous
+  document's match count.
+- The official pipeline is created once per document composable and reused, so
+  presentation-only changes no longer rebuild the unified processor.
+- The base renderer no longer imports the Mermaid component, runtime wrapper, or
+  SVG parser. `mermaidPlugin()` contributes the built-in Mermaid component, so
+  an app that imports only `MarkdownRenderer` does not emit the Mermaid or HTML
+  parser chunks. A `mermaid` node without a registered component falls back to a
+  code block.
+- Syntax highlighting is opt-in. `CodeBlock` and `VueSyntaxHighlighter` no longer
+  auto-load the highlight.js adapter: code renders as plain text until the host
+  passes `highlightjs` from `@coderminer/vue-markdown/highlight` (or another
+  adapter). The base renderer no longer references any highlighting engine.
+- `sanitizeSvg` moved from `@coderminer/vue-markdown/mermaid` to
+  `@coderminer/vue-markdown/mermaid/sanitize-svg`. The Mermaid entry no longer
+  statically loads the HTML parser; the runtime sanitizes rendered SVG lazily.
+- `remark-math` and `rehype-katex` are optional peers of the math entry instead
+  of default dependencies. Install them alongside `katex` when using
+  `@coderminer/vue-markdown/math`.
+- Host-supplied pipelines are never disposed by the library; only the pipeline
+  the library created is released on unmount or replacement.
+
+### Fixed
+
+- Plugin `setup()` now runs inside the plugin `effectScope`; watchers and
+  scope-registered cleanups stop on reconfiguration and unmount, and a returned
+  cleanup runs once.
+- An explicit `source=""` renders the empty document instead of falling back to
+  default slot content.
+- Pipelines that share a name no longer share memoized documents; pipeline
+  instance identity and `version` are part of the cache key.
+- Async runs use a per-run slugger and a frozen configuration snapshot, so
+  concurrent runs cannot reset each other's heading IDs.
+- A plugin `onError` hook that throws no longer aborts the run; the failure is
+  reported as `plugin-onerror`.
+- Search segments no longer mutate the cached base document, so highlights from
+  one query or renderer cannot leak into another. An explicit `search` option
+  also clears segments contributed by `searchPlugin()` on text that no longer
+  matches, so stale highlights and match counts cannot survive a query change.
+- Mermaid SVG sanitization now filters scoped stylesheet declarations, so theme
+  CSS cannot position the root SVG as a full-page overlay.
+- Mermaid presentation attributes (`fill`, `stroke`, `filter`, `mask`,
+  `clip-path`, marker attributes, `cursor`) keep only same-document fragment
+  `url()` references, so a diagram cannot fetch external paint servers or
+  cursors.
+- Raw HTML rendered through `htmlPlugin()` prefixes `id` and `name` values with
+  `user-content-`, and rewrites same-document fragment links to the prefixed
+  target. Author markup can no longer collide with host ids or clobber globals.
+
 ## [1.0.2] - 2026-11-03
 
 Patch release focused on Mermaid rendering quality and document stability. The

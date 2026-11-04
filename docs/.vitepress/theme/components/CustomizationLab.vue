@@ -5,6 +5,7 @@ import {
   type MarkdownNodeRenderContext,
   type MarkdownTheme,
 } from '@coderminer/vue-markdown'
+import { highlightjs } from '@coderminer/vue-markdown/highlight'
 
 const props = withDefaults(defineProps<{ locale?: 'en' | 'zh' }>(), {
   locale: 'en',
@@ -58,7 +59,7 @@ A paragraph with a [link](https://example.com) and **strong text**.
 > A callout can replace the default blockquote rendering.
 
 - Lists keep their semantics
-- Code blocks lazy-load the highlighter
+- Code blocks highlight with the app-wide adapter
 
 \`\`\`ts
 const answer = 42
@@ -163,6 +164,7 @@ const tokens = computed(() => ({
         :source="source"
         :theme="theme"
         :tokens="tokens"
+        :highlighter="highlightjs"
         :components="components"
         :node-components="nodeComponents"
         toc

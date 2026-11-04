@@ -35,11 +35,11 @@ normalized nodes so custom markup does not need to re-run the adapter.
 
 ### Requirement: Injectable syntax highlighting
 
-The component SHALL use the shared highlighter adapter contract. The default adapter SHALL use highlight.js through that contract. The library SHALL ship Shiki as an official optional adapter with asynchronous preloading and dual-theme support, and hosts SHALL be able to supply any other adapter. Adapters SHALL return normalized nodes rather than HTML strings. The active adapter SHALL be selectable by local prop, nearest provider, preset, or built-in default, in that order. Asynchronous adapters SHALL show unhighlighted source until ready. An invalid adapter SHALL be reported and SHALL fall back to plain text without breaking the block.
+The component SHALL use the shared highlighter adapter contract. The default adapter SHALL use highlight.js through that contract and SHALL be imported from its documented entry by the host. The library SHALL ship Shiki as an official optional adapter with asynchronous preloading and dual-theme support, and hosts SHALL be able to supply any other adapter. Adapters SHALL return normalized nodes rather than HTML strings. The active adapter SHALL be selectable by local prop, nearest provider, or preset, in that order. When no adapter is configured the block SHALL render escaped source and SHALL NOT import a highlighting engine. Asynchronous adapters SHALL show unhighlighted source until ready. An invalid adapter SHALL be reported and SHALL fall back to plain text without breaking the block.
 
-#### Scenario: Default highlighter
+#### Scenario: No highlighter
 - **WHEN** a host does not supply a highlighter
-- **THEN** the block uses highlight.js and renders highlighted markup synchronously
+- **THEN** the block renders plain source and no highlighting engine is imported
 
 #### Scenario: Shiki highlighter
 - **WHEN** a host selects the official Shiki adapter

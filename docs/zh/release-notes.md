@@ -4,6 +4,58 @@ description: '@coderminer/vue-markdown 1.0 发布说明与升级指南。'
 
 # 发布说明
 
+## 1.1.0-beta.0 — 2026-11-04
+
+`1.1.0` 的首个 beta 版本，通过 npm 的 `beta` dist-tag 发布，正式版随后发布。
+该版本修复运行时正确性问题，并把可选引擎的加载移到显式入口。有两处行为变更需要注意：
+`sanitizeSvg` 移到了 `@coderminer/vue-markdown/mermaid/sanitize-svg`，语法高亮改为
+显式启用。后续改进记录在 `IMPROVEMENTS.md`。
+
+- 搜索只影响展示：修改 `search` 或 `searchCaseSensitive` 时，高亮直接基于已解析
+  文档更新，不会重新解析。`search-change` 报告当前已渲染文档的数据；解析进行中时
+  会保留上一份文档的匹配数，直到新文档落地。
+- 显式 `search` 选项会覆盖 `searchPlugin()` 提供的片段，包括不再匹配当前查询的文本，
+  因此切换查询后不会残留旧的高亮和匹配数。
+- 官方 pipeline 在每个 document composable 中只创建一次，因此修改组件、标签、
+  tokens 或搜索状态不再重建 unified processor。
+- 基础渲染器不再静态引入 Mermaid 组件、运行时包装或 SVG 解析器；
+  `mermaidPlugin()` 会注册内置 Mermaid 组件，因此只引入 `MarkdownRenderer` 的应用
+  不会打包 Mermaid 运行时和 HTML 解析器分块。未注册组件的 `mermaid` 节点会回退为
+  代码块。
+- 语法高亮改为显式启用。代码块默认按纯文本渲染，需要宿主自行引入适配器：
+
+  ```ts
+  import { highlightjs } from '@coderminer/vue-markdown/highlight'
+  ```
+
+  ```vue
+  <MarkdownRenderer :source="source" :highlighter="highlightjs" />
+  ```
+- `@coderminer/vue-markdown/mermaid/plugin` 只导出 `mermaidPlugin`，运行时辅助函数仍在
+  Mermaid 入口。`sanitizeSvg` 移到了
+  `@coderminer/vue-markdown/mermaid/sanitize-svg`；Mermaid 入口不再静态加载 HTML 解析器，
+  渲染后的 SVG 按需净化。
+- `remark-math` 和 `rehype-katex` 改为数学入口的可选 peer，只有使用数学功能时才需要安装：
+
+  ```bash
+  npm install katex remark-math rehype-katex
+  ```
+- 库不会再 dispose 宿主提供的 pipeline；只有库自己创建的 pipeline 会在卸载或替换
+  时释放。
+- 插件的 `setup()` 在插件的 `effectScope` 内执行，watcher 和作用域清理会在重新配置
+  或卸载时停止，返回的 cleanup 只执行一次。
+- `source=""` 会渲染空文档，不再回退到默认插槽。
+- 缓存文档的键包含 pipeline 实例身份和新增的可选 `MarkdownPipeline.version`，
+  同名但不同实例的 pipeline 不会共享结果。
+- 异步运行使用每次运行独立的 slugger 和固定配置快照。
+- 插件 `onError` 抛出的异常会记录为 `plugin-onerror`，不会破坏文档。
+- Mermaid 作用域样式表只保留展示类声明；可能把 SVG 变成全屏遮罩的布局声明会被移除，
+  外部 `url()` 引用会被拒绝。
+- 原始 HTML 的 `id`/`name` 会加上 `user-content-` 前缀，避免 DOM clobbering 和
+  id 冲突；同文档片段链接会自动改写到加前缀的目标，标题锚点不受影响。原始 HTML 的
+  `class` 仍会保留，方便作者为自己的标记添加样式；在全局工具类 CSS 下渲染不可信内容前，
+  请先阅读安全指南。
+
 ## 1.0.2 — 2026-11-03
 
 聚焦 Mermaid 渲染质量和文档稳定性的补丁版本。

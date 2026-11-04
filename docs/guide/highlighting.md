@@ -7,17 +7,25 @@ description: highlight.js and Shiki adapters, caching, and server rendering.
 Code fences render through `CodeBlock` by default. `VueSyntaxHighlighter` uses
 the same adapter contract for standalone snippets.
 
-## Default adapter
+## Official adapter
 
-`CodeBlock` lazily imports the highlight.js adapter. The adapter registers an
-explicit language set (JavaScript, TypeScript, HTML/XML, CSS, JSON, Bash,
-Markdown, Python, Go, Rust, SQL, YAML, and related aliases) and highlights
-synchronously. It uses `lowlight` internally, so it produces hast nodes directly
-without an HTML round-trip. A document without code never loads it.
+Syntax highlighting is opt-in. `CodeBlock` renders escaped source by default
+and does not import an engine. Pass the official highlight.js adapter (or any
+custom adapter) to enable highlighting:
 
 ```ts
 import { highlightjs } from '@coderminer/vue-markdown/highlight'
 ```
+
+```vue
+<MarkdownRenderer :source="source" :highlighter="highlightjs" />
+```
+
+Install `highlight.js` as an optional peer before importing that entry. The
+adapter registers an explicit language set (JavaScript, TypeScript, HTML/XML,
+CSS, JSON, Bash, Markdown, Python, Go, Rust, SQL, YAML, and related aliases) and
+highlights synchronously. It uses `lowlight` internally, so it produces hast
+nodes directly without an HTML round-trip.
 
 ## Shiki
 
@@ -34,10 +42,10 @@ Install `shiki` as an optional peer before importing that entry.
 
 ## Selection
 
-The active adapter resolves as local prop > `MarkdownConfigProvider` > preset >
-default. `CodeBlock` and `VueSyntaxHighlighter` expose the resolved identity
-through `data-highlighter`, and changing adapters does not re-parse the
-document.
+The active adapter resolves as local prop > `MarkdownConfigProvider` > preset.
+When none is configured, code renders as plain text. `CodeBlock` and
+`VueSyntaxHighlighter` expose the resolved identity through `data-highlighter`,
+and changing adapters does not re-parse the document.
 
 ```vue
 <MarkdownRenderer
@@ -80,10 +88,9 @@ without breaking the block. Results are cached by adapter identity, source,
 language, theme, and options. `mode: 'block'` may be returned when an adapter
 supplies its own wrapper.
 
-When the lazy default adapter cannot be imported, `CodeBlock` and
-`VueSyntaxHighlighter` report `highlighter-unavailable` with an install hint and
-emit `error`; a failed `load()` or `loadLanguage()` reports `highlighter-load`.
-Copy and custom action failures report `copy-error` and `action-error`; a failed
+Without a configured adapter, code renders as plain source and no engine is
+loaded. A failed `load()` or `loadLanguage()` reports `highlighter-load`. Copy
+and custom action failures report `copy-error` and `action-error`; a failed
 download reports `download-error`. The source always stays readable.
 
 ## Server rendering

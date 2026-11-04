@@ -47,7 +47,7 @@ The document model SHALL be serializable and SHALL NOT contain Vue VNodes, DOM n
 
 ### Requirement: TOC, search, and active-heading utilities
 
-The library SHALL expose utilities or composables for generating a TOC, searching and highlighting text segments, and tracking the active heading in a host-provided container. The active-heading utility SHALL be optional and SHALL not attach listeners until the host provides a container.
+The library SHALL expose utilities or composables for generating a TOC, searching and highlighting text segments, and tracking the active heading in a host-provided container. The active-heading utility SHALL be optional and SHALL not attach listeners until the host provides a container. Search utilities SHALL derive segments from an existing document without mutating it, and the document composable SHALL re-derive search output when the query changes instead of re-running the pipeline.
 
 #### Scenario: Custom TOC
 - **WHEN** a host renders TOC items from the headless API
@@ -56,6 +56,10 @@ The library SHALL expose utilities or composables for generating a TOC, searchin
 #### Scenario: Search segments
 - **WHEN** a host provides a search query to the headless API
 - **THEN** text nodes expose match segments that the host can render without breaking surrounding markup
+
+#### Scenario: Query change
+- **WHEN** a host changes the search query on an existing document
+- **THEN** the document composable publishes derived segments without parsing again and the cached base document stays unchanged
 
 ### Requirement: Mermaid composable
 

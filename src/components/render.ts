@@ -21,7 +21,6 @@ import MarkdownInlineCode from './MarkdownInlineCode.vue'
 import MarkdownLink from './MarkdownLink.vue'
 import MarkdownList from './MarkdownList.vue'
 import MarkdownMath from './MarkdownMath.vue'
-import MarkdownMermaid from './MarkdownMermaid.vue'
 import MarkdownListItem from './MarkdownListItem.vue'
 import MarkdownFootnoteReference from './MarkdownFootnoteReference.vue'
 import MarkdownFootnotes from './MarkdownFootnotes.vue'
@@ -98,7 +97,8 @@ function semanticBuiltin(kind: string): Component | undefined {
   if (kind === 'code') return MarkdownCode
   if (kind === 'custom') return MarkdownCustomTag
   if (kind === 'math') return MarkdownMath
-  if (kind === 'mermaid') return MarkdownMermaid
+  // Mermaid is optional: `mermaidPlugin()` contributes the built-in component,
+  // so the runtime and SVG parser stay out of the base renderer graph.
   return undefined
 }
 
@@ -602,8 +602,18 @@ function renderNodeDefault(node: MarkdownNode, ctx: RenderContext): VNodeChild {
         },
       )
     case 'mermaid': {
-      const mermaidComponent =
-        resolveNodeComponent(node, ctx) ?? semanticBuiltin('mermaid') ?? 'pre'
+      const mermaidComponent = resolveNodeComponent(node, ctx)
+      // Without a registered component (for example a custom plugin that emits
+      // `mermaid` nodes without `mermaidPlugin()`), fall back to a code block so
+      // the source stays readable and the optional runtime is not pulled in.
+      if (!mermaidComponent) {
+        return h(MarkdownCode, {
+          key: node.key,
+          code: node.code,
+          language: 'mermaid',
+          ignoreRegion: true,
+        })
+      }
       return renderComponent(
         mermaidComponent,
         node,
@@ -616,6 +626,7 @@ function renderNodeDefault(node: MarkdownNode, ctx: RenderContext): VNodeChild {
               deferRendering: ctx.mermaidDeferRendering ?? true,
               onRendered: ctx.onMermaidRendered,
             },
+        typeof mermaidComponent === 'string' ? () => [node.code] : undefined,
       )
     }
     case 'plugin':

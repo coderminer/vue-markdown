@@ -18,7 +18,9 @@ description: 公共包入口、可选引擎和 CSS 分层。
 | `@coderminer/vue-markdown/highlight` | highlight.js 适配器和归一化辅助 |
 | `@coderminer/vue-markdown/highlight/shiki` | 可选的 Shiki 适配器 |
 | `@coderminer/vue-markdown/math` | `mathPlugin`、`katexEngine`、数学类型 |
-| `@coderminer/vue-markdown/mermaid` | `mermaidPlugin`、按需加载的 Mermaid 运行时和 SVG 净化器 |
+| `@coderminer/vue-markdown/mermaid` | 按需加载的 Mermaid 运行时、节点白名单和 `mermaidPlugin` |
+| `@coderminer/vue-markdown/mermaid/plugin` | 仅 `mermaidPlugin`；不导出运行时辅助函数 |
+| `@coderminer/vue-markdown/mermaid/sanitize-svg` | 同步 `sanitizeSvg`；会加载 HTML 解析器 |
 | `@coderminer/vue-markdown/editor` | 按需加载的 CodeMirror 集成 |
 | `@coderminer/vue-markdown/html` | `htmlPlugin()`，用于净化后的原始 HTML |
 | `@coderminer/vue-markdown/components/*` | 每个公共组件一个入口 |

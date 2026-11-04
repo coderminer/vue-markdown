@@ -3,6 +3,7 @@ import type {
   MarkdownNode,
   MarkdownPlugin,
 } from '../core/types'
+import MarkdownMermaid from '../components/MarkdownMermaid.vue'
 
 export interface MermaidPluginOptions {
   /**
@@ -99,6 +100,10 @@ export function mermaidPlugin(
 
   return {
     name: 'mermaid',
+    // The component is contributed by the plugin instead of living in the base
+    // renderer, so importing the renderer alone does not pull in the Mermaid
+    // runtime or the SVG parser. A host `nodeComponents.mermaid` still wins.
+    nodeComponents: { mermaid: MarkdownMermaid },
     transformDocument(document: MarkdownDocument): MarkdownDocument {
       const counter = { index: 0 }
       return {

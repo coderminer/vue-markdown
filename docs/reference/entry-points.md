@@ -19,7 +19,9 @@ complete export index.
 | `@coderminer/vue-markdown/highlight` | highlight.js adapter and normalization helpers |
 | `@coderminer/vue-markdown/highlight/shiki` | Optional Shiki adapter |
 | `@coderminer/vue-markdown/math` | `mathPlugin`, `katexEngine`, math types |
-| `@coderminer/vue-markdown/mermaid` | `mermaidPlugin`, lazy Mermaid runtime, and SVG sanitizer |
+| `@coderminer/vue-markdown/mermaid` | Lazy Mermaid runtime, node allowlist, and `mermaidPlugin` |
+| `@coderminer/vue-markdown/mermaid/plugin` | `mermaidPlugin` only; no runtime helper exports |
+| `@coderminer/vue-markdown/mermaid/sanitize-svg` | Synchronous `sanitizeSvg`; loads the HTML parser |
 | `@coderminer/vue-markdown/editor` | Lazy CodeMirror integration |
 | `@coderminer/vue-markdown/html` | `htmlPlugin()` for sanitized raw HTML |
 | `@coderminer/vue-markdown/components/*` | One entry per public component |
@@ -63,7 +65,7 @@ KaTeX, Mermaid, CodeMirror, or `rehype-raw`. Optional engines stay behind their
 own entries or dynamic chunks.
 :::
 
-- A document without code never loads the highlighter.
+- A document without a configured highlighter does not load one.
 - A document without math never loads KaTeX.
 - Mermaid loads only when a Mermaid component renders. Its SVG sanitizer loads
   the HTML parser only after a diagram has rendered.

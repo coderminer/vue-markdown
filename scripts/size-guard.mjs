@@ -17,6 +17,8 @@ const entries = [
   'highlight/shiki.js',
   'math/index.js',
   'mermaid/index.js',
+  'mermaid/plugin.js',
+  'mermaid/sanitize-svg.js',
   'editor/index.js',
   'html/index.js',
 ]
@@ -38,7 +40,7 @@ const allowed = {
   'highlight/index.js': ['highlight.js'],
   'highlight/shiki.js': ['shiki'],
   'math/index.js': ['katex', 'hast-util-from-html', 'parse5'],
-  'mermaid/index.js': ['mermaid', 'hast-util-from-html', 'parse5'],
+  'mermaid/sanitize-svg.js': ['hast-util-from-html', 'parse5'],
   'editor/index.js': ['@codemirror/'],
   'html/index.js': ['rehype-raw'],
 }

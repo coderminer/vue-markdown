@@ -17,7 +17,7 @@ the sections below; `npm run build:demo` must also succeed.
 - [x] Plugin extension: source transforms, document transforms, and diagnostics
 - [x] Component overrides: tag, node, region, and function renderers
 - [x] Rich nodes: task items and footnotes
-- [x] Highlighting: default highlight.js and the standalone highlighter
+- [x] Highlighting: explicit highlight.js adapter and the standalone highlighter
 - [x] Math: inline and display formulas
 - [x] Mermaid: block preview/source and the live editor
 - [x] Customization inspector: live tokens, labels, themes, slots, presets, and

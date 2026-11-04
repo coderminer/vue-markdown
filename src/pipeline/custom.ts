@@ -33,6 +33,15 @@ export function validatePipeline(pipeline: unknown): MarkdownDiagnostic[] {
       }),
     )
   }
+  if (candidate.version !== undefined && typeof candidate.version !== 'string') {
+    diagnostics.push(
+      createDiagnostic(
+        'pipeline-version',
+        '`version` must be a string when provided.',
+        { phase: 'pipeline' },
+      ),
+    )
+  }
   if (typeof candidate.process !== 'function') {
     diagnostics.push(
       createDiagnostic(
@@ -75,12 +84,19 @@ export function assertPipelineResult(result: unknown): PipelineResult {
   return candidate as PipelineResult
 }
 
-export function resolvePipeline(pipeline?: MarkdownPipeline): {
+export function resolvePipeline(
+  pipeline?: MarkdownPipeline,
+  /**
+   * Pipeline used when no custom pipeline is supplied or it is invalid. Pass a
+   * stable instance so identity-based memoization keeps hitting the cache.
+   */
+  fallback: MarkdownPipeline = createOfficialPipeline(),
+): {
   pipeline: MarkdownPipeline
   diagnostics: MarkdownDiagnostic[]
 } {
   if (!pipeline) {
-    return { pipeline: createOfficialPipeline(), diagnostics: [] }
+    return { pipeline: fallback, diagnostics: [] }
   }
 
   const diagnostics = validatePipeline(pipeline)
@@ -92,7 +108,7 @@ export function resolvePipeline(pipeline?: MarkdownPipeline): {
         { severity: 'warning', phase: 'pipeline' },
       ),
     )
-    return { pipeline: createOfficialPipeline(), diagnostics }
+    return { pipeline: fallback, diagnostics }
   }
 
   return { pipeline, diagnostics }

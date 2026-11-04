@@ -326,7 +326,7 @@ describe('renderer events and actions', () => {
     expect(wrapper.findAll('mark.vmd-search-match')).toHaveLength(0)
   })
 
-  it('debounces search parsing when searchDebounce is set', async () => {
+  it('debounces applying a search query when searchDebounce is set', async () => {
     vi.useFakeTimers()
     try {
       const { pipeline, counter } = countingPipeline('memo-search-debounce')
@@ -350,7 +350,9 @@ describe('renderer events and actions', () => {
 
       vi.advanceTimersByTime(1)
       await nextTick()
-      expect(counter.calls).toBe(2)
+      // Search is derived from the parsed document, so the debounced query
+      // updates the highlights without running the pipeline again.
+      expect(counter.calls).toBe(1)
       expect(wrapper.findAll('mark.vmd-search-match')).toHaveLength(2)
       expect(wrapper.emitted('search-change')?.slice(-1)[0]?.[0]).toEqual({
         query: 'hello',
@@ -680,6 +682,24 @@ describe('search and raw HTML', () => {
     expect(custom.findAll('em.vmd-search-match')).toHaveLength(2)
   })
 
+  it('clears plugin segments that the explicit query does not match', async () => {
+    const wrapper = renderer({
+      source: 'Hello hello other',
+      plugins: [searchPlugin({ query: 'hello' })],
+      search: 'other',
+    })
+    await nextTick()
+    const marks = wrapper.findAll('mark.vmd-search-match')
+    expect(marks).toHaveLength(1)
+    expect(marks[0]?.text()).toBe('other')
+    const events = wrapper.emitted('search-change') ?? []
+    expect(events[events.length - 1]?.[0]).toEqual({
+      query: 'other',
+      caseSensitive: false,
+      matches: 1,
+    })
+  })
+
   it('applies the search prop and emits search-change when state changes', async () => {
     const wrapper = renderer({ source: 'Hello hello', search: 'hello' })
     await nextTick()
@@ -744,12 +764,15 @@ describe('search and raw HTML', () => {
 
   it('keeps search counts tied to the rendered document', async () => {
     const official = createOfficialPipeline()
-    let fail = false
+    let release: (() => void) | undefined
+    let blocking = false
     const pipeline: MarkdownPipeline = {
       name: 'search-async',
-      process(source, ctx) {
-        if (fail) return Promise.reject(new Error('search run failed'))
-        return Promise.resolve(official.processSync!(source, ctx))
+      process(source: string, ctx: PipelineContext) {
+        if (!blocking) return Promise.resolve(official.processSync!(source, ctx))
+        return new Promise((resolve) => {
+          release = () => resolve(official.processSync!(source, ctx))
+        })
       },
     }
 
@@ -765,23 +788,12 @@ describe('search and raw HTML', () => {
       matches: 2,
     })
 
-    fail = true
-    await wrapper.setProps({ search: 'nothing' })
-    await flushPromises()
-    expect(wrapper.emitted('search-change')?.slice(-1)[0]?.[0]).toEqual({
-      query: 'hello',
-      caseSensitive: false,
-      matches: 2,
-    })
-
-    fail = false
-    let release: (() => void) | undefined
-    pipeline.process = (source: string, ctx: PipelineContext) =>
-      new Promise((resolve) => {
-        release = () => resolve(official.processSync!(source, ctx))
-      })
-    await wrapper.setProps({ search: 'other' })
+    // A pending source run keeps the previous document mounted. The emitted
+    // count must keep describing that document, not the source being parsed.
+    blocking = true
+    await wrapper.setProps({ source: 'Nothing here' })
     await nextTick()
+    expect(wrapper.text()).toContain('Hello hello')
     expect(wrapper.emitted('search-change')?.slice(-1)[0]?.[0]).toEqual({
       query: 'hello',
       caseSensitive: false,
@@ -790,8 +802,9 @@ describe('search and raw HTML', () => {
 
     release?.()
     await flushPromises()
+    expect(wrapper.text()).toContain('Nothing here')
     expect(wrapper.emitted('search-change')?.slice(-1)[0]?.[0]).toEqual({
-      query: 'other',
+      query: 'hello',
       caseSensitive: false,
       matches: 0,
     })
@@ -931,7 +944,7 @@ describe('memoization and resilience', () => {
     expect(wrapper.find('h2').text()).toBe('B')
   })
 
-  it('re-parses when the search state changes', async () => {
+  it('does not re-parse when the search state changes', async () => {
     const { pipeline, counter } = countingPipeline('memo-search')
     const wrapper = renderer({
       source: 'Hello hello',
@@ -939,10 +952,14 @@ describe('memoization and resilience', () => {
       search: 'hello',
     })
     expect(counter.calls).toBe(1)
+    expect(wrapper.findAll('mark.vmd-search-match')).toHaveLength(2)
 
     await wrapper.setProps({ search: 'Hello', searchCaseSensitive: true })
     await nextTick()
-    expect(counter.calls).toBe(2)
+    // Search segments are derived from the parsed document, so re-querying
+    // must not run the pipeline again.
+    expect(counter.calls).toBe(1)
+    expect(wrapper.findAll('mark.vmd-search-match')).toHaveLength(1)
   })
 
   it('retains the last good document when an async run fails', async () => {
@@ -973,6 +990,65 @@ describe('memoization and resilience', () => {
         (event) => (event[0] as { code: string }).code === 'pipeline-process',
       ),
     ).toBe(true)
+  })
+
+  it('keeps the processor when only presentation props change', async () => {
+    let attachments = 0
+    const remarkPlugin = () => {
+      attachments += 1
+      return () => {}
+    }
+    const wrapper = renderer({
+      source: '# A',
+      remarkPlugins: [remarkPlugin],
+    })
+    expect(attachments).toBe(1)
+
+    await wrapper.setProps({ components: { h1: 'h2' } })
+    await nextTick()
+    expect(attachments).toBe(1)
+
+    await wrapper.setProps({
+      tokens: { '--vmd-color-text': 'red' },
+      labels: { toc: 'Contents' },
+    })
+    await nextTick()
+    expect(attachments).toBe(1)
+    expect(wrapper.find('h2').text()).toBe('A')
+  })
+
+  it('reuses the unified processor when the source changes', async () => {
+    let attachments = 0
+    const remarkPlugin = () => {
+      attachments += 1
+      return () => {}
+    }
+    const wrapper = renderer({
+      source: '# A',
+      remarkPlugins: [remarkPlugin],
+    })
+    expect(attachments).toBe(1)
+    expect(wrapper.find('h1').attributes('id')).toBe('a')
+
+    await wrapper.setProps({ source: '# B' })
+    await nextTick()
+    // The cached processor is reused; per-run values (slugger, idPrefix) are
+    // read from the current run's context instead of the build-time closure.
+    expect(attachments).toBe(1)
+    expect(wrapper.find('h1').attributes('id')).toBe('b')
+  })
+
+  it('resets heading slugs on every run', async () => {
+    const wrapper = renderer({ source: '# B' })
+    const vm = wrapper.vm as unknown as {
+      refresh: () => Promise<void>
+      getToc: () => Array<{ id: string }>
+    }
+    expect(vm.getToc().map((item) => item.id)).toEqual(['b'])
+
+    await vm.refresh()
+    await flushPromises()
+    expect(vm.getToc().map((item) => item.id)).toEqual(['b'])
   })
 
   it('keeps the document out of a deep reactive proxy', () => {
@@ -1022,6 +1098,28 @@ describe('default slot input', () => {
     await nextTick()
     expect(wrapper.find('h1').attributes('id')).toBe('prop')
     expect(wrapper.find('#other').exists()).toBe(false)
+  })
+
+  it('lets an explicit empty source win over the slot', async () => {
+    const useSource = ref(true)
+    const Host = defineComponent({
+      setup() {
+        return () => {
+          const withSource = useSource.value
+          return h(
+            MarkdownRenderer,
+            withSource ? { source: '' } : null,
+            { default: () => '# Slot' },
+          )
+        }
+      },
+    })
+    const wrapper = mount(Host)
+    expect(wrapper.find('h1').exists()).toBe(false)
+
+    useSource.value = false
+    await nextTick()
+    expect(wrapper.find('h1').attributes('id')).toBe('slot')
   })
 
   it('does not re-parse when the slot text is unchanged', async () => {

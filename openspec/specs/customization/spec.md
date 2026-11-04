@@ -117,14 +117,14 @@ Resolution SHALL be deterministic: function value in `nodeComponents` > `nodeCom
 
 ### Requirement: Behavior injection
 
-The library SHALL allow hosts to replace behavior without replacing UI, including the Markdown pipeline, syntax highlighting, math rendering, heading slug generation, URL transformation, Mermaid rendering, and Mermaid diagnostic formatting. Injected behavior SHALL use documented interfaces, SHALL be validated, and SHALL fall back to the default behavior with a reported error when invalid. Sanitization SHALL be customized through a rehype plugin or schema extension rather than a bespoke HTML hook. Highlighting SHALL support the official highlight.js and Shiki adapters as well as custom adapters through the same node-based interface.
+The library SHALL allow hosts to replace behavior without replacing UI, including the Markdown pipeline, syntax highlighting, math rendering, heading slug generation, URL transformation, Mermaid rendering, and Mermaid diagnostic formatting. Injected behavior SHALL use documented interfaces, SHALL be validated, and SHALL fall back to the default behavior with a reported error when invalid. Sanitization SHALL be customized through a rehype plugin or schema extension rather than a bespoke HTML hook. Highlighting SHALL support the official highlight.js and Shiki adapters as well as custom adapters through the same node-based interface. Highlighting SHALL be opt-in: without a configured adapter the renderer SHALL render plain text and SHALL NOT import a highlighting engine.
 
 #### Scenario: Bring your own highlighter
 - **WHEN** a host supplies a highlighter adapter for a different highlighting engine
 - **THEN** code blocks and the standalone highlighter use it while retaining copy, labels, and layout behavior
 
 #### Scenario: Choose an official highlighter
-- **WHEN** a host selects the Shiki adapter instead of the default highlight.js adapter
+- **WHEN** a host selects the Shiki adapter instead of the highlight.js adapter
 - **THEN** the same components render Shiki output without any component changes
 
 #### Scenario: Custom pipeline

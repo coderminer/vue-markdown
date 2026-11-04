@@ -175,6 +175,8 @@ const aliases = [
   { find: /^@coderminer\/vue-markdown\/highlight\/shiki$/, replacement: src('highlight/shiki.ts') },
   { find: /^@coderminer\/vue-markdown\/highlight$/, replacement: src('highlight/index.ts') },
   { find: /^@coderminer\/vue-markdown\/math$/, replacement: src('math/index.ts') },
+  { find: /^@coderminer\/vue-markdown\/mermaid\/plugin$/, replacement: src('mermaid/plugin.ts') },
+  { find: /^@coderminer\/vue-markdown\/mermaid\/sanitize-svg$/, replacement: src('mermaid/sanitize-svg.ts') },
   { find: /^@coderminer\/vue-markdown\/mermaid$/, replacement: src('mermaid/index.ts') },
   { find: /^@coderminer\/vue-markdown\/editor$/, replacement: src('editor/index.ts') },
   { find: /^@coderminer\/vue-markdown\/html$/, replacement: src('html/index.ts') },

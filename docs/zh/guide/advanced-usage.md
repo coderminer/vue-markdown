@@ -160,7 +160,8 @@ const plugins = [...defaultPlugins, mathPlugin()]
 ## Mermaid
 
 ```ts
-import { renderMermaid, sanitizeSvg } from '@coderminer/vue-markdown/mermaid'
+import { renderMermaid } from '@coderminer/vue-markdown/mermaid'
+import { sanitizeSvg } from '@coderminer/vue-markdown/mermaid/sanitize-svg'
 ```
 
 ```vue

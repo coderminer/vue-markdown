@@ -148,7 +148,7 @@ const props = withDefaults(
     tocPlacement?: 'top' | 'left' | 'right' | 'hidden'
     search?: string
     searchCaseSensitive?: boolean
-    /** Debounce in milliseconds before a new search query is parsed. Default `0`. */
+    /** Debounce in milliseconds before a new query is applied. Default `0`. */
     searchDebounce?: number
     showError?: boolean
     tokens?: Record<string, string>
@@ -156,7 +156,7 @@ const props = withDefaults(
     as?: string | Component
   }>(),
   {
-    source: '',
+    source: undefined,
     components: undefined,
     regions: undefined,
     nodeComponents: undefined,
@@ -276,8 +276,24 @@ const invalidSource = computed(
     typeof (props.source as unknown) !== 'string',
 )
 
+/**
+ * Whether the host actually passed `source`. The prop has no default, so an
+ * explicit empty string stays distinguishable from an absent prop: `source=""`
+ * clears the document, while an absent prop still falls back to the default
+ * slot.
+ */
+const providedSource = computed(() =>
+  props.source !== undefined && props.source !== null
+    ? props.source
+    : undefined,
+)
+
 const effectiveSource = computed(() =>
-  invalidSource.value ? '' : props.source || slotSource.value,
+  invalidSource.value
+    ? ''
+    : providedSource.value !== undefined
+      ? providedSource.value
+      : slotSource.value,
 )
 
 const searchQuery = computed(() =>

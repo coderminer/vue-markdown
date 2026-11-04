@@ -26,6 +26,8 @@
       "@coderminer/vue-markdown/highlight/shiki": ["./src/highlight/shiki.ts"],
       "@coderminer/vue-markdown/math": ["./src/math/index.ts"],
       "@coderminer/vue-markdown/mermaid": ["./src/mermaid/index.ts"],
+      "@coderminer/vue-markdown/mermaid/plugin": ["./src/mermaid/plugin.ts"],
+      "@coderminer/vue-markdown/mermaid/sanitize-svg": ["./src/mermaid/sanitize-svg.ts"],
       "@coderminer/vue-markdown/html": ["./src/html/index.ts"],
       "@coderminer/vue-markdown/editor": ["./src/editor/index.ts"]
     }

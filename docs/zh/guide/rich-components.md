@@ -86,9 +86,11 @@ import MermaidBlock from '@coderminer/vue-markdown/components/MermaidBlock'
 
 ## CodeBlock
 
-`CodeBlock` 是默认的围栏代码组件。没有配置高亮器时，它会懒加载 highlight.js；渲染带强调色
-图标和复制/下载内联 SVG 操作的头部，并接受额外操作。头部与 `MermaidBlock` 保持同一套
-Mermaid 主导的外观。内置图标不需要图标包，每个图标按钮都保留可访问标签和 title。
+`CodeBlock` 是默认的围栏代码组件。未配置高亮器时，它直接渲染转义后的源码，不会引入
+任何高亮引擎；需要高亮时，从 `@coderminer/vue-markdown/highlight` 引入 `highlightjs`
+（或其他适配器）并传入。组件渲染带强调色图标和复制/下载内联 SVG 操作的头部，并接受
+额外操作。头部与 `MermaidBlock` 保持同一套 Mermaid 主导的外观。内置图标不需要图标包，
+每个图标按钮都保留可访问标签和 title。
 
 ```vue
 <script setup lang="ts">

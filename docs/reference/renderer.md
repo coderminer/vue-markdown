@@ -23,7 +23,7 @@ import '@coderminer/vue-markdown/style.css'
 
 | Prop | Type | Default and notes |
 | --- | --- | --- |
-| `source` | `string` | Default `''`. Controlled Markdown input. Wins over the default slot. Supports `v-model:source`. |
+| `source` | `string` | Controlled Markdown input. When absent, the default slot is used; an explicit `''` renders an empty document. Wins over the default slot. Supports `v-model:source`. |
 | `components` | `Record<string, Component \| string>` | Default `{}`. Tag-keyed overrides. |
 | `regions` | `Partial<Record<string, Component \| string>>` | Default `{}`. Root, content, TOC, TOC item, code block, Mermaid block, error, empty, and loading region overrides. |
 | `nodeComponents` | `Record<string, Component \| string \| NodeRenderer>` | Default `{}`. Semantic node overrides and function renderers. |
@@ -36,7 +36,7 @@ import '@coderminer/vue-markdown/style.css'
 | `remarkRehypeOptions` | `Record<string, unknown>` | Default `{}`. Merged into the conversion step. |
 | `pipeline` | `MarkdownPipeline` | Default `official`. Advanced escape hatch; must return hast. |
 | `slugger` | `MarkdownSlugger` | Default `github-slugger`. Heading ID generator. |
-| `highlighter` | `MarkdownHighlighter` | Syntax highlighting adapter. |
+| `highlighter` | `MarkdownHighlighter` | Syntax highlighting adapter. Pass `highlightjs` from `@coderminer/vue-markdown/highlight`; without one, code renders as plain text. |
 | `mathEngine` | `MathEngine` | Math rendering adapter. |
 | `mermaidRenderer` | `MermaidRenderer` | Mermaid rendering adapter. |
 | `mermaidDeferRendering` | `boolean` | Default `true`. Defers Mermaid first renders until each block nears the viewport. Set `false` for print, PDF, or screenshot pipelines. |
@@ -56,7 +56,7 @@ import '@coderminer/vue-markdown/style.css'
 | `tocPlacement` | `'top' \| 'left' \| 'right' \| 'hidden'` | Default `'top'`. Stacks the TOC above the content, places it in a side column, or hides it. |
 | `search` | `string` | Default `''`. Highlights text matches and emits `search-change`. |
 | `searchCaseSensitive` | `boolean` | Default `false`. Makes `search` case-sensitive. |
-| `searchDebounce` | `number` | Default `0`. Milliseconds to wait after the last query change before parsing. |
+| `searchDebounce` | `number` | Milliseconds to wait after the last query change before applying it to the parsed document. Default `0`. |
 | `showError` | `boolean` | Default `true`. Renders the error region on failure. |
 | `tokens` | `Record<string, string>` | Default `{}`. Inline `--vmd-*` custom properties on the root. |
 | `theme` | `'light' \| 'dark' \| 'auto' \| 'custom'` | Default `'light'`. Sets `data-vmd-theme` on the root. |
@@ -76,14 +76,16 @@ the renderer's own root when markup is scoped this way.
 Keep plugin arrays stable as well. Inline factory calls create new plugin
 objects on every parent render and invalidate the parse memo.
 
-`search` is parse-affecting: each settled query change re-parses the document.
-Set `searchDebounce` (for example `200`) for search-as-you-type on large
-documents. The initial query is applied immediately so server rendering still
-includes matches. When both are present, the explicit `search` option wins over
-segments contributed by `searchPlugin()`. `search-change` is emitted only when
-the rendered document belongs to the current query, so pending or failed runs
-do not report stale match counts. Mounting with an empty query emits nothing;
-a later case-sensitivity toggle is a real state change and does emit.
+`search` is presentation-only: it is applied to the already parsed document, so a
+query change updates highlights and match counts without re-parsing. Set
+`searchDebounce` (for example `200`) to throttle search-as-you-type highlight
+updates on large documents. The initial query is applied immediately so server
+rendering still includes matches. When both are present, the explicit `search`
+option wins over segments contributed by `searchPlugin()`. `search-change` is
+emitted only when the rendered document belongs to the current query, so pending
+or failed runs do not report stale match counts. Mounting with an empty query
+emits nothing; a later case-sensitivity toggle is a real state change and does
+emit.
 
 ## Events
 

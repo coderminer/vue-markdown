@@ -174,6 +174,77 @@ const CSS_URL = /url\(\s*([^)]*)\)/gi
 const SCOPED_AT_RULES = new Set(['media', 'supports', 'layer'])
 const SCOPED_STATEMENT_AT_RULES = new Set(['charset', 'layer'])
 
+// Declarations that can take an SVG out of its layout box and turn it into an
+// overlay (for example a fake login prompt covering the host page). The root
+// rule is restricted to a presentation allowlist below; these are also dropped
+// from descendant rules as defense in depth.
+const DANGEROUS_LAYOUT_PROPERTIES = new Set([
+  'position',
+  'inset',
+  'inset-block',
+  'inset-block-start',
+  'inset-block-end',
+  'inset-inline',
+  'inset-inline-start',
+  'inset-inline-end',
+  'top',
+  'right',
+  'bottom',
+  'left',
+  'z-index',
+  'overflow',
+  'overflow-x',
+  'overflow-y',
+])
+
+// Mermaid's root rule carries theme colors and fonts. Anything that controls
+// placement, sizing, stacking, animation, or filtering is intentionally absent:
+// a scoped rule can still target the root `<svg>` and overlay the host page.
+const ROOT_SAFE_PROPERTIES = new Set([
+  'color',
+  'fill',
+  'fill-opacity',
+  'fill-rule',
+  'stroke',
+  'stroke-width',
+  'stroke-dasharray',
+  'stroke-dashoffset',
+  'stroke-linecap',
+  'stroke-linejoin',
+  'stroke-miterlimit',
+  'stroke-opacity',
+  'font',
+  'font-family',
+  'font-size',
+  'font-style',
+  'font-variant',
+  'font-weight',
+  'letter-spacing',
+  'word-spacing',
+  'line-height',
+  'text-align',
+  'text-anchor',
+  'text-decoration',
+  'text-transform',
+  'dominant-baseline',
+  'alignment-baseline',
+  'baseline-shift',
+  'direction',
+  'writing-mode',
+  'white-space',
+  'opacity',
+  'visibility',
+  'background',
+  'background-color',
+  'background-image',
+  'mask',
+  'shape-rendering',
+  'paint-order',
+  'vector-effect',
+  'pointer-events',
+  'cursor',
+])
+
 function isFragmentReference(reference: string): boolean {
   let value = reference.trim()
   const quote = value.charAt(0)
@@ -184,6 +255,35 @@ function isFragmentReference(reference: string): boolean {
     value = value.slice(1, -1).trim()
   }
   return value.startsWith('#')
+}
+
+/**
+ * Presentation attributes that accept a `<url>` value can fetch an external
+ * resource (`fill="url(https://example.com/paint.svg#x)"`). Only same-document
+ * fragment references are safe; anything else drops the attribute. This is the
+ * attribute-level counterpart of the stylesheet `url()` filter.
+ */
+const URL_VALUE_ATTRIBUTES = new Set([
+  'fill',
+  'stroke',
+  'filter',
+  'mask',
+  'clip-path',
+  'marker-start',
+  'marker-mid',
+  'marker-end',
+  'cursor',
+])
+
+const URL_FUNCTION = /url\(\s*([^)]*)\)/gi
+
+function hasOnlyFragmentUrls(value: string): boolean {
+  URL_FUNCTION.lastIndex = 0
+  let match: RegExpExecArray | null
+  while ((match = URL_FUNCTION.exec(value)) !== null) {
+    if (!isFragmentReference(match[1] ?? '')) return false
+  }
+  return true
 }
 
 function attributeName(key: string): string | undefined {
@@ -214,9 +314,11 @@ function safeAttributes(element: Element): Record<string, string> {
     }
     const value = properties[key]
     if (value === null || value === undefined || value === false) continue
-    attrs[name] = Array.isArray(value)
+    const text = Array.isArray(value)
       ? value.map(String).join(' ')
       : String(value)
+    if (URL_VALUE_ATTRIBUTES.has(name) && !hasOnlyFragmentUrls(text)) continue
+    attrs[name] = text
   }
   return attrs
 }
@@ -417,14 +519,216 @@ function isScopedStyleSheet(css: string, scope: string): boolean {
   return true
 }
 
+function stripCssComments(css: string): string {
+  let output = ''
+  let index = 0
+  let quote = ''
+  while (index < css.length) {
+    const char = css.charAt(index)
+    if (quote) {
+      output += char
+      if (char === '\\') {
+        output += css.charAt(index + 1)
+        index += 2
+        continue
+      }
+      if (char === quote) quote = ''
+      index += 1
+      continue
+    }
+    if (char === '"' || char === "'") {
+      quote = char
+      output += char
+      index += 1
+      continue
+    }
+    if (char === '/' && css.charAt(index + 1) === '*') {
+      const close = css.indexOf('*/', index + 2)
+      if (close === -1) return output
+      output += ' '
+      index = close + 2
+      continue
+    }
+    output += char
+    index += 1
+  }
+  return output
+}
+
+function splitDeclarations(body: string): string[] {
+  const parts: string[] = []
+  let current = ''
+  let quote = ''
+  let depth = 0
+  for (let index = 0; index < body.length; index++) {
+    const char = body.charAt(index)
+    if (quote) {
+      current += char
+      if (char === '\\') {
+        current += body.charAt(index + 1)
+        index += 1
+      } else if (char === quote) {
+        quote = ''
+      }
+      continue
+    }
+    if (char === '"' || char === "'") {
+      quote = char
+      current += char
+      continue
+    }
+    if (char === '(' || char === '[') depth += 1
+    else if (char === ')' || char === ']') depth = Math.max(0, depth - 1)
+    if (char === ';' && depth === 0) {
+      parts.push(current)
+      current = ''
+      continue
+    }
+    current += char
+  }
+  parts.push(current)
+  return parts
+}
+
+/**
+ * Remove declarations whose property is not allowed (or is denied) while
+ * leaving the rest of the stylesheet untouched.
+ */
+function filterDeclarations(
+  body: string,
+  allow?: ReadonlySet<string>,
+  deny?: ReadonlySet<string>,
+): string {
+  const kept: string[] = []
+  for (const part of splitDeclarations(body)) {
+    const colon = part.indexOf(':')
+    if (colon === -1) continue
+    const property = part.slice(0, colon).trim().toLowerCase()
+    if (!property) continue
+    if (allow) {
+      if (!allow.has(property)) continue
+    } else if (deny?.has(property)) {
+      continue
+    }
+    kept.push(part.trim())
+  }
+  return kept.join(';')
+}
+
+/** Does this selector target the root SVG element itself? */
+function targetsRoot(selector: string, scope: string): boolean {
+  const value = selector.trim()
+  if (!value.startsWith(scope)) return false
+  const rest = value.slice(scope.length)
+  if (rest === '') return true
+  // A leading whitespace or combinator selects a descendant or sibling.
+  if (rest.startsWith('>') || rest.startsWith('+') || rest.startsWith('~')) {
+    return false
+  }
+  return !/^\s/.test(rest)
+}
+
+/**
+ * Rewrite rule bodies while walking nested conditional at-rules. The stylesheet
+ * has already passed `isScopedStyleSheet`, so the structure is known to be
+ * well-formed and every selector is scoped to the root SVG.
+ */
+function rewriteStyleSheet(css: string, scope: string): string {
+  let output = ''
+  let index = 0
+  while (index < css.length) {
+    const start = index
+    let quote = ''
+    let depth = 0
+    let open = -1
+    let semicolon = -1
+    for (; index < css.length; index++) {
+      const char = css.charAt(index)
+      if (quote) {
+        if (char === '\\') index++
+        else if (char === quote) quote = ''
+        continue
+      }
+      if (char === '"' || char === "'") {
+        quote = char
+        continue
+      }
+      if (char === '(' || char === '[') depth += 1
+      else if (char === ')' || char === ']') depth = Math.max(0, depth - 1)
+      else if (depth === 0) {
+        if (char === '{') {
+          open = index
+          break
+        }
+        if (char === ';') {
+          semicolon = index
+          break
+        }
+      }
+    }
+    if (quote) {
+      output += css.slice(start)
+      break
+    }
+    if (open === -1 && semicolon === -1) {
+      output += css.slice(start)
+      break
+    }
+    if (semicolon !== -1) {
+      output += css.slice(start, semicolon + 1)
+      index = semicolon + 1
+      continue
+    }
+
+    const end = findBlockEnd(css, open, css.length)
+    if (end === -1) {
+      output += css.slice(start)
+      break
+    }
+    const prelude = css.slice(start, open)
+    const body = css.slice(open + 1, end)
+    const atRule = prelude.trimStart()
+    output += css.slice(start, open + 1)
+    if (atRule.startsWith('@')) {
+      const name = atRuleName(atRule)
+      if (SCOPED_AT_RULES.has(name)) {
+        output += rewriteStyleSheet(body, scope)
+      } else {
+        // Keyframes stay intact: the root rule cannot reference them because
+        // `animation` is not in the allowlist.
+        output += body
+      }
+    } else if (
+      splitSelectors(prelude).some((selector) => targetsRoot(selector, scope))
+    ) {
+      output += filterDeclarations(body, ROOT_SAFE_PROPERTIES)
+    } else {
+      output += filterDeclarations(
+        body,
+        undefined,
+        DANGEROUS_LAYOUT_PROPERTIES,
+      )
+    }
+    output += '}'
+    index = end + 1
+  }
+  return output
+}
+
 function sanitizeStyleSheet(
   css: string,
   scope: string | undefined,
 ): string | undefined {
-  if (!scope || !css.trim() || UNSAFE_CSS.test(css)) return undefined
-  if (!isScopedStyleSheet(css, scope)) return undefined
-  const safe = css.replace(CSS_URL, (match, reference: string) =>
-    isFragmentReference(reference) ? match : 'none',
+  if (!scope || !css.trim()) return undefined
+  // Strip comments first so `pos/**/ition` or `@im/**/port` cannot hide a
+  // construct from the checks below.
+  const source = stripCssComments(css)
+  if (!source.trim() || UNSAFE_CSS.test(source)) return undefined
+  if (!isScopedStyleSheet(source, scope)) return undefined
+  const safe = rewriteStyleSheet(source, scope).replace(
+    CSS_URL,
+    (match, reference: string) =>
+      isFragmentReference(reference) ? match : 'none',
   )
   return safe.trim() ? safe : undefined
 }
@@ -620,6 +924,9 @@ function safeModelAttributes(
     const value = String(attrs[key])
     if (name === 'href' || name === 'xlink:href') {
       if (value.startsWith('#')) safe[name] = value
+      continue
+    }
+    if (URL_VALUE_ATTRIBUTES.has(name) && !hasOnlyFragmentUrls(value)) {
       continue
     }
     safe[name] = value

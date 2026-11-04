@@ -56,7 +56,7 @@ description: 公共组件、区域、富节点，以及组件清单注册表。
 
 | 组件 | 入口 | 作用 |
 | --- | --- | --- |
-| `CodeBlock` | 默认 | 代码头部、语言、复制/下载、按需高亮 |
+| `CodeBlock` | 默认 | 代码头部、语言、复制/下载、显式高亮器 |
 | `VueSyntaxHighlighter` | 默认 | 带行号的独立高亮片段 |
 | `MermaidBlock` | 默认 | 预览/源码标签、缩放、全屏、复制、SVG/PNG 导出 |
 | `MermaidLiveEditor` | 默认 | 基于 CodeMirror 的 Mermaid 编辑器 |
@@ -70,10 +70,15 @@ import { katexEngine, mathPlugin } from '@coderminer/vue-markdown/math'
 import {
   mermaidPlugin,
   renderMermaid,
-  sanitizeSvg,
 } from '@coderminer/vue-markdown/mermaid'
+import { sanitizeSvg } from '@coderminer/vue-markdown/mermaid/sanitize-svg'
 import { createMermaidEditor } from '@coderminer/vue-markdown/editor'
 ```
+
+只需要 `mermaidPlugin` 时，请从 `@coderminer/vue-markdown/mermaid/plugin` 引入，把导入面
+限制在插件及其组件。同步 `sanitizeSvg` 位于
+`@coderminer/vue-markdown/mermaid/sanitize-svg`；Mermaid 运行时按需净化，不会静态加载
+HTML 解析器。
 
 `MarkdownMermaid` 把 `renderer`、`theme`、`showErrors`、`enableZoom`、`allowFullscreen`
 和 `compact` 转发给 `MermaidBlock`。`MarkdownMath` 接受独立的 `mathEngine` 属性。

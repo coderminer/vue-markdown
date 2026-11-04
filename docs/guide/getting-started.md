@@ -49,7 +49,7 @@ npm install shiki
 ```
 
 ```bash [KaTeX]
-npm install katex
+npm install katex remark-math rehype-katex
 ```
 
 ```bash [Mermaid]
@@ -70,6 +70,17 @@ npm install @codemirror/state @codemirror/view @codemirror/language @codemirror/
 
 Raw HTML requires `rehype-raw` only when you import `htmlPlugin()` from
 `@coderminer/vue-markdown/html`.
+
+Engines load only when their entry is imported. For example, syntax highlighting
+is opt-in:
+
+```ts
+import { highlightjs } from '@coderminer/vue-markdown/highlight'
+```
+
+```vue
+<MarkdownRenderer :source="source" :highlighter="highlightjs" />
+```
 
 ## Render your first document
 

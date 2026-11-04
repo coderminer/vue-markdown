@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { renderMermaid, sanitizeSvg } from '../../src/mermaid'
+import { renderMermaid } from '../../src/mermaid'
+import { sanitizeSvg } from '../../src/mermaid/sanitize-svg'
 import { sanitizeMermaidNodes } from '../../src/mermaid/sanitize'
 
 describe('Mermaid sanitization', () => {
@@ -82,6 +83,52 @@ describe('Mermaid sanitization', () => {
     expect(unsafeHtml).not.toContain('evil.example')
   })
 
+  it('drops external url() references in presentation attributes', () => {
+    const nodes = sanitizeSvg(
+      '<svg id="d"><defs><linearGradient id="a"/></defs>' +
+        '<rect fill="url(https://evil.example/p.svg#a)" stroke="url(#a)"/>' +
+        '<rect filter="url(https://evil.example/f.svg#f)"/>' +
+        '<rect cursor="url(https://evil.example/c.cur), auto"/>' +
+        '<rect clip-path="url(https://evil.example/c.svg#c)"/>' +
+        '<rect marker-start="url(https://evil.example/m.svg#m)"/>' +
+        '<rect fill="url(#a) red"/></svg>',
+    )
+    const html = JSON.stringify(nodes)
+    expect(html).not.toContain('evil.example')
+    expect(html).toContain('"stroke":"url(#a)"')
+    expect(html).toContain('"fill":"url(#a) red"')
+    expect(html).not.toContain('"filter"')
+    expect(html).not.toContain('"cursor"')
+    expect(html).not.toContain('"clip-path"')
+    expect(html).not.toContain('"marker-start"')
+  })
+
+  it('drops external url() references in injected renderer nodes', () => {
+    const nodes = sanitizeMermaidNodes([
+      {
+        kind: 'element',
+        key: '0',
+        tag: 'svg',
+        attrs: { id: 'd' },
+        children: [
+          {
+            kind: 'element',
+            key: '0.0',
+            tag: 'rect',
+            attrs: {
+              fill: 'url(https://evil.example/p.svg#a)',
+              stroke: 'url(#a)',
+            },
+            children: [],
+          },
+        ],
+      },
+    ])
+    const html = JSON.stringify(nodes)
+    expect(html).not.toContain('evil.example')
+    expect(html).toContain('"stroke":"url(#a)"')
+  })
+
   it('keeps quoted and padded fragment URLs in scoped theme CSS', () => {
     const nodes = sanitizeSvg(
       '<svg id="d"><defs><linearGradient id="a"/></defs><style>#d{fill:url(#a);stroke:url("#a");background:url( #a );mask:url("https://evil.example/x.png")}</style><rect/></svg>',
@@ -127,6 +174,33 @@ describe('Mermaid sanitization', () => {
     expect(html).toContain('@media')
     expect(html).toContain('@keyframes')
     expect(html).toContain('#d .edge')
+  })
+
+  it('strips viewport-escaping declarations from scoped stylesheets', () => {
+    const nodes = sanitizeSvg(
+      '<svg id="d"><style>#d{position:fixed;inset:0;width:100vw;height:100vh;z-index:99999;fill:#333}#d .node{position:absolute;top:0;left:0;fill:#0f0}</style><g class="node"><rect/></g></svg>',
+    )
+    const html = JSON.stringify(nodes)
+    expect(html).not.toContain('position')
+    expect(html).not.toContain('inset')
+    expect(html).not.toContain('100vw')
+    expect(html).not.toContain('z-index')
+    expect(html).not.toContain('top:0')
+    expect(html).not.toContain('left:0')
+    // Theme declarations and descendant selectors survive.
+    expect(html).toContain('fill:#333')
+    expect(html).toContain('#d .node')
+    expect(html).toContain('fill:#0f0')
+  })
+
+  it('filters root declarations inside conditional at-rules', () => {
+    const nodes = sanitizeSvg(
+      '<svg id="d"><style>@media (min-width:1px){#d{position:fixed;fill:#123}}@keyframes vmd-pulse{from{opacity:0}to{opacity:1}}</style><rect/></svg>',
+    )
+    const html = JSON.stringify(nodes)
+    expect(html).not.toContain('position')
+    expect(html).toContain('fill:#123')
+    expect(html).toContain('@keyframes')
   })
 
   it('keeps Mermaid useMaxWidth output at its intended pixel size', () => {
@@ -181,6 +255,14 @@ describe('Mermaid sanitization', () => {
 
     const scoped = sanitizeMermaidNodes([svg('#d rect{fill:#0f0}', 'd')])
     expect(JSON.stringify(scoped)).toContain('"tag":"style"')
+
+    const escaping = sanitizeMermaidNodes([
+      svg('#d{position:fixed;inset:0;fill:#0f0}', 'd'),
+    ])
+    const escapingHtml = JSON.stringify(escaping)
+    expect(escapingHtml).not.toContain('position')
+    expect(escapingHtml).not.toContain('inset')
+    expect(escapingHtml).toContain('fill:#0f0')
 
     const unscoped = sanitizeMermaidNodes([svg('body{background:#f00}', 'd')])
     expect(JSON.stringify(unscoped)).not.toContain('"tag":"style"')

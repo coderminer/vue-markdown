@@ -3,8 +3,11 @@ import { flushPromises, mount } from '@vue/test-utils'
 import MarkdownRenderer from '../../src/components/MarkdownRenderer.vue'
 import { mermaidPlugin } from '../../src/mermaid/plugin'
 import type { MermaidPluginOptions } from '../../src/mermaid/plugin'
-import type { MermaidRenderer, PluginContext } from '../../src/core/types'
-
+import type {
+  MarkdownPlugin,
+  MermaidRenderer,
+  PluginContext,
+} from '../../src/core/types'
 const renderer: MermaidRenderer = {
   id: 'plugin-test',
   render: () => ({
@@ -119,6 +122,33 @@ describe('mermaidPlugin', () => {
     const keys = (document?.nodes ?? []).map((node) => node.key)
 
     expect(keys[0]).not.toBe(keys[1])
+  })
+
+  it('renders an unregistered mermaid node as a code block', async () => {
+    const plugin: MarkdownPlugin = {
+      name: 'raw-mermaid-node',
+      transformDocument: (document) => ({
+        ...document,
+        nodes: [
+          {
+            kind: 'mermaid',
+            key: 'mermaid:raw:1',
+            code: 'flowchart LR\n  A --> B',
+            complete: true,
+            index: 0,
+          },
+        ],
+      }),
+    }
+    const wrapper = mount(MarkdownRenderer, {
+      props: {
+        source: '```mermaid\nflowchart LR\n  A --> B\n```',
+        plugins: [plugin],
+      },
+    })
+    await flushPromises()
+    expect(wrapper.find('[data-vmd-part="mermaid"]').exists()).toBe(false)
+    expect(wrapper.find('[data-vmd-part="code"]').text()).toContain('flowchart LR')
   })
 
   it('rejects renderer arguments instead of ignoring them', () => {

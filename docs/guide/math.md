@@ -4,7 +4,12 @@ description: mathPlugin, KaTeX, delimiters, macros, and graceful fallbacks.
 
 # Math
 
-Math ships as an optional entry so KaTeX is not part of the core bundle.
+Math ships as an optional entry so KaTeX is not part of the core bundle. Install
+the math peers before importing it:
+
+```bash
+npm install katex remark-math rehype-katex
+```
 
 ```ts
 import { defaultPlugins } from '@coderminer/vue-markdown/plugins'

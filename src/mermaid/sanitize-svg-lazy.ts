@@ -6,8 +6,8 @@ import { sanitizeHastNodes } from './sanitize'
  *
  * The renderer and the default Mermaid runtime only need this after a diagram
  * has actually rendered, so the parser can stay in a lazy chunk. The
- * synchronous `sanitizeSvg` export remains available from the Mermaid entry for
- * hosts that need it during their own render pass.
+ * synchronous `sanitizeSvg` export lives in the `mermaid/sanitize-svg` entry
+ * for hosts that need it during their own render pass.
  */
 export async function sanitizeSvgAsync(svg: string): Promise<MarkdownNode[]> {
   const { fromHtml } = await import('hast-util-from-html')

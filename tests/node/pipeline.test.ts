@@ -228,6 +228,40 @@ describe('pipeline stages and raw HTML', () => {
     expect(json.toLowerCase()).not.toContain('srcdoc')
   })
 
+  it('prefixes raw HTML ids and names to prevent DOM clobbering', () => {
+    const model = parse('<a id="app" name="getElementById">x</a>', [
+      ...defaultPlugins,
+      htmlPlugin(),
+    ])
+    const json = JSON.stringify(model.nodes)
+    expect(json).toContain('"id":"user-content-app"')
+    expect(json).toContain('"name":"user-content-getElementById"')
+  })
+
+  it('keeps raw-HTML fragment links pointing at prefixed targets', () => {
+    const model = parse('<div id="target">x</div>\n\n[go](#target)', [
+      ...defaultPlugins,
+      htmlPlugin(),
+    ])
+    const json = JSON.stringify(model.nodes)
+    expect(json).toContain('"id":"user-content-target"')
+    expect(json).toContain('"href":"#user-content-target"')
+  })
+
+  it('leaves heading anchors and footnote links intact', () => {
+    const model = parse('## Hello\n\n[go](#hello)\n\nText[^1]\n\n[^1]: note', [
+      ...defaultPlugins,
+      gfmPlugin,
+      htmlPlugin(),
+    ])
+    expect(model.toc[0]?.id).toBe('hello')
+    const json = JSON.stringify(model.nodes)
+    expect(json).toContain('"href":"#hello"')
+    expect(json).toContain('"id":"user-content-fn-1"')
+    expect(json).toContain('"href":"#user-content-fn-1"')
+    expect(json).toContain('"href":"#user-content-fnref-1"')
+  })
+
   it('runs library slug output before host rehype plugins', () => {
     const seen: Array<string | undefined> = []
     const hostPlugin = () => (tree: unknown) => {

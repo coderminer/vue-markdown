@@ -21,7 +21,9 @@ the detailed behavior.
 | `@coderminer/vue-markdown/highlight` | highlight.js adapter and normalization helpers |
 | `@coderminer/vue-markdown/highlight/shiki` | Optional Shiki adapter |
 | `@coderminer/vue-markdown/math` | `mathPlugin`, `katexEngine`, math types |
-| `@coderminer/vue-markdown/mermaid` | `mermaidPlugin`, lazy Mermaid runtime, SVG sanitizer |
+| `@coderminer/vue-markdown/mermaid` | Lazy Mermaid runtime, node allowlist, and `mermaidPlugin` |
+| `@coderminer/vue-markdown/mermaid/plugin` | `mermaidPlugin` only; no runtime helper exports |
+| `@coderminer/vue-markdown/mermaid/sanitize-svg` | Synchronous `sanitizeSvg`; loads the HTML parser |
 | `@coderminer/vue-markdown/editor` | Lazy CodeMirror Mermaid editor |
 | `@coderminer/vue-markdown/html` | `htmlPlugin`, sanitized raw HTML, schema extension |
 | `@coderminer/vue-markdown/components/*` | One entry per public component |
@@ -75,7 +77,7 @@ renders the normalized document.
 | `remarkRehypeOptions` | `Record<string, unknown>` | Conversion options. |
 | `pipeline` | `MarkdownPipeline` | Custom pipeline; must return hast. |
 | `slugger` | `MarkdownSlugger` | Heading ID generator. |
-| `highlighter` | `MarkdownHighlighter` | Syntax highlighting adapter. |
+| `highlighter` | `MarkdownHighlighter` | Syntax highlighting adapter. Pass `highlightjs` from `@coderminer/vue-markdown/highlight` to enable highlighting; without one, code renders as plain text. |
 | `mathEngine` | `MathEngine` | Math rendering adapter. |
 | `mermaidRenderer` | `MermaidRenderer` | Mermaid rendering adapter. |
 | `mermaidDeferRendering` | `boolean` | Defers Mermaid first renders until each block nears the viewport. Default `true`; set `false` for print, PDF, or screenshot pipelines. |
@@ -95,7 +97,7 @@ renders the normalized document.
 | `tocPlacement` | `'top' \| 'left' \| 'right' \| 'hidden'` | Stacks, sides, or hides the TOC. Default `'top'`. |
 | `search` | `string` | Highlights matches and emits `search-change`. |
 | `searchCaseSensitive` | `boolean` | Makes `search` case-sensitive. |
-| `searchDebounce` | `number` | Milliseconds before a new query is parsed. Default `0`. |
+| `searchDebounce` | `number` | Milliseconds before a new query is applied to the parsed document. Default `0`. |
 | `showError` | `boolean` | Renders the error region on failure. Default `true`. |
 | `tokens` | `Record<string, string>` | Inline `--vmd-*` custom properties. |
 | `theme` | `'light' \| 'dark' \| 'auto' \| 'custom'` | Sets `data-vmd-theme`. |
@@ -674,7 +676,7 @@ const {
 | --- | --- |
 | Model | `buildDocument`, `withDerivedDocument` |
 | Normalization | `normalizeHast`, `extractToc`, `filterTocByDepth`, `collectCustomTags`, `walkNodes` |
-| Search | `searchDocument`, `segmentSearch`, `countSearchMatches` |
+| Search | `searchDocument`, `segmentSearch`, `withSearchSegments`, `countSearchMatches` |
 | URL | `defaultUrlTransform`, `isExternalUrl`, `resolveUrl` |
 | Diagnostics | `createDiagnostic`, `errorMessage` |
 | Memoization | `memoGet`, `memoSet`, `memoClear`, `memoSize` |

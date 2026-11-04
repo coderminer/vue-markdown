@@ -18,21 +18,6 @@ import type {
 import { createDiagnostic, errorMessage } from '../core/diagnostics'
 import { plaintextHighlight, runHighlighter } from '../highlight/shared'
 
-let defaultHighlighterPromise: Promise<MarkdownHighlighter> | undefined
-
-function loadDefaultHighlighter(): Promise<MarkdownHighlighter> {
-  if (!defaultHighlighterPromise) {
-    defaultHighlighterPromise = import('../highlight/highlightjs')
-      .then((module) => module.highlightjs)
-      .catch((error) => {
-        // Allow a later block to retry after a transient chunk-load failure.
-        defaultHighlighterPromise = undefined
-        throw error
-      })
-  }
-  return defaultHighlighterPromise
-}
-
 export interface UseCodeHighlighterOptions {
   source: MaybeRefOrGetter<string>
   language: MaybeRefOrGetter<string>
@@ -58,9 +43,10 @@ export interface UseCodeHighlighterReturn {
 /**
  * Shared highlighter state for `CodeBlock` and `VueSyntaxHighlighter`.
  *
- * Keeping the lazy default adapter, theme mapping, readiness loading, and
- * diagnostics in one place prevents the two public components from drifting
- * apart as adapters are added.
+ * Keeping theme mapping, readiness loading, and diagnostics in one place
+ * prevents the two public components from drifting apart as adapters are added.
+ * Highlighting is opt-in: without a supplied adapter the state stays plain text
+ * and no engine is imported.
  */
 export function useCodeHighlighter(
   options: UseCodeHighlighterOptions,
@@ -113,26 +99,9 @@ export function useCodeHighlighter(
     }
 
     if (!instance) {
-      try {
-        instance = await loadDefaultHighlighter()
-      } catch (error) {
-        reportDiagnostic(
-          createDiagnostic(
-            'highlighter-unavailable',
-            'The default highlight.js adapter could not be loaded. Install the optional `highlight.js` peer dependency to enable syntax highlighting.',
-            { severity: 'warning', phase: 'render' },
-          ),
-        )
-        if (import.meta.env.DEV) {
-          console.error('highlight.js failed to load', error)
-        }
-        instance = undefined
-      }
-    }
-
-    if (current !== generation) return
-
-    if (!instance || typeof instance.highlight !== 'function') {
+      // No adapter was supplied. Syntax highlighting is an explicit opt-in, so
+      // the block renders escaped source without importing an engine.
+      if (current !== generation) return
       active.value = undefined
       result.value = plaintextHighlight(
         toValue(options.source),
@@ -140,6 +109,8 @@ export function useCodeHighlighter(
       )
       return
     }
+
+    if (current !== generation) return
 
     active.value = instance
     try {

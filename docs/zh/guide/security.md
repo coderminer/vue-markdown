@@ -64,6 +64,18 @@ const plugins = [
 后运行的宿主 rehype 插件也无法绕过 core 对不安全 URL 的过滤。URL 协议策略是内核不变式，
 不可扩展。
 
+### id、name 与 class
+
+原始 HTML 被视为不可信内容，净化器会给 `id` 和 `name` 加上 `user-content-` 前缀。
+同文档片段链接会自动改写到加前缀的目标，因此
+`<div id="note"></div><a href="#note">` 在文档内部仍能正常跳转。库生成的标题 id 不会
+加前缀，目录和 `#heading` 链接保持不变。
+
+`class` 会保留，方便作者为自己的标记添加样式。库不会给 class 加命名空间：如果宿主使用
+全局工具类 CSS（如 Tailwind），这些工具类也会作用到不可信标记上。当内容不可信且宿主
+使用工具类时，请把输出放进 shadow root，或把该 CSS 限定在可信区域；`class` 本身不是
+隔离边界。
+
 ## URL 策略
 
 `defaultUrlTransform` 实现包的 URL 策略：

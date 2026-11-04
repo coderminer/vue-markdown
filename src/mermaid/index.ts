@@ -1,5 +1,4 @@
 export { renderMermaid, resetMermaidRuntime } from './runtime'
-export { sanitizeSvg } from './sanitize-svg'
 export { MERMAID_ALLOWED_TAGS } from './sanitize'
 export { mermaidPlugin } from './plugin'
 export type { MermaidPluginOptions } from './plugin'

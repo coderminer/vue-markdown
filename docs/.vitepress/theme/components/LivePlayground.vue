@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { useData } from 'vitepress'
 import { MarkdownRenderer } from '@coderminer/vue-markdown'
+import { highlightjs } from '@coderminer/vue-markdown/highlight'
 import { fullPlugins } from '@coderminer/vue-markdown/plugins'
 import { mathPlugin } from '@coderminer/vue-markdown/math'
 import { mermaidPlugin } from '@coderminer/vue-markdown/mermaid'
@@ -429,6 +430,7 @@ function reset(): void {
             :source="source"
             :plugins="plugins"
             :theme="theme"
+            :highlighter="highlightjs"
             :toc="showToc"
             show-error
           />

@@ -19,7 +19,7 @@ The project SHALL build a distributable library that exposes ES modules and Type
 
 ### Requirement: Public entry points
 
-The package SHALL provide documented entries for the styled root, headless API, pipeline, plugins, presets, node components, the default highlight.js adapter, the optional Shiki adapter, the optional KaTeX math entry, the optional Mermaid plugin/runtime entry, the optional sanitized raw HTML entry, individual components, design tokens, math container styles, a self-contained math stylesheet, and the aggregate stylesheet. Each entry SHALL be independently importable and SHALL NOT require importing the root entry.
+The package SHALL provide documented entries for the styled root, headless API, pipeline, plugins, presets, node components, the default highlight.js adapter, the optional Shiki adapter, the optional KaTeX math entry, the optional Mermaid runtime entry, the lightweight Mermaid plugin entry, the optional synchronous Mermaid SVG sanitizer entry, the optional sanitized raw HTML entry, individual components, design tokens, math container styles, a self-contained math stylesheet, and the aggregate stylesheet. Each entry SHALL be independently importable and SHALL NOT require importing the root entry.
 
 #### Scenario: Root import
 - **WHEN** a consumer imports a preset component from the package root
@@ -33,13 +33,25 @@ The package SHALL provide documented entries for the styled root, headless API, 
 - **WHEN** a consumer imports the Shiki or KaTeX entry
 - **THEN** only that adapter and its declared optional peers are required
 
+#### Scenario: Lightweight Mermaid plugin import
+- **WHEN** a consumer imports `@coderminer/vue-markdown/mermaid/plugin`
+- **THEN** the module provides `mermaidPlugin` without the synchronous SVG sanitizer or the HTML parser it statically imports
+
+#### Scenario: Mermaid runtime import
+- **WHEN** a consumer imports `@coderminer/vue-markdown/mermaid`
+- **THEN** the entry provides the lazy runtime and plugin without statically loading the HTML parser, which remains in the runtime's lazy sanitizer chunk
+
+#### Scenario: Synchronous Mermaid sanitizer import
+- **WHEN** a consumer imports `@coderminer/vue-markdown/mermaid/sanitize-svg`
+- **THEN** the module provides the synchronous `sanitizeSvg` and is the only Mermaid entry that statically loads the HTML parser
+
 #### Scenario: Per-component import
 - **WHEN** a consumer imports a single component from its dedicated entry
 - **THEN** only that component's module graph and declared dependencies are loaded
 
 ### Requirement: Dependency contract
 
-Vue SHALL be a peer dependency and SHALL NOT be bundled into the published output. The official `unified`/`remark` pipeline, `hast-util-*`, and `rehype-sanitize`/`hast-util-sanitize` SHALL be default dependencies. The default highlight.js adapter SHALL be isolated behind its documented entry, and the optional Shiki, KaTeX, Mermaid, CodeMirror, and `rehype-raw` ecosystems SHALL be optional peers or dynamic imports so they are installed only by consumers who select them. `rehype-raw` SHALL be required only by the `@coderminer/vue-markdown/html` entry. The package SHALL NOT depend on `markdown-it`, `htmlparser2`, or an icon library.
+Vue SHALL be a peer dependency and SHALL NOT be bundled into the published output. The official `unified`/`remark` pipeline, `hast-util-*`, and `rehype-sanitize`/`hast-util-sanitize` SHALL be default dependencies. The default highlight.js adapter SHALL be isolated behind its documented entry, and the base renderer SHALL NOT import it: code blocks SHALL render plain text until the host supplies an adapter. The optional Shiki, KaTeX (`katex`, `remark-math`, `rehype-katex`), Mermaid, CodeMirror, and `rehype-raw` ecosystems SHALL be optional peers or dynamic imports so they are installed only by consumers who select them. `rehype-raw` SHALL be required only by the `@coderminer/vue-markdown/html` entry, and `remark-math`/`rehype-katex` SHALL be required only by the math entry. The package SHALL NOT depend on `markdown-it`, `htmlparser2`, or an icon library.
 
 #### Scenario: Single Vue instance
 - **WHEN** a Vue application installs the package
@@ -48,6 +60,10 @@ Vue SHALL be a peer dependency and SHALL NOT be bundled into the published outpu
 #### Scenario: Omit default highlighter
 - **WHEN** a consumer imports a component entry without the highlight.js adapter and supplies its own highlighter
 - **THEN** highlight.js is not included in that consumer's bundle
+
+#### Scenario: Omit math
+- **WHEN** a consumer does not import `@coderminer/vue-markdown/math`
+- **THEN** `katex`, `remark-math`, and `rehype-katex` are not required to install or build the package
 
 #### Scenario: Optional peers not installed
 - **WHEN** a consumer does not install the Shiki or KaTeX peers

@@ -28,7 +28,7 @@ const props: Row[] = [
   { name: 'remarkRehypeOptions', type: 'Record<string, unknown>', fallback: '{}', notes: 'Merged into the mdast → hast conversion.' },
   { name: 'pipeline', type: 'MarkdownPipeline', fallback: 'official', notes: 'Advanced escape hatch. Must return a hast root.' },
   { name: 'slugger', type: 'MarkdownSlugger', fallback: 'github-slugger', notes: 'Heading ID generator.' },
-  { name: 'highlighter', type: 'MarkdownHighlighter', fallback: '—', notes: 'Code adapter. highlight.js is loaded lazily; Shiki is a separate entry.' },
+  { name: 'highlighter', type: 'MarkdownHighlighter', fallback: '—', notes: 'Code adapter. Pass highlightjs from the highlight entry; Shiki is a separate entry.' },
   { name: 'mathEngine', type: 'MathEngine', fallback: '—', notes: 'Math adapter. katexEngine is available from the math entry.' },
   { name: 'mermaidRenderer', type: 'MermaidRenderer', fallback: '—', notes: 'Diagram adapter used by MermaidBlock.' },
   { name: 'diagnosticsFormatter', type: 'DiagnosticFormatter', fallback: '—', notes: 'Formats thrown render errors into diagnostics.' },

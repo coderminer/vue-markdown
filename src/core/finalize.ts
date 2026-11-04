@@ -7,7 +7,7 @@ import type {
 } from './types'
 import type { ResolvedPlugins } from '../plugins/registry'
 import { createPluginContext } from '../plugins/define'
-import { createDiagnostic, errorMessage } from './diagnostics'
+import { createDiagnostic, errorMessage, reportPluginError } from './diagnostics'
 import { buildDocument, withDerivedDocument } from './model'
 import { normalizeHast } from './normalize'
 import { searchDocument } from './search'
@@ -21,6 +21,12 @@ export interface FinalizeDocumentOptions {
   slugger: MarkdownSlugger
   idPrefix: string
   diagnostics: MarkdownDiagnostic[]
+  /**
+   * Apply `options.search` segmentation to the returned document. Defaults to
+   * `true`. The reactive composable passes `false` so the parse cache stays
+   * query-independent and search is derived separately.
+   */
+  search?: boolean
 }
 
 /**
@@ -74,14 +80,14 @@ export function finalizeMarkdownDocument(
           plugin: plugin.name,
         }),
       )
-      plugin.onError?.(error, 'document', context)
+      reportPluginError(plugin, error, 'document', context, diagnostics)
     }
   }
 
   // The host-level search option is the renderer-friendly form of the search
   // transform. Run it after plugin transforms so the explicit option wins when
   // both are present.
-  if (options.search?.query?.trim()) {
+  if (input.search !== false && options.search?.query?.trim()) {
     documentValue = searchDocument(documentValue, options.search)
   }
 

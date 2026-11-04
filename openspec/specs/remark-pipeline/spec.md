@@ -115,7 +115,7 @@ The library SHALL provide a `frontmatterPlugin` that composes `remark-frontmatte
 
 ### Requirement: Custom pipeline injection
 
-The library SHALL define a typed `MarkdownPipeline` contract that accepts source and context and returns hast plus optional metadata and diagnostics. The renderer, headless composable, provider, and presets SHALL accept a pipeline. Local configuration SHALL override provider and preset configuration. A custom pipeline SHALL NOT construct Vue components or bypass core normalization, sanitization, heading IDs, TOC, or model invariants. The active pipeline identity and capabilities SHALL be inspectable.
+The library SHALL define a typed `MarkdownPipeline` contract that accepts source and context and returns hast plus optional metadata and diagnostics. A pipeline MAY declare a `version` string; it SHALL participate in the memoization identity so a revision bump invalidates cached documents. The active pipeline's process-local instance identity SHALL also participate, so two pipelines that share a name cannot reuse each other's documents. The renderer, headless composable, provider, and presets SHALL accept a pipeline. Local configuration SHALL override provider and preset configuration. A custom pipeline SHALL NOT construct Vue components or bypass core normalization, sanitization, heading IDs, TOC, or model invariants. The active pipeline identity and capabilities SHALL be inspectable.
 
 #### Scenario: Custom pipeline
 - **WHEN** a host implements `MarkdownPipeline` and returns valid hast
@@ -155,11 +155,15 @@ All pipeline output SHALL pass core URL and attribute safety checks before enter
 
 ### Requirement: Pipeline lifecycle
 
-Pipeline instances SHALL be created per renderer or provider scope, reused across renders when configuration is unchanged, and released on unmount or pipeline replacement. No pipeline module SHALL access browser globals at import time.
+The document composable SHALL create one official pipeline instance per composable and reuse it across renders and option changes so the processor cache and memoization identity stay stable. A host-supplied pipeline SHALL be owned by the host: the library SHALL NOT dispose it, so several renderers can share one instance safely. When a host replaces the pipeline on an existing renderer, the library SHALL dispose only the pipeline it created and leave the host instance untouched. No pipeline module SHALL access browser globals at import time.
 
 #### Scenario: Pipeline replacement
 - **WHEN** a host changes the pipeline on an existing renderer
-- **THEN** the previous instance is released and the next render uses the new pipeline
+- **THEN** the previous library-owned instance is released, the host instance is not disposed, and the next render uses the new pipeline
+
+#### Scenario: Shared host pipeline
+- **WHEN** several renderers use the same host-supplied pipeline and one unmounts
+- **THEN** the pipeline is not disposed and the remaining renderers continue to work
 
 #### Scenario: Server import
 - **WHEN** the official pipeline is imported on the server

@@ -87,11 +87,14 @@ import MermaidBlock from '@coderminer/vue-markdown/components/MermaidBlock'
 
 ## CodeBlock
 
-`CodeBlock` is the default fenced-code component. It lazy-loads highlight.js when
-no highlighter is configured, renders a styled header with an accent source icon,
-inline SVG icon actions for copy/download, and accepts extra actions. The header
-follows the same Mermaid-led chrome as `MermaidBlock`. The built-in icons do not
-require an icon package; every icon button keeps an accessible label and title.
+`CodeBlock` is the default fenced-code component. It renders escaped source
+without importing an engine until a highlighter is configured, shows a styled
+header with an accent source icon, inline SVG icon actions for copy/download, and
+accepts extra actions. Pass `highlightjs` from
+`@coderminer/vue-markdown/highlight` (or another adapter) to enable highlighting.
+The header follows the same Mermaid-led chrome as `MermaidBlock`. The built-in
+icons do not require an icon package; every icon button keeps an accessible label
+and title.
 
 ```vue
 <script setup lang="ts">

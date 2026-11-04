@@ -19,7 +19,7 @@ The renderer SHALL accept a Markdown `source` string and render CommonMark block
 
 ### Requirement: Source input
 
-The renderer SHALL accept Markdown through a `source` prop or the default slot. When both are present, `source` SHALL win. The default slot SHALL be treated as raw Markdown text, not as pre-rendered VNodes, and SHALL be re-read when its text content changes so reactive slot content updates the document. The `source` prop SHALL remain controlled: the renderer SHALL NOT keep a private source copy, and `update:source` SHALL be emitted only when the host requests a source change through an exposed action. `v-model:source` SHALL work through the bound prop. Empty input SHALL render the empty state without throwing.
+The renderer SHALL accept Markdown through a `source` prop or the default slot. When both are present, `source` SHALL win. An explicit `source=""` SHALL render the empty document rather than falling back to the slot; only an absent `source` SHALL use the slot. The default slot SHALL be treated as raw Markdown text, not as pre-rendered VNodes, and SHALL be re-read when its text content changes so reactive slot content updates the document. The `source` prop SHALL remain controlled: the renderer SHALL NOT keep a private source copy, and `update:source` SHALL be emitted only when the host requests a source change through an exposed action. `v-model:source` SHALL work through the bound prop. Empty input SHALL render the empty state without throwing.
 
 #### Scenario: Source prop
 - **WHEN** a host passes Markdown through the `source` prop
@@ -36,6 +36,10 @@ The renderer SHALL accept Markdown through a `source` prop or the default slot. 
 #### Scenario: Both inputs
 - **WHEN** a host supplies both `source` and default slot content
 - **THEN** `source` is rendered and the slot is ignored
+
+#### Scenario: Explicit empty source
+- **WHEN** a host passes `source=""` while default slot content is present
+- **THEN** the empty document renders and the slot is ignored
 
 #### Scenario: Controlled source
 - **WHEN** the `source` prop is bound and the default slot changes
@@ -275,7 +279,7 @@ The renderer SHALL validate scalar props at runtime so a host that bypasses Type
 
 ### Requirement: Search highlighting
 
-A host-provided search string SHALL highlight matching text in the rendered content. The renderer SHALL accept the query through the `search` prop (or the headless `search` option) and case sensitivity through `searchCaseSensitive`. Matching SHALL be case-insensitive by default and MAY be made case-sensitive. Highlighting SHALL affect text nodes only, SHALL preserve existing markup and link destinations, and SHALL be removed when the search string becomes empty. The match renderer SHALL be replaceable through the customization contract. The renderer SHALL accept an optional `searchDebounce` delay in milliseconds, defaulting to `0`; the initial query SHALL apply immediately, and rapid query changes SHALL produce at most one parse for the settled value.
+A host-provided search string SHALL highlight matching text in the rendered content. The renderer SHALL accept the query through the `search` prop (or the headless `search` option) and case sensitivity through `searchCaseSensitive`. Matching SHALL be case-insensitive by default and MAY be made case-sensitive. Highlighting SHALL affect text nodes only, SHALL preserve existing markup and link destinations, and SHALL be removed when the search string becomes empty. The match renderer SHALL be replaceable through the customization contract. Search state SHALL be derived from the parsed document, so changing the query or case sensitivity SHALL NOT re-run the pipeline. The renderer SHALL accept an optional `searchDebounce` delay in milliseconds, defaulting to `0`; the initial query SHALL apply immediately, and rapid query changes SHALL produce at most one applied query for the settled value.
 
 #### Scenario: Highlight matches without breaking markup
 - **WHEN** the search text matches words inside a paragraph and a link label
@@ -289,9 +293,13 @@ A host-provided search string SHALL highlight matching text in the rendered cont
 - **WHEN** the `search` query changes or the rendered document for that query reports a different match count
 - **THEN** `search-change` reports the current query, case sensitivity, and match count, and pending or failed runs do not emit a stale count
 
+#### Scenario: Query change without re-parsing
+- **WHEN** the host changes only the `search` query or `searchCaseSensitive`
+- **THEN** highlights update from the already parsed document and the pipeline does not run again
+
 #### Scenario: Debounced search
 - **WHEN** `searchDebounce` is set and the host changes `search` several times within the delay
-- **THEN** only the settled query is parsed and matches are highlighted once
+- **THEN** only the settled query is applied and matches are highlighted once, without re-parsing
 
 ### Requirement: Generic custom tags
 

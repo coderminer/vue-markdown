@@ -15,8 +15,9 @@ import {
   mermaidPlugin,
   renderMermaid,
   resetMermaidRuntime,
-  sanitizeSvg,
 } from '../../src/mermaid'
+import { sanitizeSvg } from '../../src/mermaid/sanitize-svg'
+import { mermaidPlugin as mermaidPluginEntry } from '../../src/mermaid/plugin'
 import { createMermaidEditor } from '../../src/editor'
 
 describe('documented public APIs', () => {
@@ -28,6 +29,7 @@ describe('documented public APIs', () => {
     expect(typeof renderMermaid).toBe('function')
     expect(typeof resetMermaidRuntime).toBe('function')
     expect(typeof mermaidPlugin).toBe('function')
+    expect(mermaidPluginEntry).toBe(mermaidPlugin)
     expect(typeof sanitizeSvg).toBe('function')
     expect(typeof createMermaidEditor).toBe('function')
     expect(CodeBlock).toBeTruthy()

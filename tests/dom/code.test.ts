@@ -110,20 +110,21 @@ describe('CodeBlock', () => {
     expect(error?.message).toContain('missing grammar')
   })
 
-  it(
-    'loads the default highlight.js adapter lazily',
-    async () => {
-      const wrapper = mountBlock({ highlighter: undefined })
-      await vi.waitFor(
-        () => {
-          expect(wrapper.attributes('data-highlighter')).toBe('highlight.js')
-        },
-        { timeout: 12000 },
-      )
-      expect(wrapper.find('.hljs-keyword').exists()).toBe(true)
-    },
-    15000,
-  )
+  it('renders plain text when no highlighter is configured', async () => {
+    const wrapper = mountBlock({ highlighter: undefined })
+    await flushPromises()
+    expect(wrapper.attributes('data-highlighter')).toBeUndefined()
+    expect(wrapper.find('.hljs-keyword').exists()).toBe(false)
+    expect(wrapper.text()).toContain('const x = 1')
+  })
+
+  it('highlights when the host supplies the highlight.js adapter', async () => {
+    const { highlightjs } = await import('../../src/highlight')
+    const wrapper = mountBlock({ highlighter: highlightjs })
+    await flushPromises()
+    expect(wrapper.attributes('data-highlighter')).toBe('highlight.js')
+    expect(wrapper.find('.hljs-keyword').exists()).toBe(true)
+  })
 
   it('renders full-block highlighter output without an extra code wrapper', async () => {
     const blockHighlighter: MarkdownHighlighter = {

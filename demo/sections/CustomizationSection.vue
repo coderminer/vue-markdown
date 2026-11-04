@@ -165,7 +165,7 @@ const manifests = Object.values(COMPONENT_MANIFESTS)
           Use the mock highlighter adapter
         </label>
         <p class="demo-adapter">
-          Highlighter: {{ useMockHighlighter ? mockHighlighter.id : 'default' }}
+          Highlighter: {{ useMockHighlighter ? mockHighlighter.id : 'highlight.js' }}
         </p>
       </div>
 

@@ -34,7 +34,7 @@ Add `mermaidPlugin()` to the renderer plugin set to turn ` ```mermaid ` (and
 <script setup lang="ts">
 import { MarkdownRenderer } from '@coderminer/vue-markdown'
 import { defaultPlugins } from '@coderminer/vue-markdown/plugins'
-import { mermaidPlugin } from '@coderminer/vue-markdown/mermaid'
+import { mermaidPlugin } from '@coderminer/vue-markdown/mermaid/plugin'
 
 const plugins = [...defaultPlugins, mermaidPlugin()]
 </script>
@@ -44,10 +44,23 @@ const plugins = [...defaultPlugins, mermaidPlugin()]
 </template>
 ```
 
-The plugin is opt-in because Mermaid is an optional peer. Without it, a Mermaid
-fence stays a normal code block. Without the `mermaid` package or a custom
-renderer, the block keeps the source available and reports a
-`mermaid-unavailable` diagnostic instead of collapsing to an empty region.
+Import the plugin from `@coderminer/vue-markdown/mermaid/plugin` when you only
+need the transform; that entry exports only the plugin and its built-in
+component. Use `@coderminer/vue-markdown/mermaid` when you also need
+`renderMermaid`, `resetMermaidRuntime`, or `MERMAID_ALLOWED_TAGS`. The
+synchronous `sanitizeSvg` lives in
+`@coderminer/vue-markdown/mermaid/sanitize-svg`; the Mermaid runtime sanitizes
+lazily and does not statically load the HTML parser.
+
+The plugin is opt-in because Mermaid is an optional peer. It also registers the
+built-in `MarkdownMermaid` component, so the base renderer does not import the
+Mermaid runtime or the SVG parser until the plugin is present. A custom plugin
+that emits `mermaid` nodes without `mermaidPlugin()` should register
+`nodeComponents.mermaid` itself; otherwise the node falls back to a code block.
+Without the plugin, a Mermaid fence stays a normal code block. Without the
+`mermaid` package or a custom renderer, the block keeps the source available and
+reports a `mermaid-unavailable` diagnostic instead of collapsing to an empty
+region.
 
 `mermaidPlugin()` reads only the `languages` option. Configure the renderer and
 theme on `MarkdownRenderer` with `mermaidRenderer` and `theme`; those are not
@@ -149,10 +162,16 @@ Mermaid's generated theme stylesheet is preserved as a scoped `<style>` element
 so node fills, strokes, fonts, and marker styling keep working. The stylesheet
 is kept only when the root SVG has an id and every rule selector is prefixed by
 that id (descendant and child combinators are allowed; sibling combinators and
-unscoped selectors reject the element). External CSS imports and URLs plus
-active CSS constructs are stripped. SVG element and attribute casing is
-normalized before rendering, so `linearGradient`, `viewBox`, `stroke-width`,
-`marker-end`, and `aria-*` attributes survive.
+unscoped selectors reject the element). Rules that target the root SVG keep only
+presentation declarations, and descendant rules drop layout declarations
+(`position`, `inset`, `top`/`left`/`right`/`bottom`, `z-index`, `overflow`), so
+a diagram stylesheet cannot turn the SVG into a full-page overlay. External CSS
+imports and URLs plus active CSS constructs are removed. Presentation
+attributes that accept `<url>` values (`fill`, `stroke`, `filter`, `mask`,
+`clip-path`, marker attributes, `cursor`) keep only same-document fragment
+references. SVG element and attribute casing is normalized before rendering, so
+`linearGradient`, `viewBox`, `stroke-width`, `marker-end`, and `aria-*`
+attributes survive.
 
 A host CSP should allow the Mermaid runtime's script chunk and permit the
 sanitized `<style>` element, for example with `style-src 'unsafe-inline'` (a

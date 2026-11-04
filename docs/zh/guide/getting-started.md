@@ -48,7 +48,7 @@ npm install shiki
 ```
 
 ```bash [KaTeX]
-npm install katex
+npm install katex remark-math rehype-katex
 ```
 
 ```bash [Mermaid]
@@ -68,6 +68,16 @@ npm install @codemirror/state @codemirror/view @codemirror/language @codemirror/
 ```
 
 原始 HTML 只在从 `@coderminer/vue-markdown/html` 导入 `htmlPlugin()` 时需要 `rehype-raw`。
+
+引擎只有在引入对应入口时才会加载。例如语法高亮是显式启用的：
+
+```ts
+import { highlightjs } from '@coderminer/vue-markdown/highlight'
+```
+
+```vue
+<MarkdownRenderer :source="source" :highlighter="highlightjs" />
+```
 
 ## 渲染第一份文档
 

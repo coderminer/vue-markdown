@@ -99,7 +99,7 @@ A paragraph with a [link](https://example.com) and **strong text**.
 > A callout can replace the default blockquote rendering.
 
 - Lists keep their semantics
-- Code blocks lazy-load the highlighter
+- Code blocks highlight with the app-wide adapter
 
 \`\`\`ts
 const answer = 42

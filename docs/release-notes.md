@@ -4,6 +4,72 @@ description: Release notes and upgrade guidance for @coderminer/vue-markdown 1.0
 
 # Release notes
 
+## 1.1.0-beta.0 — 2026-11-04
+
+First beta of `1.1.0`, published under the `beta` npm dist-tag; the stable
+release will follow. It fixes runtime correctness issues and moves optional
+engine loading behind explicit entries. Two behavior changes require attention:
+`sanitizeSvg` moved to `@coderminer/vue-markdown/mermaid/sanitize-svg`, and
+syntax highlighting is opt-in. Deferred work is tracked in `IMPROVEMENTS.md`.
+
+- Search is presentation-only: changing `search` or `searchCaseSensitive`
+  updates highlights from the parsed document without re-parsing.
+  `search-change` reports the currently rendered document; a pending run keeps
+  the previous count until the new document lands.
+- An explicit `search` option overrides segments contributed by
+  `searchPlugin()` on every text node, including text that does not match the
+  explicit query, so stale highlights and counts are cleared.
+- The official pipeline is created once per document composable, so changing
+  components, labels, tokens, or search no longer rebuilds the unified
+  processor.
+- The base renderer no longer imports the Mermaid component or SVG parser.
+  `mermaidPlugin()` registers the built-in component, so importing only
+  `MarkdownRenderer` does not pull the Mermaid runtime or the HTML parser into
+  the bundle. A `mermaid` node without a registered component renders as a code
+  block.
+- Syntax highlighting is opt-in. Code blocks render plain text until a
+  highlighter is configured. Import the adapter explicitly:
+
+  ```ts
+  import { highlightjs } from '@coderminer/vue-markdown/highlight'
+  ```
+
+  ```vue
+  <MarkdownRenderer :source="source" :highlighter="highlightjs" />
+  ```
+
+- `@coderminer/vue-markdown/mermaid/plugin` exports only `mermaidPlugin`; the
+  runtime helpers stay in the Mermaid entry. `sanitizeSvg` moved to
+  `@coderminer/vue-markdown/mermaid/sanitize-svg`; the Mermaid entry no longer
+  statically loads the HTML parser and sanitizes rendered SVG lazily.
+- `remark-math` and `rehype-katex` are optional peers of the math entry, so they
+  are installed only when you use math:
+
+  ```bash
+  npm install katex remark-math rehype-katex
+  ```
+- Host-supplied pipelines are never disposed by the library; only the
+  library-created pipeline is released on unmount or replacement.
+- Plugin `setup()` runs inside the plugin `effectScope`, so watchers and
+  scope-registered cleanups stop on reconfiguration or unmount, and a returned
+  cleanup runs once.
+- `source=""` renders an empty document instead of falling back to the default
+  slot.
+- Memoized documents are keyed by pipeline instance identity and the new
+  optional `MarkdownPipeline.version`, so pipelines that share a name cannot
+  share results.
+- Async runs use a per-run slugger and a frozen configuration snapshot.
+- A throwing plugin `onError` is reported as `plugin-onerror` without breaking
+  the document.
+- Mermaid scoped stylesheets keep only presentation declarations; layout
+  declarations that could turn the SVG into a full-page overlay are removed,
+  and external `url()` references are rejected.
+- Raw HTML `id`/`name` values are prefixed with `user-content-` to prevent DOM
+  clobbering and id collisions. Same-document fragment links are rewritten to
+  the prefixed target; heading anchors are unchanged. Raw HTML `class` values
+  are still preserved so authors can style their own markup — see the security
+  guide before rendering untrusted content under global utility CSS.
+
 ## 1.0.2 — 2026-11-03
 
 Patch release focused on Mermaid rendering quality and document stability.

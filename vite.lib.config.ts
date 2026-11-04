@@ -56,6 +56,8 @@ export default defineConfig({
         'highlight/shiki': resolveSrc('./src/highlight/shiki.ts'),
         'math/index': resolveSrc('./src/math/index.ts'),
         'mermaid/index': resolveSrc('./src/mermaid/index.ts'),
+        'mermaid/plugin': resolveSrc('./src/mermaid/plugin.ts'),
+        'mermaid/sanitize-svg': resolveSrc('./src/mermaid/sanitize-svg.ts'),
         'editor/index': resolveSrc('./src/editor/index.ts'),
         'html/index': resolveSrc('./src/html/index.ts'),
         'components/index': resolveSrc('./src/components/index.ts'),
@@ -73,6 +75,8 @@ export default defineConfig({
         // dependency inside the optional highlight entry.
         /^highlight\.js(\/|$)/,
         'katex',
+        'rehype-katex',
+        'remark-math',
         'shiki',
         'mermaid',
         'rehype-raw',

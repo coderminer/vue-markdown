@@ -95,7 +95,7 @@ Highlighted output SHALL be cached by adapter identity, source text, language, t
 
 ### Requirement: Language loading and fallback
 
-Adapters SHALL be able to declare supported languages and load additional grammars on demand. While a grammar is loading, the component SHALL show escaped plain source. A failed grammar load SHALL fall back to plain source, report the failure through the adapter, and leave the rest of the document unaffected. When the lazy default adapter cannot be imported, the component SHALL report `highlighter-unavailable` with an install hint; a failed `load()` or `loadLanguage()` SHALL report `highlighter-load`. Both SHALL also be emitted as an `error` event.
+Adapters SHALL be able to declare supported languages and load additional grammars on demand. While a grammar is loading, the component SHALL show escaped plain source. A failed grammar load SHALL fall back to plain source, report the failure through the adapter, and leave the rest of the document unaffected. Without a configured adapter the component SHALL render escaped plain source and SHALL NOT import an engine. A failed `load()` or `loadLanguage()` SHALL report `highlighter-load` and also emit an `error` event.
 
 #### Scenario: Lazy grammar
 - **WHEN** a Shiki grammar is loaded on demand for a language

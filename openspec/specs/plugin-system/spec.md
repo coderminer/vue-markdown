@@ -99,7 +99,7 @@ Plugins SHALL be able to contribute node components, tag components, region comp
 
 ### Requirement: Lifecycle and resource management
 
-Plugins SHALL support setup and cleanup hooks. Setup SHALL run when the owning renderer or provider is created, cleanup SHALL run when it is unmounted or reconfigured, and plugins SHALL NOT leave document listeners, timers, observers, or global state behind. Setup and cleanup SHALL be safe across server and client rendering.
+Plugins SHALL support setup and cleanup hooks. Setup SHALL run when the owning renderer or provider is created, inside the plugin `effectScope`, so watchers and scope-registered cleanups are owned by that plugin set. Cleanup SHALL run when it is unmounted or reconfigured, and plugins SHALL NOT leave document listeners, timers, observers, or global state behind. Each returned cleanup SHALL be invoked at most once by the library, and scope-registered disposers SHALL stop when the scope stops; a plugin SHOULD register cleanup through the returned function or `onScopeDispose`, not both for the same function. Reconfiguration SHALL stop the previous scope before setting up the next plugin set. Setup and cleanup SHALL be safe across server and client rendering.
 
 #### Scenario: Cleanup on unmount
 - **WHEN** a plugin registers a document listener during setup and the renderer unmounts
@@ -107,7 +107,11 @@ Plugins SHALL support setup and cleanup hooks. Setup SHALL run when the owning r
 
 #### Scenario: Reconfiguration
 - **WHEN** the plugin list changes on an existing renderer
-- **THEN** removed plugins are cleaned up and added plugins are set up exactly once
+- **THEN** the previous scope stops, removed plugins are cleaned up, and added plugins are set up exactly once
+
+#### Scenario: Scoped watcher
+- **WHEN** a plugin creates a watcher during setup and the plugin set is replaced
+- **THEN** the watcher stops with the previous scope and no longer reacts
 
 ### Requirement: Built-in features and core invariants
 
@@ -135,7 +139,7 @@ TOC generation, code-node construction, and link policy SHALL be documented core
 
 ### Requirement: Plugin error isolation
 
-A failing plugin SHALL NOT crash the application or corrupt the document for other plugins. The library SHALL report the plugin name and phase, SHALL call the owning plugin's `onError` when a remark or rehype contribution fails, SHALL preserve the last successful document, and SHALL continue with the remaining plugins where safe. Repeated identical failures SHALL NOT produce unbounded error loops. Diagnostics from a cached processor SHALL be written to the current run.
+A failing plugin SHALL NOT crash the application or corrupt the document for other plugins. The library SHALL report the plugin name and phase, SHALL call the owning plugin's `onError` when a remark or rehype contribution fails, SHALL preserve the last successful document, and SHALL continue with the remaining plugins where safe. An `onError` hook that throws SHALL NOT abort the run: its failure SHALL be reported as a `plugin-onerror` diagnostic so the primary failure still surfaces once. Repeated identical failures SHALL NOT produce unbounded error loops. Diagnostics from a cached processor SHALL be written to the current run.
 
 #### Scenario: Transform throws
 - **WHEN** a document transform throws
@@ -148,6 +152,10 @@ A failing plugin SHALL NOT crash the application or corrupt the document for oth
 #### Scenario: Error loop prevention
 - **WHEN** the same plugin fails on every render of unchanged content
 - **THEN** the failure is reported without repeatedly re-triggering itself indefinitely
+
+#### Scenario: onError throws
+- **WHEN** a plugin's `onError` hook throws while handling a failure
+- **THEN** the document still builds, the primary failure is reported, and a `plugin-onerror` diagnostic records the hook failure
 
 ### Requirement: Trust and security boundary
 

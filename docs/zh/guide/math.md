@@ -4,7 +4,11 @@ description: mathPlugin、KaTeX、分隔符、宏，以及优雅的回退行为�
 
 # 数学公式
 
-数学位于可选入口，KaTeX 不会进入核心包。
+数学位于可选入口，KaTeX 不会进入核心包。引入该入口前，请先安装数学相关的 peer：
+
+```bash
+npm install katex remark-math rehype-katex
+```
 
 ```ts
 import { defaultPlugins } from '@coderminer/vue-markdown/plugins'

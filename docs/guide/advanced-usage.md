@@ -167,7 +167,8 @@ Read [Math](./math.md), or [Rich components](./rich-components.md) for the
 ## Mermaid
 
 ```ts
-import { renderMermaid, sanitizeSvg } from '@coderminer/vue-markdown/mermaid'
+import { renderMermaid } from '@coderminer/vue-markdown/mermaid'
+import { sanitizeSvg } from '@coderminer/vue-markdown/mermaid/sanitize-svg'
 ```
 
 ```vue

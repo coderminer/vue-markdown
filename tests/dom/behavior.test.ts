@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
-import { defineComponent, h, nextTick, ref } from 'vue'
+import { defineComponent, h, nextTick, ref, watch } from 'vue'
 import MarkdownRenderer from '../../src/components/MarkdownRenderer.vue'
 import MarkdownHtml from '../../src/components/MarkdownHtml.vue'
 import MarkdownParagraph from '../../src/components/MarkdownParagraph.vue'
@@ -37,6 +37,22 @@ function resultWithParagraph(text: string): PipelineResult {
         {
           type: 'element',
           tagName: 'p',
+          properties: {},
+          children: [{ type: 'text', value: text }],
+        },
+      ],
+    },
+  }
+}
+
+function headingResult(text: string): PipelineResult {
+  return {
+    hast: {
+      type: 'root',
+      children: [
+        {
+          type: 'element',
+          tagName: 'h1',
           properties: {},
           children: [{ type: 'text', value: text }],
         },
@@ -320,6 +336,127 @@ describe('plugin lifecycle and isolation', () => {
 
     wrapper.unmount()
     expect(events).toEqual(['setup:a', 'cleanup:a', 'setup:b', 'cleanup:b'])
+  })
+
+  it('runs setup inside an effect scope that stops on reconfiguration', async () => {
+    const marker = ref(0)
+    const seen: number[] = []
+    const scoped = defineMarkdownPlugin({
+      name: 'scoped-watch',
+      setup() {
+        // A watcher registered without an explicit scope belongs to the plugin
+        // scope and must stop when the plugin set is replaced.
+        watch(marker, (value) => seen.push(value))
+      },
+    })
+    const other = defineMarkdownPlugin({ name: 'other' })
+
+    const wrapper = mount(MarkdownRenderer, {
+      props: { source: 'hello', plugins: [scoped] },
+    })
+    await nextTick()
+    marker.value = 1
+    await nextTick()
+    expect(seen).toEqual([1])
+
+    await wrapper.setProps({ plugins: [other] })
+    await nextTick()
+    marker.value = 2
+    await nextTick()
+    expect(seen).toEqual([1])
+  })
+
+  it('survives an onError hook that throws and reports plugin-onerror', async () => {
+    const failing = defineMarkdownPlugin({
+      name: 'throwing-onerror',
+      remarkPlugins: [
+        () => () => {
+          throw new Error('remark exploded')
+        },
+      ],
+      onError() {
+        throw new Error('onError exploded')
+      },
+    })
+
+    const wrapper = mount(MarkdownRenderer, {
+      props: { source: 'Still **here**', plugins: [failing] },
+    })
+    await nextTick()
+
+    expect(wrapper.text()).toContain('Still')
+    expect(wrapper.find('strong').text()).toBe('here')
+    const codes = (wrapper.emitted('render-error') ?? []).map(
+      (event) => (event[0] as { code: string }).code,
+    )
+    expect(codes).toContain('plugin-run')
+    expect(codes).toContain('plugin-onerror')
+  })
+
+  it('keeps pipelines that share a name on separate memo entries', async () => {
+    const first: MarkdownPipeline = {
+      name: 'same-name',
+      process: async () => resultWithParagraph('first'),
+    }
+    const second: MarkdownPipeline = {
+      name: 'same-name',
+      process: async () => resultWithParagraph('second'),
+    }
+
+    const a = mount(MarkdownRenderer, {
+      props: { source: 'shared', pipeline: first },
+    })
+    await flushPromises()
+    expect(a.text()).toBe('first')
+
+    const b = mount(MarkdownRenderer, {
+      props: { source: 'shared', pipeline: second },
+    })
+    await flushPromises()
+    expect(b.text()).toBe('second')
+  })
+
+  it('never disposes a host-supplied pipeline, even when shared', async () => {
+    const dispose = vi.fn()
+    const pipeline: MarkdownPipeline = {
+      name: 'host-owned',
+      process: async (source) => resultWithParagraph(source),
+      dispose,
+    }
+
+    const a = mount(MarkdownRenderer, {
+      props: { source: 'One', pipeline },
+    })
+    const b = mount(MarkdownRenderer, {
+      props: { source: 'Two', pipeline },
+    })
+    await flushPromises()
+
+    a.unmount()
+    expect(dispose).not.toHaveBeenCalled()
+    b.unmount()
+    expect(dispose).not.toHaveBeenCalled()
+  })
+
+  it('assigns heading slugs per run without leaking through the slugger', async () => {
+    const pipeline: MarkdownPipeline = {
+      name: 'headings-without-ids',
+      process: async (source) => headingResult(source),
+      processSync: (source) => headingResult(source),
+    }
+    const wrapper = mount(MarkdownRenderer, {
+      props: { source: 'Heading', pipeline },
+    })
+    await nextTick()
+    const vm = wrapper.vm as unknown as {
+      refresh: () => Promise<void>
+      getToc: () => Array<{ id: string }>
+    }
+    expect(vm.getToc().map((item) => item.id)).toEqual(['heading'])
+
+    await vm.refresh()
+    await flushPromises()
+    expect(vm.getToc().map((item) => item.id)).toEqual(['heading'])
   })
 
   it('isolates a failing remark plugin and keeps rendering', async () => {

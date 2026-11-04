@@ -8,7 +8,7 @@ Mermaid 支持按需加载，且只在客户端运行。只有 Mermaid 块或可
 运行时。
 
 ```ts
-import { mermaidPlugin, renderMermaid, sanitizeSvg } from '@coderminer/vue-markdown/mermaid'
+import { mermaidPlugin, renderMermaid } from '@coderminer/vue-markdown/mermaid'
 ```
 
 `renderMermaid()` 是异步的：Mermaid 运行时按需加载，渲染本身也是异步操作。使用结果前
@@ -32,7 +32,7 @@ const result = await renderMermaid('graph TD; A-->B')
 <script setup lang="ts">
 import { MarkdownRenderer } from '@coderminer/vue-markdown'
 import { defaultPlugins } from '@coderminer/vue-markdown/plugins'
-import { mermaidPlugin } from '@coderminer/vue-markdown/mermaid'
+import { mermaidPlugin } from '@coderminer/vue-markdown/mermaid/plugin'
 
 const plugins = [...defaultPlugins, mermaidPlugin()]
 </script>
@@ -41,6 +41,12 @@ const plugins = [...defaultPlugins, mermaidPlugin()]
   <MarkdownRenderer :source="source" :plugins="plugins" />
 </template>
 ```
+
+只需要插件转换时，请从 `@coderminer/vue-markdown/mermaid/plugin` 引入，该入口只导出插件
+及其内置组件。还需要 `renderMermaid`、`resetMermaidRuntime` 或
+`MERMAID_ALLOWED_TAGS` 时，使用 `@coderminer/vue-markdown/mermaid`。同步
+`sanitizeSvg` 位于 `@coderminer/vue-markdown/mermaid/sanitize-svg`；Mermaid 运行时按需
+净化，不会静态加载 HTML 解析器。
 
 插件默认识别 `mermaid` 和 `mmd`，匹配不区分大小写，也可以用
 `mermaidPlugin({ languages: ['mermaid', 'diagram'] })` 自定义。插件必须显式引入，因为
@@ -127,9 +133,13 @@ SVG `<text>`/`<tspan>`，而不是 `foreignObject` 里的 HTML。渲染出的 SV
 
 Mermaid 生成的主题样式表会作为作用域内的 `<style>` 元素保留，节点填充、描边、字体和
 标记样式因此能继续工作。保留条件是：根 SVG 有 id，且每条规则的选择器都以该 id 为前缀
-（允许后代和子组合器；兄弟组合器和未限定选择器会导致该样式元素被丢弃）。外部 CSS
-import/URL 和主动型 CSS 构造会被剥离。SVG 元素和属性的大小写会在渲染前归一化，因此
-`linearGradient`、`viewBox`、`stroke-width`、`marker-end` 和 `aria-*` 能保留下来。
+（允许后代和子组合器；兄弟组合器和未限定选择器会导致该样式元素被丢弃）。直接指向根
+SVG 的规则只保留展示类声明，后代规则会移除布局声明（`position`、`inset`、
+`top`/`left`/`right`/`bottom`、`z-index`、`overflow`），因此图表样式表无法把 SVG
+变成全屏遮罩。外部 CSS import/URL 和主动型 CSS 构造会被移除。接受 `<url>` 值的展示属性
+（`fill`、`stroke`、`filter`、`mask`、`clip-path`、marker 属性和 `cursor`）只保留
+同文档片段引用。SVG 元素和属性的大小写会在渲染前归一化，因此 `linearGradient`、
+`viewBox`、`stroke-width`、`marker-end` 和 `aria-*` 能保留下来。
 
 宿主 CSP 应允许 Mermaid 运行时的脚本分块，并允许净化后的 `<style>` 元素，例如
 `style-src 'unsafe-inline'`（只允许 nonce 或 hash 的 `style-src` 会阻止它，图表将不带

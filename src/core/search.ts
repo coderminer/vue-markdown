@@ -64,6 +64,58 @@ export function searchDocument(
   return document
 }
 
+/**
+ * Return a copy of `document` with search segments applied.
+ *
+ * The shared (cached) document is never mutated, so one base document can back
+ * several search queries, including across renderer instances.
+ */
+export function withSearchSegments(
+  document: MarkdownDocument,
+  options: SearchOptions | undefined,
+): MarkdownDocument {
+  const query = options?.query?.trim() ?? ''
+  if (!query) return document
+  const caseSensitive = options?.caseSensitive ?? false
+
+  const segmentNode = (node: MarkdownNode): MarkdownNode => {
+    switch (node.kind) {
+      case 'text': {
+        const segments = segmentText(node.value, query, caseSensitive)
+        if (segments !== undefined) return { ...node, segments }
+        // An explicit query overrides segments contributed by a plugin (for
+        // example `searchPlugin()`), so a node that no longer matches must not
+        // keep its previous segments.
+        if (!node.segments) return node
+        const next = { ...node }
+        delete next.segments
+        return next
+      }
+      case 'element':
+        return {
+          ...node,
+          children: node.children.map(segmentNode),
+        }
+      case 'custom':
+        return {
+          ...node,
+          children: node.children.map(segmentNode),
+        }
+      case 'plugin':
+        return node.children
+          ? { ...node, children: node.children.map(segmentNode) }
+          : node
+      default:
+        return node
+    }
+  }
+
+  return {
+    ...document,
+    nodes: document.nodes.map(segmentNode),
+  }
+}
+
 export function countSearchMatches(nodes: readonly MarkdownNode[]): number {
   let count = 0
   walkNodes(nodes, (node) => {

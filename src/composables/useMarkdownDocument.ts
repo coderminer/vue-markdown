@@ -18,6 +18,7 @@ import type {
   MarkdownDocumentOptions,
   MarkdownLabels,
   MarkdownNodeComponents,
+  MarkdownPipeline,
   MarkdownRegionComponents,
   MarkdownSlugger,
   MarkdownTagComponents,
@@ -25,16 +26,22 @@ import type {
   PipelineResult,
   TocItem,
 } from '../core/types'
-import { createDiagnostic, errorMessage } from '../core/diagnostics'
+import {
+  createDiagnostic,
+  errorMessage,
+  reportPluginError,
+} from '../core/diagnostics'
 import { finalizeMarkdownDocument } from '../core/finalize'
 import { identityOf } from '../core/identity'
-import { memoGet, memoSet } from '../core/memo'
+import { memoGetEntry, memoSetEntry } from '../core/memo'
+import { withSearchSegments } from '../core/search'
 import { createDefaultSlugger, withUniqueSlugs } from '../core/slugger'
 import { createPluginContext } from '../plugins/define'
 import { applySourceTransforms } from '../plugins/source'
 import { defaultPlugins } from '../plugins/builtin'
-import { resolvePlugins } from '../plugins/registry'
+import { resolvePlugins, type ResolvedPlugins } from '../plugins/registry'
 import { assertPipelineResult, resolvePipeline } from '../pipeline/custom'
+import { createOfficialPipeline } from '../pipeline/official'
 import { createMemoKey, createPipelineIdentity } from '../pipeline/identity'
 
 export type MarkdownStatus = 'idle' | 'pending' | 'ready' | 'error'
@@ -68,11 +75,37 @@ function isAsyncError(error: unknown): boolean {
   )
 }
 
+/** Configuration frozen at the start of a run. */
+interface RunSnapshot {
+  source: string
+  options: MarkdownDocumentOptions
+  plugins: ResolvedPlugins
+  pipeline: MarkdownPipeline
+  remarkPlugins: PluggableList
+  rehypePlugins: PluggableList
+  remarkRehypeOptions: Record<string, unknown>
+  slugger: MarkdownSlugger
+  idPrefix: string
+  diagnostics: MarkdownDiagnostic[]
+}
+
+/** Run a cleanup at most once, even when it is registered twice. */
+function once(cleanup: () => void): () => void {
+  let done = false
+  return () => {
+    if (done) return
+    done = true
+    cleanup()
+  }
+}
+
 export function useMarkdownDocument(
   source: MaybeRefOrGetter<string>,
   options: MaybeRefOrGetter<MarkdownDocumentOptions> = {},
 ): UseMarkdownDocumentReturn {
   const document = shallowRef<MarkdownDocument>()
+  /** Parsed document without search segments; shared with the parse cache. */
+  const baseDocument = shallowRef<MarkdownDocument>()
   const status = shallowRef<MarkdownStatus>('idle')
   const diagnostics = shallowRef<MarkdownDiagnostic[]>([])
   const setupDiagnostics = shallowRef<MarkdownDiagnostic[]>([])
@@ -87,7 +120,7 @@ export function useMarkdownDocument(
     const seen = new Set<string>()
     const next: MarkdownDiagnostic[] = []
     for (const diagnostic of list) {
-      const source = diagnostic.source
+      const sourceRange = diagnostic.source
         ? `${diagnostic.source.start.line}:${diagnostic.source.start.column}:${diagnostic.source.start.offset ?? ''}-${diagnostic.source.end.line}:${diagnostic.source.end.column}:${diagnostic.source.end.offset ?? ''}`
         : ''
       const signature = [
@@ -96,7 +129,7 @@ export function useMarkdownDocument(
         diagnostic.severity,
         diagnostic.plugin ?? '',
         diagnostic.phase ?? '',
-        source,
+        sourceRange,
         diagnostic.details ?? '',
       ].join('\u001f')
       if (seen.has(signature)) continue
@@ -118,7 +151,15 @@ export function useMarkdownDocument(
     ),
   )
 
-  const pipelineResult = computed(() => resolvePipeline(optionsRef.value.pipeline))
+  /**
+   * The pipeline the composable owns. It is created once so presentation-only
+   * option changes cannot invalidate the official processor cache, and so the
+   * identity used for memoization stays stable.
+   */
+  const libraryPipeline = createOfficialPipeline()
+  const pipelineResult = computed(() =>
+    resolvePipeline(optionsRef.value.pipeline, libraryPipeline),
+  )
   const pipeline = computed(() => pipelineResult.value.pipeline)
 
   const remarkPlugins = computed<PluggableList>(() => [
@@ -136,11 +177,11 @@ export function useMarkdownDocument(
 
   const defaultSlugger: MarkdownSlugger = createDefaultSlugger()
   const baseSlugger = computed(() => optionsRef.value.slugger ?? defaultSlugger)
-  const slugger = computed(() => withUniqueSlugs(baseSlugger.value))
   const idPrefix = computed(() => optionsRef.value.idPrefix ?? '')
 
   const pipelineIdentity = computed(() =>
     createPipelineIdentity({
+      pipeline: pipeline.value,
       pipelineName: pipeline.value.name,
       plugins: resolved.value.plugins,
       remarkPlugins: remarkPlugins.value,
@@ -152,6 +193,15 @@ export function useMarkdownDocument(
 
   const parseKey = computed(() => pipelineIdentity.value)
 
+  /**
+   * Search state is derived from a parsed document, so it is deliberately kept
+   * out of `parseKey`: changing the query must not re-run the pipeline.
+   */
+  const searchKey = computed(() => {
+    const search = optionsRef.value.search
+    return `${search?.query?.trim() ?? ''}\u001f${search?.caseSensitive ? '1' : '0'}`
+  })
+
   const pluginSetupKey = computed(() =>
     resolved.value.plugins.map((plugin) => identityOf(plugin)).join(','),
   )
@@ -159,17 +209,25 @@ export function useMarkdownDocument(
   let scope: EffectScope | undefined
   let cleanups: Array<() => void> = []
 
-  const setupPlugins = (): void => {
-    scope?.stop()
-    for (const cleanup of cleanups) {
+  const disposePluginScope = (): void => {
+    const active = scope
+    scope = undefined
+    active?.stop()
+    const pending = cleanups
+    cleanups = []
+    for (const cleanup of pending) {
       try {
         cleanup()
       } catch {
         // Cleanup failures must not break reconfiguration.
       }
     }
-    cleanups = []
-    scope = effectScope(true)
+  }
+
+  const setupPlugins = (): void => {
+    disposePluginScope()
+    const nextScope = effectScope(true)
+    scope = nextScope
 
     const collected: MarkdownDiagnostic[] = []
     const context = createPluginContext(
@@ -177,120 +235,139 @@ export function useMarkdownDocument(
       optionsRef.value,
       collected,
     )
-    for (const plugin of resolved.value.plugins) {
-      if (!plugin.setup) continue
-      try {
-        const cleanup = plugin.setup(context)
-        if (typeof cleanup === 'function') cleanups.push(cleanup)
-      } catch (error) {
-        collected.push(
-          createDiagnostic('plugin-setup', errorMessage(error), {
-            phase: 'setup',
-            plugin: plugin.name,
-          }),
-        )
+    // Run setup inside the scope so watchers, timers, and `onScopeDispose`
+    // registrations belong to this plugin set and stop on reconfiguration or
+    // unmount. Running it outside a scope silently leaks them.
+    nextScope.run(() => {
+      for (const plugin of resolved.value.plugins) {
+        if (!plugin.setup) continue
         try {
-          plugin.onError?.(error, 'setup', context)
-        } catch (secondary) {
+          const cleanup = plugin.setup(context)
+          if (typeof cleanup === 'function') cleanups.push(once(cleanup))
+        } catch (error) {
           collected.push(
-            createDiagnostic('plugin-onerror', errorMessage(secondary), {
+            createDiagnostic('plugin-setup', errorMessage(error), {
               phase: 'setup',
               plugin: plugin.name,
             }),
           )
+          reportPluginError(plugin, error, 'setup', context, collected)
         }
       }
-    }
+    })
     // Publish a snapshot. A plugin that retains the setup context must not be
     // able to append to the list that every later run spreads.
     setupDiagnostics.value = collected.slice()
   }
 
-  const teardown = (): void => {
-    scope?.stop()
-    for (const cleanup of cleanups) {
-      try {
-        cleanup()
-      } catch {
-        // Ignore cleanup errors during teardown.
-      }
+  /** Only the pipeline the library created is ours to dispose. */
+  const disposePipeline = (value: MarkdownPipeline | undefined): void => {
+    if (!value || value !== libraryPipeline) return
+    try {
+      value.dispose?.()
+    } catch {
+      // A failing dispose must not break unmount.
     }
-    cleanups = []
-    pipeline.value.dispose?.()
+  }
+
+  let disposed = false
+  const teardown = (): void => {
+    if (disposed) return
+    disposed = true
+    disposePluginScope()
+    disposePipeline(pipeline.value)
   }
 
   if (getCurrentScope()) onScopeDispose(teardown)
 
-  const apply = (next: MarkdownDocument): void => {
-    document.value = next
+  /** Search key that produced the currently published document. */
+  let publishedSearchKey = ''
+
+  const deriveDocument = (base: MarkdownDocument): MarkdownDocument =>
+    withSearchSegments(base, optionsRef.value.search)
+
+  const publish = (
+    base: MarkdownDocument,
+    list: readonly MarkdownDiagnostic[],
+  ): void => {
+    baseDocument.value = base
+    document.value = deriveDocument(base)
+    publishDiagnostics(list)
     status.value = 'ready'
+    publishedSearchKey = searchKey.value
   }
 
-  const createContext = (
-    source: string,
-    nextDiagnostics: MarkdownDiagnostic[],
-  ): PipelineContext => ({
-    source,
-    options: optionsRef.value,
-    plugins: resolved.value.plugins,
-    remarkPlugins: remarkPlugins.value,
-    rehypePlugins: rehypePlugins.value,
-    remarkRehypeOptions: remarkRehypeOptions.value,
-    slugger: slugger.value,
-    idPrefix: idPrefix.value,
-    diagnostics: nextDiagnostics,
+  const createContext = (snapshot: RunSnapshot): PipelineContext => ({
+    source: snapshot.source,
+    options: snapshot.options,
+    plugins: snapshot.plugins.plugins,
+    remarkPlugins: snapshot.remarkPlugins,
+    rehypePlugins: snapshot.rehypePlugins,
+    remarkRehypeOptions: snapshot.remarkRehypeOptions,
+    slugger: snapshot.slugger,
+    idPrefix: snapshot.idPrefix,
+    diagnostics: snapshot.diagnostics,
   })
 
   const finalize = (
-    source: string,
+    snapshot: RunSnapshot,
     result: PipelineResult,
-    nextDiagnostics: MarkdownDiagnostic[],
   ): MarkdownDocument =>
     finalizeMarkdownDocument({
-      source,
+      source: snapshot.source,
       result,
-      options: optionsRef.value,
-      plugins: resolved.value,
-      pipelineName: pipeline.value.name,
-      slugger: slugger.value,
-      idPrefix: idPrefix.value,
-      diagnostics: nextDiagnostics,
+      options: snapshot.options,
+      plugins: snapshot.plugins,
+      pipelineName: snapshot.pipeline.name,
+      slugger: snapshot.slugger,
+      idPrefix: snapshot.idPrefix,
+      diagnostics: snapshot.diagnostics,
+      // Search is derived after the cache lookup so the cached document stays
+      // query-independent.
+      search: false,
     })
 
   let runId = 0
 
   const applyRun = (
-    source: string,
+    snapshot: RunSnapshot,
     result: PipelineResult,
-    nextDiagnostics: MarkdownDiagnostic[],
     key: string,
     cache: boolean,
   ): void => {
-    const next = finalize(source, result, nextDiagnostics)
-    publishDiagnostics(nextDiagnostics)
-    if (cache) memoSet(key, next)
-    apply(next)
+    // Custom pipelines may produce headings without IDs; normalize assigns them.
+    // Reset the per-run slugger so ids from the pipeline and the fallback path
+    // cannot collide with another run's state.
+    snapshot.slugger.reset?.()
+    const next = finalize(snapshot, result)
+    if (cache) {
+      memoSetEntry(key, {
+        document: next,
+        diagnostics: snapshot.diagnostics.slice(),
+      })
+    }
+    publish(next, snapshot.diagnostics)
   }
 
   const runSync = (
-    source: string,
+    snapshot: RunSnapshot,
     key: string,
     cache: boolean,
-    nextDiagnostics: MarkdownDiagnostic[],
   ): 'done' | 'async' => {
-    const sync = pipeline.value.processSync
+    const sync = snapshot.pipeline.processSync
     if (!sync) return 'async'
 
     try {
-      slugger.value.reset?.()
-      const result = assertPipelineResult(sync.call(pipeline.value, source, createContext(source, nextDiagnostics)))
-      applyRun(source, result, nextDiagnostics, key, cache)
+      const result = assertPipelineResult(
+        sync.call(snapshot.pipeline, snapshot.source, createContext(snapshot)),
+      )
+      applyRun(snapshot, result, key, cache)
       return 'done'
     } catch (error) {
       if (isAsyncError(error)) return 'async'
       status.value = 'error'
       publishDiagnostics([
-        ...nextDiagnostics,
+        ...snapshot.diagnostics,
         createDiagnostic('pipeline-sync', errorMessage(error), {
           phase: 'pipeline',
         }),
@@ -301,24 +378,25 @@ export function useMarkdownDocument(
 
   const runAsync = async (
     id: number,
-    source: string,
+    snapshot: RunSnapshot,
     key: string,
     cache: boolean,
-    nextDiagnostics: MarkdownDiagnostic[],
   ): Promise<void> => {
     status.value = 'pending'
     try {
-      slugger.value.reset?.()
       const result = assertPipelineResult(
-        await pipeline.value.process(source, createContext(source, nextDiagnostics)),
+        await snapshot.pipeline.process(
+          snapshot.source,
+          createContext(snapshot),
+        ),
       )
       if (id !== runId) return
-      applyRun(source, result, nextDiagnostics, key, cache)
+      applyRun(snapshot, result, key, cache)
     } catch (error) {
       if (id !== runId) return
       status.value = 'error'
       publishDiagnostics([
-        ...nextDiagnostics,
+        ...snapshot.diagnostics,
         createDiagnostic('pipeline-process', errorMessage(error), {
           phase: 'pipeline',
         }),
@@ -329,31 +407,47 @@ export function useMarkdownDocument(
   const run = (force = false): Promise<void> => {
     const id = ++runId
     try {
+      const options = optionsRef.value
+      const pluginSet = resolved.value
+      const runPipeline = pipeline.value
       const nextDiagnostics: MarkdownDiagnostic[] = [
         ...pipelineResult.value.diagnostics,
-        ...resolved.value.diagnostics,
+        ...pluginSet.diagnostics,
         ...setupDiagnostics.value,
       ]
       const source = applySourceTransforms(
         sourceRef.value,
-        resolved.value.plugins,
-        optionsRef.value,
+        pluginSet.plugins,
+        options,
         nextDiagnostics,
       )
       const key = createMemoKey(source, pipelineIdentity.value)
 
       if (!force) {
-        const cached = memoGet(key)
+        const cached = memoGetEntry(key)
         if (cached) {
-          publishDiagnostics(nextDiagnostics)
-          apply(cached)
+          publish(cached.document, [...nextDiagnostics, ...cached.diagnostics])
           return Promise.resolve()
         }
       }
 
-      const sync = runSync(source, key, !force, nextDiagnostics)
+      const snapshot: RunSnapshot = {
+        source,
+        options,
+        plugins: pluginSet,
+        pipeline: runPipeline,
+        remarkPlugins: remarkPlugins.value,
+        rehypePlugins: rehypePlugins.value,
+        remarkRehypeOptions: remarkRehypeOptions.value,
+        // A slugger per run keeps concurrent runs from resetting each other.
+        slugger: withUniqueSlugs(baseSlugger.value),
+        idPrefix: idPrefix.value,
+        diagnostics: nextDiagnostics,
+      }
+
+      const sync = runSync(snapshot, key, !force)
       if (sync === 'done') return Promise.resolve()
-      return runAsync(id, source, key, !force, nextDiagnostics)
+      return runAsync(id, snapshot, key, !force)
     } catch (error) {
       // Configuration failures before the pipeline starts must replace the
       // published diagnostics, not leave the previous run's list in place.
@@ -368,6 +462,22 @@ export function useMarkdownDocument(
   }
 
   const refresh = (): Promise<void> => run(true)
+
+  // Re-derive search segments against the last good document. This runs without
+  // re-entering the pipeline, so a query change never re-parses.
+  watch(searchKey, () => {
+    const base = baseDocument.value
+    if (!base) return
+    if (publishedSearchKey === searchKey.value) return
+    document.value = deriveDocument(base)
+    publishedSearchKey = searchKey.value
+  })
+
+  // Dispose the previous pipeline when the host replaces it. Host-supplied
+  // pipelines outside our ownership are left alone.
+  watch(pipeline, (next, previous) => {
+    if (previous && previous !== next) disposePipeline(previous)
+  })
 
   watch(pluginSetupKey, setupPlugins, { immediate: true })
   watch([sourceRef, parseKey], () => void run())

@@ -20,7 +20,9 @@ description: '@coderminer/vue-markdown 的公共 API 索引，覆盖渲染器、
 | `@coderminer/vue-markdown/highlight` | highlight.js 适配器和归一化辅助 |
 | `@coderminer/vue-markdown/highlight/shiki` | 可选的 Shiki 适配器 |
 | `@coderminer/vue-markdown/math` | `mathPlugin`、`katexEngine`、数学类型 |
-| `@coderminer/vue-markdown/mermaid` | `mermaidPlugin`、按需加载的 Mermaid 运行时、SVG 净化器 |
+| `@coderminer/vue-markdown/mermaid` | 按需加载的 Mermaid 运行时、节点白名单和 `mermaidPlugin` |
+| `@coderminer/vue-markdown/mermaid/plugin` | 仅 `mermaidPlugin`；不导出运行时辅助函数 |
+| `@coderminer/vue-markdown/mermaid/sanitize-svg` | 同步 `sanitizeSvg`；会加载 HTML 解析器 |
 | `@coderminer/vue-markdown/editor` | 按需加载的 CodeMirror Mermaid 编辑器 |
 | `@coderminer/vue-markdown/html` | `htmlPlugin`、净化后的原始 HTML、schema 扩展 |
 | `@coderminer/vue-markdown/components/*` | 每个公共组件一个入口 |
@@ -73,7 +75,7 @@ const source = '# 你好\n\n一段 **加粗** 文字。'
 | `remarkRehypeOptions` | `Record<string, unknown>` | mdast → hast 转换选项。 |
 | `pipeline` | `MarkdownPipeline` | 自定义管线，必须返回 hast。 |
 | `slugger` | `MarkdownSlugger` | 标题 ID 生成器。 |
-| `highlighter` | `MarkdownHighlighter` | 语法高亮适配器。 |
+| `highlighter` | `MarkdownHighlighter` | 语法高亮适配器。从 `@coderminer/vue-markdown/highlight` 传入 `highlightjs` 才会启用高亮；未配置时按纯文本渲染。 |
 | `mathEngine` | `MathEngine` | 数学渲染适配器。 |
 | `mermaidRenderer` | `MermaidRenderer` | Mermaid 渲染适配器。 |
 | `mermaidDeferRendering` | `boolean` | 把 Mermaid 首次渲染推迟到每个块接近视口时。默认 `true`；打印、PDF 或截图流水线应设为 `false`。 |
@@ -93,7 +95,7 @@ const source = '# 你好\n\n一段 **加粗** 文字。'
 | `tocPlacement` | `'top' \| 'left' \| 'right' \| 'hidden'` | 目录置顶、放左侧/右侧或隐藏；默认 `'top'`。 |
 | `search` | `string` | 高亮匹配项并触发 `search-change`。 |
 | `searchCaseSensitive` | `boolean` | 让 `search` 区分大小写。 |
-| `searchDebounce` | `number` | 新查询解析前的等待毫秒数；默认 `0`。 |
+| `searchDebounce` | `number` | 新查询应用到已解析文档前的等待毫秒数；默认 `0`。 |
 | `showError` | `boolean` | 失败时渲染错误区域；默认 `true`。 |
 | `tokens` | `Record<string, string>` | 内联 `--vmd-*` 自定义属性。 |
 | `theme` | `'light' \| 'dark' \| 'auto' \| 'custom'` | 设置 `data-vmd-theme`。 |
@@ -661,7 +663,7 @@ const {
 | --- | --- |
 | 模型 | `buildDocument`、`withDerivedDocument` |
 | 归一化 | `normalizeHast`、`extractToc`、`filterTocByDepth`、`collectCustomTags`、`walkNodes` |
-| 搜索 | `searchDocument`、`segmentSearch`、`countSearchMatches` |
+| 搜索 | `searchDocument`、`segmentSearch`、`withSearchSegments`、`countSearchMatches` |
 | URL | `defaultUrlTransform`、`isExternalUrl`、`resolveUrl` |
 | 诊断 | `createDiagnostic`、`errorMessage` |
 | 记忆化 | `memoGet`、`memoSet`、`memoClear`、`memoSize` |

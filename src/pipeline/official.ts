@@ -16,7 +16,7 @@ import type {
   PluginContext,
 } from '../core/types'
 import { identityOf, listIdentity } from '../core/identity'
-import { createDiagnostic, errorMessage } from '../core/diagnostics'
+import { createDiagnostic, errorMessage, reportPluginError } from '../core/diagnostics'
 import { ALLOWED_TAGS, DANGEROUS_TAGS } from '../core/security'
 
 const CONTEXT_KEY = 'vmdPipelineContext'
@@ -51,7 +51,15 @@ function recordPluginError(
   )
 }
 
-function readContext(file: unknown, fallback: PipelineContext): PipelineContext {
+function readContext(file: unknown, fallback: PipelineContext): PipelineContext
+function readContext(
+  file: unknown,
+  fallback?: PipelineContext,
+): PipelineContext | undefined
+function readContext(
+  file: unknown,
+  fallback?: PipelineContext,
+): PipelineContext | undefined {
   const data = (file as { data?: Record<string, unknown> } | undefined)?.data
   const value = data?.[CONTEXT_KEY]
   return value && typeof value === 'object'
@@ -70,7 +78,7 @@ function pluginContext(ctx: PipelineContext): PluginContext {
   }
 }
 
-function reportPluginError(
+function reportPipelinePluginError(
   ctx: PipelineContext,
   phase: 'remark' | 'rehype',
   name: string,
@@ -78,17 +86,7 @@ function reportPluginError(
   owner: MarkdownPlugin | undefined,
 ): void {
   recordPluginError(ctx, phase, name, error)
-  if (!owner?.onError) return
-  try {
-    owner.onError(error, phase, pluginContext(ctx))
-  } catch (secondary) {
-    ctx.diagnostics.push(
-      createDiagnostic('plugin-onerror', errorMessage(secondary), {
-        phase,
-        plugin: name,
-      }),
-    )
-  }
+  reportPluginError(owner, error, phase, pluginContext(ctx), ctx.diagnostics)
 }
 
 function ownerOf(
@@ -128,13 +126,13 @@ function guardItem(
           )(tree, file)
           if (result && typeof (result as Promise<unknown>).then === 'function') {
             return (result as Promise<unknown>).catch((error: unknown) => {
-              reportPluginError(ctx, phase, name, error, owner)
+              reportPipelinePluginError(ctx, phase, name, error, owner)
               return tree
             })
           }
           return result
         } catch (error) {
-          reportPluginError(ctx, phase, name, error, owner)
+          reportPipelinePluginError(ctx, phase, name, error, owner)
           return tree
         }
       }
@@ -174,6 +172,68 @@ function rehypeDropRaw() {
   }
 }
 
+// Raw HTML is untrusted. Prefixing `id` and `name` keeps author markup from
+// colliding with host element ids or clobbering globals (`id="location"`, ...).
+// The prefix matches the value used by GitHub and DOMPurify.
+const CLOBBER_PREFIX = 'user-content-'
+
+/**
+ * The sanitizer prefixes `id`/`name` values. Point same-document fragments at
+ * the prefixed target so raw HTML anchors keep working, while links to headings
+ * (whose ids are generated after sanitization and therefore unprefixed) stay
+ * untouched. `aria-*by` references are prefixed blindly by the sanitizer, so
+ * those that point at unprefixed headings are restored.
+ */
+function rehypeResolveClobberedLinks(prefix: string) {
+  return () => (tree: Root) => {
+    const targets = new Set<string>()
+    visit(tree, 'element', (node) => {
+      const id = node.properties?.id
+      if (typeof id === 'string' && id !== '') targets.add(id)
+      const name = node.properties?.name
+      if (typeof name === 'string' && name !== '') targets.add(name)
+    })
+
+    visit(tree, 'element', (node) => {
+      const properties = node.properties
+      if (!properties) return
+
+      const href = properties.href
+      if (typeof href === 'string' && href.charAt(0) === '#') {
+        const target = href.slice(1)
+        if (target && !targets.has(target) && targets.has(prefix + target)) {
+          properties.href = `#${prefix}${target}`
+        }
+      }
+
+      for (const key of ['ariaDescribedBy', 'ariaLabelledBy'] as const) {
+        const value = (properties as Record<string, unknown>)[key]
+        if (typeof value !== 'string' || value === '') continue
+        let changed = false
+        const next = value
+          .split(/\s+/)
+          .map((token) => {
+            if (!token || targets.has(token)) return token
+            if (targets.has(prefix + token)) {
+              changed = true
+              return prefix + token
+            }
+            if (
+              token.startsWith(prefix) &&
+              targets.has(token.slice(prefix.length))
+            ) {
+              changed = true
+              return token.slice(prefix.length)
+            }
+            return token
+          })
+          .join(' ')
+        if (changed) (properties as Record<string, unknown>)[key] = next
+      }
+    })
+  }
+}
+
 function textContent(node: unknown): string {
   if (!node || typeof node !== 'object') return ''
   const value = (node as { value?: unknown }).value
@@ -183,16 +243,20 @@ function textContent(node: unknown): string {
   return children.map(textContent).join('')
 }
 
-function rehypeHeadingIds(options: { slugger: PipelineContext['slugger']; idPrefix: string }) {
-  return () => (tree: Root) => {
-    options.slugger.reset?.()
+function rehypeHeadingIds(fallback: PipelineContext) {
+  return () => (tree: Root, file: unknown) => {
+    // The processor is cached across runs, so the slugger and prefix must come
+    // from the current run's context rather than the build-time closure.
+    const ctx = readContext(file, fallback)
+    if (!ctx) return
+    ctx.slugger.reset?.()
     visit(tree, 'element', (node) => {
       if (!/^h[1-6]$/.test(node.tagName)) return
       const text = textContent(node).trim()
       if (!text) return
       node.properties = {
         ...node.properties,
-        id: `${options.idPrefix}${options.slugger.slug(text)}`,
+        id: `${ctx.idPrefix}${ctx.slugger.slug(text)}`,
       }
     })
   }
@@ -284,7 +348,7 @@ function sanitizeSchema(
 
   return {
     ...defaultSchema,
-    clobberPrefix: '',
+    clobberPrefix: CLOBBER_PREFIX,
     tagNames,
     strip: [...DANGEROUS_TAGS],
     attributes,
@@ -331,8 +395,6 @@ export function createOfficialPipeline(
       listIdentity(hostRehype),
       listIdentity(rawItems),
       identityOf(ctx.remarkRehypeOptions),
-      identityOf(ctx.slugger),
-      ctx.idPrefix,
       htmlPlugins.map((plugin) => identityOf(plugin.htmlSchema)).join(','),
       hasRaw ? '1' : '0',
     ].join('\u001e')
@@ -345,10 +407,20 @@ export function createOfficialPipeline(
       useItem(processor, guardItem(item, 'remark', ownerOf(ctx, item, 'remark'), ctx))
     }
 
-    processor.use(remarkRehype, {
+    // The sanitizer owns the clobber prefix when raw HTML is enabled. Leaving
+    // remark-rehype's own prefix in place would double-prefix footnote ids (and
+    // their links) before the sanitizer sees them.
+    const remarkRehypeOptions: Record<string, unknown> = {
       allowDangerousHtml: true,
       ...ctx.remarkRehypeOptions,
-    })
+    }
+    if (
+      hasRaw &&
+      typeof remarkRehypeOptions.clobberPrefix !== 'string'
+    ) {
+      remarkRehypeOptions.clobberPrefix = ''
+    }
+    processor.use(remarkRehype, remarkRehypeOptions as never)
 
     if (hasRaw) {
       for (const item of rawItems) {
@@ -362,7 +434,10 @@ export function createOfficialPipeline(
       processor.use(rehypeDropRaw())
     }
 
-    processor.use(rehypeHeadingIds({ slugger: ctx.slugger, idPrefix: ctx.idPrefix }) as never)
+    processor.use(rehypeHeadingIds(ctx) as never)
+    if (hasRaw) {
+      processor.use(rehypeResolveClobberedLinks(CLOBBER_PREFIX) as never)
+    }
 
     for (const item of hostRehype) {
       useItem(processor, guardItem(item, 'rehype', ownerOf(ctx, item, 'rehype'), ctx))

@@ -6,6 +6,7 @@ import {
   type MarkdownHighlighter,
   type MarkdownTheme,
 } from '@coderminer/vue-markdown'
+import { highlightjs } from '@coderminer/vue-markdown/highlight'
 import ReviewCodeBlock from './ReviewCodeBlock.vue'
 
 const props = withDefaults(defineProps<{ locale?: 'en' | 'zh' }>(), {
@@ -109,7 +110,7 @@ const brokenHighlighter: MarkdownHighlighter = {
 const highlighter = computed(() => {
   if (highlighterId.value === 'uppercase') return uppercaseHighlighter
   if (highlighterId.value === 'broken') return brokenHighlighter
-  return undefined
+  return highlightjs
 })
 
 const actions: CodeBlockAction[] = [

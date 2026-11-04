@@ -7,7 +7,11 @@ Renders Mermaid diagram source into an interactive preview that tolerates incomp
 
 ### Requirement: Markdown fence transformation
 
-The Mermaid entry SHALL provide an opt-in document plugin that converts fenced code blocks with a Mermaid language (`mermaid` or `mmd` by default) into Mermaid nodes. The plugin SHALL preserve the exact source and source range. Without the plugin, Mermaid fences SHALL remain ordinary code blocks. The plugin SHALL NOT load the Mermaid runtime.
+The Mermaid entry SHALL provide an opt-in document plugin that converts fenced code blocks with a Mermaid language (`mermaid` or `mmd` by default) into Mermaid nodes. The plugin SHALL preserve the exact source and source range. Without the plugin, Mermaid fences SHALL remain ordinary code blocks. The plugin SHALL contribute the built-in Mermaid node component so the base renderer does not depend on it, and a `mermaid` node produced without a registered component SHALL fall back to a code block instead of an empty element. The plugin SHALL NOT load the Mermaid engine.
+
+#### Scenario: Custom Mermaid node without a component
+- **WHEN** a plugin produces a `mermaid` node but the renderer has no `nodeComponents.mermaid` (for example a custom plugin used without `mermaidPlugin()`)
+- **THEN** the source is rendered as a fenced code block and no Mermaid runtime is loaded
 
 #### Scenario: Mermaid fence becomes a diagram
 - **WHEN** a host adds `mermaidPlugin()` and the source contains a `mermaid` fenced code block
@@ -54,6 +58,23 @@ Rendering SHALL NOT disturb document flow: the runtime SHALL measure each diagra
 #### Scenario: SVG safety
 - **WHEN** a diagram label contains script-like content
 - **THEN** the rendered SVG is sanitized and no script executes
+
+### Requirement: SVG sanitization policy
+
+Sanitized Mermaid SVG SHALL be produced by an allowlist traversal over the parsed tree, not by a regular-expression rewrite of markup. The sanitizer SHALL allow only documented SVG elements and attributes, SHALL keep a scoped stylesheet only when every selector is rooted at the SVG id and no sibling combinator can reach host content, and SHALL remove declarations that can take the SVG out of its layout box (`position`, `inset`, edge offsets, `z-index`, `overflow`) from both root-targeting and descendant rules. External `url()` references SHALL be removed from stylesheet values and from presentation attributes that accept `<url>` (paint, filter, mask, clip-path, marker, and cursor attributes); only same-document fragment references are kept. A stylesheet or declaration that cannot be validated SHALL be dropped rather than emitted partially.
+
+#### Scenario: Overlay stylesheet
+- **WHEN** generated CSS contains `#diagram{position:fixed;inset:0;width:100vw;height:100vh;z-index:99999}`
+- **THEN** those declarations are removed and the diagram remains inside its layout box
+
+#### Scenario: External paint server
+- **WHEN** a stylesheet value or a presentation attribute references `url(https://example.com/x.svg#id)`
+- **THEN** the reference is removed and no external request is made
+
+#### Scenario: Theme CSS
+- **WHEN** a stylesheet only scopes presentation rules to the SVG id
+- **THEN** the stylesheet is preserved and the diagram keeps its theme styling
+
 
 ### Requirement: Injectable diagram renderer
 

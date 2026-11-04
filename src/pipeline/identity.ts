@@ -1,8 +1,19 @@
 import { identityOf, listIdentity } from '../core/identity'
-import type { MarkdownDocumentOptions, MarkdownPlugin } from '../core/types'
+import type {
+  MarkdownDocumentOptions,
+  MarkdownPipeline,
+  MarkdownPlugin,
+} from '../core/types'
 
 export interface PipelineIdentityInput {
-  pipelineName: string
+  /** Pipeline name. Defaults to `pipeline.name` when omitted. */
+  pipelineName?: string
+  /**
+   * Pipeline instance. Its process-local identity and optional `version` join
+   * the memoization key so two pipelines that share a name cannot reuse each
+   * other's cached documents.
+   */
+  pipeline?: MarkdownPipeline
   plugins: readonly MarkdownPlugin[]
   remarkPlugins: readonly unknown[]
   rehypePlugins: readonly unknown[]
@@ -10,11 +21,23 @@ export interface PipelineIdentityInput {
   options: MarkdownDocumentOptions
 }
 
-/** Deterministic identity for parse-affecting configuration. */
+/**
+ * Deterministic identity for parse-affecting configuration.
+ *
+ * Presentation-only state (theme, tokens, labels, slots) is excluded. Search
+ * state is excluded as well: it is derived from an already parsed document, so a
+ * new query must not invalidate the parse cache.
+ */
 export function createPipelineIdentity(input: PipelineIdentityInput): string {
   const { options } = input
+  const pipelineName = input.pipeline?.name ?? input.pipelineName ?? ''
+  const pipelineVersion = input.pipeline?.version ?? ''
+  const pipelineInstance = input.pipeline ? identityOf(input.pipeline) : ''
+
   return [
-    input.pipelineName,
+    pipelineName,
+    pipelineVersion,
+    pipelineInstance,
     input.plugins.map((plugin) => plugin.name).join(','),
     input.plugins.map((plugin) => identityOf(plugin)).join(','),
     listIdentity(input.remarkPlugins),
@@ -28,8 +51,6 @@ export function createPipelineIdentity(input: PipelineIdentityInput): string {
     options.unwrapDisallowed ? '1' : '0',
     identityOf(options.allowElement),
     identityOf(options.urlTransform),
-    options.search?.query?.trim() ?? '',
-    options.search?.caseSensitive ? '1' : '0',
   ].join('\u001e')
 }
 

@@ -57,7 +57,7 @@ Everything is exported from `@coderminer/vue-markdown` and available through
 
 | Component | Entry | Role |
 | --- | --- | --- |
-| `CodeBlock` | default | Code header, language, copy/download, lazy highlighting |
+| `CodeBlock` | default | Code header, language, copy/download, explicit highlighter |
 | `VueSyntaxHighlighter` | default | Standalone highlighted snippet with line numbers |
 | `MermaidBlock` | default | Preview/source tabs, zoom, fullscreen, copy, SVG/PNG export |
 | `MermaidLiveEditor` | default | CodeMirror-backed Mermaid editor |
@@ -71,10 +71,16 @@ import { mathPlugin, katexEngine } from '@coderminer/vue-markdown/math'
 import {
   mermaidPlugin,
   renderMermaid,
-  sanitizeSvg,
 } from '@coderminer/vue-markdown/mermaid'
+import { sanitizeSvg } from '@coderminer/vue-markdown/mermaid/sanitize-svg'
 import { createMermaidEditor } from '@coderminer/vue-markdown/editor'
 ```
+
+If you only need `mermaidPlugin`, import it from
+`@coderminer/vue-markdown/mermaid/plugin` to keep the import surface to the
+plugin and its component. The synchronous `sanitizeSvg` lives in
+`@coderminer/vue-markdown/mermaid/sanitize-svg`; the Mermaid runtime sanitizes
+lazily and does not statically load the HTML parser.
 
 `MarkdownMermaid` forwards `renderer`, `theme`, `showErrors`, `enableZoom`,
 `allowFullscreen`, and `compact` to `MermaidBlock`. `MarkdownMath` accepts a

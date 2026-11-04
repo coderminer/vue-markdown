@@ -458,9 +458,21 @@ export interface PipelineContext {
 
 export interface MarkdownPipeline {
   name: string
+  /**
+   * Optional pipeline revision. It participates in the memoization identity, so
+   * bumping it invalidates cached documents produced by the previous revision.
+   */
+  version?: string
   capabilities?: PipelineCapabilities
   process(source: string, ctx: PipelineContext): Promise<PipelineResult>
   processSync?(source: string, ctx: PipelineContext): PipelineResult
+  /**
+   * Release pipeline resources.
+   *
+   * The composable owns the pipelines it creates (the official fallback). A
+   * host-supplied pipeline is owned by the host and is never disposed by the
+   * library, so several renderers can share one instance safely.
+   */
   dispose?(): void
 }
 

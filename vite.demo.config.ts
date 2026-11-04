@@ -49,6 +49,14 @@ export default defineConfig({
         replacement: resolveSrc('./src/highlight/index.ts'),
       },
       {
+        find: '@coderminer/vue-markdown/mermaid/plugin',
+        replacement: resolveSrc('./src/mermaid/plugin.ts'),
+      },
+      {
+        find: '@coderminer/vue-markdown/mermaid/sanitize-svg',
+        replacement: resolveSrc('./src/mermaid/sanitize-svg.ts'),
+      },
+      {
         find: '@coderminer/vue-markdown/mermaid',
         replacement: resolveSrc('./src/mermaid/index.ts'),
       },
