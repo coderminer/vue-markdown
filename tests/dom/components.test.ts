@@ -317,6 +317,18 @@ describe('standalone node components', () => {
     expect(image.text()).toBe('Missing')
   })
 
+  it('retries after the image source changes', async () => {
+    const image = mount(MarkdownImage, {
+      props: { node: node('img'), src: '/missing.png', alt: 'Missing' },
+    })
+    await image.trigger('error')
+    expect(image.element.tagName).toBe('SPAN')
+
+    await image.setProps({ src: '/fixed.png' })
+    expect(image.element.tagName).toBe('IMG')
+    expect(image.attributes('src')).toBe('/fixed.png')
+  })
+
   it('renders custom tags through the default and mapped paths', async () => {
     const onCustomTagClick = vi.fn()
     const custom: MarkdownNode = {

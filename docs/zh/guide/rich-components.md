@@ -417,6 +417,10 @@ const diagram = `flowchart LR
 | `compact` | `boolean` | `false` | 隐藏块操作工具栏，适合嵌入式预览。 |
 | `deferRendering` | `boolean` | `true` | 把首次渲染推迟到块接近视口时。打印、PDF 或截图流水线应设为 `false`。 |
 | `actions` | `MermaidAction[]` | `[]` | 额外工具栏按钮，含 `key`、`label`、`run`。 |
+| `labels` | `Partial<MarkdownLabels>` | 上下文 | 局部文案覆盖，合并优先级高于渲染器、Provider 和预设文案。 |
+
+pending 占位文案使用 `mermaidPending` 标签。独立组件可通过 `labels` 属性覆盖；
+`MermaidBlock` 位于 `MarkdownRenderer` 内时，使用渲染器、Provider 或预设的 `labels`。
 
 事件：`rendered(result)`、`error(message)`、`copy(source)`、
 `export('png' | 'svg')`、`fullscreen(active)` 和 `action(key)`。所有负载都是普通值；
@@ -584,8 +588,8 @@ import '@coderminer/vue-markdown/styles/math-full.css'
 ## MarkdownMermaid
 
 `MarkdownMermaid` 是渲染器使用的语义节点包装。它把 `node`、`code`、`renderer`、`theme`、
-`showErrors`、`enableZoom`、`allowFullscreen`、`compact`、`deferRendering` 和 `actions` 转发给
-`MermaidBlock`，转发 `header`、`tabs`、`actions`、`mermaid` 和 `mermaid-error` 插槽，
+`showErrors`、`enableZoom`、`allowFullscreen`、`compact`、`deferRendering`、`actions` 和 `labels`
+转发给 `MermaidBlock`，转发 `header`、`tabs`、`actions`、`mermaid` 和 `mermaid-error` 插槽，
 并暴露相同的 `render()`、`copy()`、`exportPng()`、`downloadSvg()` 和
 `toggleFullscreen()`。需要语义包装，或想替换 `nodeComponents.mermaid` 时使用它。
 

@@ -572,6 +572,8 @@
   display: block;
   max-width: 100%;
   height: auto;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* Drag-to-pan scrolls the preview natively once the diagram is zoomed. */

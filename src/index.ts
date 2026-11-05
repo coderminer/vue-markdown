@@ -1,4 +1,4 @@
-export const version = '1.1.0-beta.0'
+export const version = '1.1.0'
 
 export * from './core/types'
 export * from './core/parts'

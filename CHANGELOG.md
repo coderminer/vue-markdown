@@ -2,7 +2,34 @@
 
 All notable changes to `@coderminer/vue-markdown` are documented here.
 
-## [Unreleased]
+## [1.1.0] - 2026-11-05
+
+Stable release. It includes all changes from `1.1.0-beta.0`, adds Mermaid label
+customization, and fixes two lifecycle defects found during the pre-release
+audit.
+
+### Added
+
+- `MermaidBlock` and `MarkdownMermaid` accept a `labels` prop for local label
+  overrides. The new `mermaidPending` label customizes the placeholder shown
+  while a diagram renders. `MarkdownLabels` gains a required `mermaidPending`
+  key; `Partial<MarkdownLabels>` configurations are unaffected.
+
+### Changed
+
+- Mermaid diagrams are horizontally centered in the preview by default. Large
+  diagrams still cap at the preview width, and zoom and pan behavior is
+  unchanged.
+
+### Fixed
+
+- `MermaidLiveEditor` destroys the CodeMirror instance when lazy loading
+  finishes after the component has unmounted. Previously the editor handle was
+  assigned after `onUnmounted` had already run, so the instance and its
+  listeners leaked.
+- `MarkdownImage` clears its local failure state when `src` changes. A retried
+  or corrected image now renders instead of remaining stuck on the text
+  fallback.
 
 ## [1.1.0-beta.0] - 2026-11-04
 

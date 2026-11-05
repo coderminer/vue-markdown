@@ -1,8 +1,26 @@
 ---
-description: '@coderminer/vue-markdown 1.0 发布说明与升级指南。'
+description: '@coderminer/vue-markdown 1.1 发布说明与升级指南。'
 ---
 
 # 发布说明
+
+## 1.1.0 — 2026-11-05
+
+正式版，包含 `1.1.0-beta.0` 的全部内容，并新增 Mermaid 文案定制、一处视觉调整和两个
+生命周期修复：
+
+- `MermaidBlock` 和 `MarkdownMermaid` 新增 `labels` 属性，独立使用时可以覆盖文案。
+  新增的 `mermaidPending` 标签用于定制图表渲染期间的占位文案。
+- `MarkdownLabels` 新增必填的 `mermaidPending` 键；使用 `Partial<MarkdownLabels>`
+  的配置不受影响。
+- Mermaid 图表默认在预览区域水平居中。大图仍以预览区宽度为上限，缩放和平移行为
+  保持不变。
+- `MermaidLiveEditor` 在组件卸载后才完成懒加载的 CodeMirror 实例会被立即销毁，
+  不再泄漏编辑器及其监听器。
+- `MarkdownImage` 在加载失败后 `src` 发生变化时会重新尝试渲染，不再一直停留在
+  文本回退状态。
+
+行为变更和升级步骤见下方的 `1.1.0-beta.0` 说明。
 
 ## 1.1.0-beta.0 — 2026-11-04
 

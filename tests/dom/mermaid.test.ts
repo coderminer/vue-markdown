@@ -4,6 +4,8 @@ import { defineComponent, h, onMounted } from 'vue'
 import MermaidBlock from '../../src/components/MermaidBlock.vue'
 import MarkdownMermaid from '../../src/components/MarkdownMermaid.vue'
 import MarkdownRenderer from '../../src/components/MarkdownRenderer.vue'
+import { RENDER_CONTEXT, type RenderContext } from '../../src/components/context'
+import { DEFAULT_LABELS } from '../../src/core/labels'
 import { mermaidPlugin } from '../../src/mermaid/plugin'
 import type { MermaidRenderer, MermaidRenderOptions, MermaidRenderResult } from '../../src/core/types'
 
@@ -29,6 +31,20 @@ function mountBlock(
     },
     slots: slots as never,
   })
+}
+
+function context(overrides: Partial<RenderContext> = {}): RenderContext {
+  return {
+    components: {},
+    labels: DEFAULT_LABELS,
+    linkTarget: '_self',
+    externalLinkTarget: '_self',
+    renderHostSlot: (_name, _props, fallback) => fallback(),
+    onLinkClick() {},
+    onCustomTagClick() {},
+    onTaskChange() {},
+    ...overrides,
+  }
 }
 
 /**
@@ -79,6 +95,73 @@ describe('MermaidBlock', () => {
     expect(shown.find('[data-vmd-part="mermaid-error"]').text()).toContain(
       'bad syntax',
     )
+  })
+
+  it('customizes the pending placeholder through render-context labels', async () => {
+    const wrapper = mount(MermaidBlock, {
+      props: {
+        source: 'graph TD; A-->B',
+        renderer: renderer({
+          render: () => new Promise<MermaidRenderResult>(() => {}),
+        }),
+      },
+      global: {
+        provide: {
+          [RENDER_CONTEXT]: context({
+            labels: { ...DEFAULT_LABELS, mermaidPending: '正在渲染图表…' },
+          }),
+        },
+      },
+    })
+    await flushPromises()
+    const pending = wrapper.find('[data-vmd-part="mermaid-pending"]')
+    expect(pending.exists()).toBe(true)
+    expect(pending.text()).toBe('正在渲染图表…')
+    wrapper.unmount()
+  })
+
+  it('customizes labels through the local labels prop', async () => {
+    const wrapper = mountBlock({
+      renderer: renderer({
+        render: () => new Promise<MermaidRenderResult>(() => {}),
+      }),
+      labels: {
+        mermaid: 'Flow',
+        mermaidPending: 'Loading diagram…',
+        preview: 'View',
+      },
+    })
+    await flushPromises()
+    expect(wrapper.attributes('aria-label')).toBe('Flow')
+    expect(wrapper.find('[data-action="preview"]').text()).toContain('View')
+    expect(wrapper.find('[data-vmd-part="mermaid-pending"]').text()).toBe(
+      'Loading diagram…',
+    )
+    wrapper.unmount()
+  })
+
+  it('applies renderer labels to nested Mermaid blocks', async () => {
+    const wrapper = mount(MarkdownRenderer, {
+      props: {
+        source: '```mermaid\ngraph TD; A-->B\n```',
+        plugins: [mermaidPlugin()],
+        mermaidRenderer: renderer({
+          render: () => new Promise<MermaidRenderResult>(() => {}),
+        }),
+        mermaidDeferRendering: false,
+        labels: { mermaidPending: 'Renderer pending' },
+      },
+    })
+    await flushPromises()
+    await vi.waitFor(() => {
+      expect(wrapper.find('[data-vmd-part="mermaid-pending"]').exists()).toBe(
+        true,
+      )
+    })
+    expect(wrapper.find('[data-vmd-part="mermaid-pending"]').text()).toBe(
+      'Renderer pending',
+    )
+    wrapper.unmount()
   })
 
   it('forwards a render identifier to injected renderers', async () => {
@@ -596,6 +679,23 @@ describe('MermaidBlock', () => {
     })
     await flushPromises()
     expect(actions.find('[data-action="log"]').exists()).toBe(true)
+  })
+
+  it('forwards labels through MarkdownMermaid', async () => {
+    const wrapper = mount(MarkdownMermaid, {
+      props: {
+        code: 'graph TD; A-->B',
+        renderer: renderer({
+          render: () => new Promise<MermaidRenderResult>(() => {}),
+        }),
+        labels: { mermaidPending: 'Standalone pending' },
+      },
+    })
+    await flushPromises()
+    expect(wrapper.find('[data-vmd-part="mermaid-pending"]').text()).toBe(
+      'Standalone pending',
+    )
+    wrapper.unmount()
   })
 
   it('forwards display props through MarkdownMermaid', async () => {

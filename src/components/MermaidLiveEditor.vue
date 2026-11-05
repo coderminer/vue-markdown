@@ -339,17 +339,23 @@ onMounted(async () => {
     document.addEventListener('fullscreenchange', onFullscreenChange)
   }
   await nextTick()
-  if (!editorHost.value) return
+  if (!active || !editorHost.value) return
+  let created: MermaidEditorHandle
   try {
-    handle = await createMermaidEditor(editorHost.value, {
+    created = await createMermaidEditor(editorHost.value, {
       value: value.value,
       theme: resolvedTheme.value,
       onChange: updateValue,
     })
   } catch (error) {
     if (import.meta.env.DEV) console.error('Mermaid editor failed', error)
-    handle = undefined
+    return
   }
+  if (!active) {
+    created.destroy()
+    return
+  }
+  handle = created
 })
 
 onUnmounted(() => {

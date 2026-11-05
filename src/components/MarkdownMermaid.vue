@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import type {
+  MarkdownLabels,
   MarkdownNode,
   MarkdownTheme,
   MermaidAction,
@@ -22,6 +23,7 @@ const props = withDefaults(
     compact?: boolean
     deferRendering?: boolean
     actions?: MermaidAction[]
+    labels?: Partial<MarkdownLabels>
   }>(),
   {
     node: undefined,
@@ -34,6 +36,7 @@ const props = withDefaults(
     compact: false,
     deferRendering: true,
     actions: () => [],
+    labels: undefined,
   },
 )
 
@@ -89,6 +92,7 @@ defineExpose({
     :compact="compact"
     :defer-rendering="deferRendering"
     :actions="actions"
+    :labels="labels"
     @rendered="emit('rendered', $event)"
     @error="emit('error', $event)"
     @copy="emit('copy', $event)"
@@ -125,6 +129,7 @@ defineExpose({
     :compact="compact"
     :defer-rendering="deferRendering"
     :actions="actions"
+    :labels="labels"
     @rendered="emit('rendered', $event)"
     @error="emit('error', $event)"
     @copy="emit('copy', $event)"

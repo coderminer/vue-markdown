@@ -427,6 +427,11 @@ const diagram = `flowchart LR
 | `compact` | `boolean` | `false` | Hides the block action toolbar for embedded previews. |
 | `deferRendering` | `boolean` | `true` | Defers the first render until the block nears the viewport. Set to `false` for print, PDF, or screenshot pipelines. |
 | `actions` | `MermaidAction[]` | `[]` | Extra toolbar buttons with `key`, `label`, and `run`. |
+| `labels` | `Partial<MarkdownLabels>` | context | Local label overrides merged over renderer, provider, and preset labels. |
+
+The pending placeholder uses the `mermaidPending` label. Pass a partial `labels`
+object to customize it on a standalone block; renderer, provider, and preset
+`labels` apply when the block is rendered inside `MarkdownRenderer`.
 
 Events: `rendered(result)`, `error(message)`, `copy(source)`,
 `export('png' | 'svg')`, `fullscreen(active)`, and `action(key)`. All payloads
@@ -603,7 +608,8 @@ readable and reports `math-engine-unavailable` instead of rendering nothing.
 
 `MarkdownMermaid` is the semantic node wrapper used by the renderer. It forwards
 `node`, `code`, `renderer`, `theme`, `showErrors`, `enableZoom`,
-`allowFullscreen`, `compact`, `deferRendering`, and `actions` to `MermaidBlock`, forwards the
+`allowFullscreen`, `compact`, `deferRendering`, `actions`, and `labels` to
+`MermaidBlock`, forwards the
 `header`, `tabs`, `actions`, `mermaid`, and `mermaid-error` slots, and exposes
 the same `render()`, `copy()`, `exportPng()`, `downloadSvg()`, and
 `toggleFullscreen()` actions. Use it when you need the semantic wrapper or want to replace

@@ -28,6 +28,7 @@ export const DEFAULT_LABELS: MarkdownLabels = {
   math: 'Math',
   mermaid: 'Diagram',
   mermaidFallback: 'Diagram could not be rendered.',
+  mermaidPending: 'Rendering diagram…',
   preview: 'Preview',
   source: 'Source',
   retry: 'Retry',

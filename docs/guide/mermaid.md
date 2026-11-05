@@ -110,6 +110,9 @@ temporary `dvmd-mermaid-*` element to the end of `document.body`. That element
 therefore never enters page flow, which is what caused the document to jump
 while diagrams rendered.
 
+Diagrams are horizontally centered in the preview by default. A diagram wider
+than the preview still caps at its width and stays scrollable and pannable.
+
 A block that is far outside the viewport defers its first render until it comes
 within 400 px of the viewport. A long document therefore does not pay the parse,
 sanitize, and node-building cost for diagrams the reader has not reached yet,
@@ -192,7 +195,10 @@ safe choice for print, PDF, and screenshot pipelines.
 The pending state reserves one diagram's worth of height through
 `--vmd-mermaid-min-height` (12rem by default), so the first render does not push
 the following content down. Later updates keep the last good preview in place
-and never change the block height.
+and never change the block height. The placeholder text is the
+`mermaidPending` label. When the block is rendered by `MarkdownRenderer`,
+configure it through the renderer, provider, or preset `labels`; a standalone
+`MermaidBlock` accepts a partial `labels` object directly.
 
 A diagram renders at the intrinsic pixel width Mermaid reports, capped at the
 preview width. Small diagrams therefore keep their natural size instead of

@@ -12,6 +12,7 @@ import {
   watch,
 } from 'vue'
 import type {
+  MarkdownLabels,
   MarkdownNode,
   MarkdownTheme,
   MermaidAction,
@@ -20,7 +21,7 @@ import type {
 } from '../core/types'
 import type { MermaidBlockEvents } from './types'
 import { createDiagnostic, errorMessage } from '../core/diagnostics'
-import { resolveLabel } from '../core/labels'
+import { DEFAULT_LABELS, resolveLabel } from '../core/labels'
 import { isValidMermaidRenderer } from '../core/adapters'
 import { isEmptySlotContent, useRenderContext } from './context'
 import { renderNodes } from './render'
@@ -47,6 +48,8 @@ const props = withDefaults(
      */
     deferRendering?: boolean
     actions?: MermaidAction[]
+    /** Local label overrides, merged over render-context labels. */
+    labels?: Partial<MarkdownLabels>
   }>(),
   {
     node: undefined,
@@ -59,6 +62,7 @@ const props = withDefaults(
     compact: false,
     deferRendering: true,
     actions: () => [],
+    labels: undefined,
   },
 )
 
@@ -111,7 +115,14 @@ const rendererId = computed(() =>
     ? renderer.value.id
     : 'mermaid',
 )
-const label = computed(() => resolveLabel(context.labels.mermaid, { source: sourceText.value }))
+const labels = computed<MarkdownLabels>(() => ({
+  ...DEFAULT_LABELS,
+  ...context.labels,
+  ...(props.labels ?? {}),
+}))
+const label = computed(() =>
+  resolveLabel(labels.value.mermaid, { source: sourceText.value }),
+)
 
 const INVALID_RENDERER_RESULT =
   'The Mermaid renderer returned an invalid result. Return an object such as `{ nodes }` or `{ svg }` from `render()`.'
@@ -681,7 +692,7 @@ function retryControl(): ReturnType<typeof h> {
       'data-action': 'retry',
       onClick: retry,
     },
-    resolveLabel(context.labels.retry),
+    resolveLabel(labels.value.retry),
   )
 }
 
@@ -831,7 +842,7 @@ const PreviewContent = defineComponent({
                   h(
                     'span',
                     { class: 'vmd-mermaid-fallback-message' },
-                    resolveLabel(context.labels.mermaidFallback),
+                    resolveLabel(labels.value.mermaidFallback),
                   ),
                   retryControl(),
                 ],
@@ -844,7 +855,7 @@ const PreviewContent = defineComponent({
                 class: 'vmd-mermaid-pending',
                 role: 'status',
               },
-              'Rendering diagram…',
+              resolveLabel(labels.value.mermaidPending),
             )
           }
           return h(
@@ -925,7 +936,7 @@ const TabsContent = defineComponent({
               },
               [
                 h(Icon, { name: 'preview' }),
-                resolveLabel(context.labels.preview),
+                resolveLabel(labels.value.preview),
               ],
             ),
             h(
@@ -940,7 +951,7 @@ const TabsContent = defineComponent({
               },
               [
                 h(Icon, { name: 'source' }),
-                resolveLabel(context.labels.source),
+                resolveLabel(labels.value.source),
               ],
             ),
           ],
@@ -961,8 +972,8 @@ const ActionsContent = defineComponent({
         if (props.compact) return null
 
         const copyLabel = copied.value
-          ? resolveLabel(context.labels.copied)
-          : resolveLabel(context.labels.copy)
+          ? resolveLabel(labels.value.copied)
+          : resolveLabel(labels.value.copy)
         const iconButton = (
           action: string,
           label: string,
@@ -992,19 +1003,19 @@ const ActionsContent = defineComponent({
           children.push(
             iconButton(
               'zoom-in',
-              resolveLabel(context.labels.zoomIn),
+              resolveLabel(labels.value.zoomIn),
               'zoom-in',
               () => zoom(0.25),
             ),
             iconButton(
               'zoom-out',
-              resolveLabel(context.labels.zoomOut),
+              resolveLabel(labels.value.zoomOut),
               'zoom-out',
               () => zoom(-0.25),
             ),
             iconButton(
               'reset-zoom',
-              resolveLabel(context.labels.reset),
+              resolveLabel(labels.value.reset),
               'reset',
               resetZoom,
             ),
@@ -1014,13 +1025,13 @@ const ActionsContent = defineComponent({
           iconButton('copy', copyLabel, copied.value ? 'check' : 'copy', copy),
           iconButton(
             'export-png',
-            resolveLabel(context.labels.exportPng),
+            resolveLabel(labels.value.exportPng),
             'image',
             exportPng,
           ),
           iconButton(
             'download-svg',
-            `${resolveLabel(context.labels.download)} SVG`,
+            `${resolveLabel(labels.value.download)} SVG`,
             'download',
             downloadSvg,
           ),
@@ -1030,15 +1041,15 @@ const ActionsContent = defineComponent({
             iconButton(
               'fullscreen',
               fullscreen.value
-                ? resolveLabel(context.labels.exitFullscreen)
-                : resolveLabel(context.labels.fullscreen),
+                ? resolveLabel(labels.value.exitFullscreen)
+                : resolveLabel(labels.value.fullscreen),
               fullscreen.value ? 'exit-fullscreen' : 'fullscreen',
               () => toggleFullscreen(),
             ),
           )
         }
         children.push(
-          iconButton('retry', resolveLabel(context.labels.retry), 'retry', retry),
+          iconButton('retry', resolveLabel(labels.value.retry), 'retry', retry),
         )
 
         for (const action of props.actions) {

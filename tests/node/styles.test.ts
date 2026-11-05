@@ -191,6 +191,8 @@ describe('stylesheet compatibility fallbacks', () => {
     expect(body).toContain('max-width: 100%;')
     expect(body).toContain('height: auto;')
     expect(body).toContain('display: block;')
+    expect(body).toContain('margin-left: auto;')
+    expect(body).toContain('margin-right: auto;')
     expect(components).toContain(
       "[data-vmd-part='mermaid-preview'][data-pannable='true']",
     )

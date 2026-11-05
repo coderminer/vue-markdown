@@ -83,7 +83,7 @@ plugin and its component. The synchronous `sanitizeSvg` lives in
 lazily and does not statically load the HTML parser.
 
 `MarkdownMermaid` forwards `renderer`, `theme`, `showErrors`, `enableZoom`,
-`allowFullscreen`, and `compact` to `MermaidBlock`. `MarkdownMath` accepts a
+`allowFullscreen`, `compact`, and `labels` to `MermaidBlock`. `MarkdownMath` accepts a
 standalone `mathEngine` prop. `MarkdownRenderer` exposes the
 `MarkdownRendererInstance` type.
 

@@ -80,8 +80,8 @@ import { createMermaidEditor } from '@coderminer/vue-markdown/editor'
 `@coderminer/vue-markdown/mermaid/sanitize-svg`；Mermaid 运行时按需净化，不会静态加载
 HTML 解析器。
 
-`MarkdownMermaid` 把 `renderer`、`theme`、`showErrors`、`enableZoom`、`allowFullscreen`
-和 `compact` 转发给 `MermaidBlock`。`MarkdownMath` 接受独立的 `mathEngine` 属性。
+`MarkdownMermaid` 把 `renderer`、`theme`、`showErrors`、`enableZoom`、`allowFullscreen`、
+`compact` 和 `labels` 转发给 `MermaidBlock`。`MarkdownMath` 接受独立的 `mathEngine` 属性。
 `MarkdownRenderer` 暴露 `MarkdownRendererInstance` 类型。
 
 独立用法见[富组件](../guide/rich-components.md)。

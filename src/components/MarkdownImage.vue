@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import type { MarkdownNode } from '../core/types'
 
 const props = defineProps<{
@@ -15,6 +15,13 @@ const props = defineProps<{
 }>()
 
 const failed = ref(false)
+
+watch(
+  () => props.src,
+  () => {
+    failed.value = false
+  },
+)
 
 function onError(): void {
   failed.value = true

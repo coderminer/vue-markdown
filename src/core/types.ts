@@ -202,6 +202,7 @@ export interface MarkdownLabels {
   math: MarkdownLabelValue
   mermaid: MarkdownLabelValue
   mermaidFallback: MarkdownLabelValue
+  mermaidPending: MarkdownLabelValue
   preview: MarkdownLabelValue
   source: MarkdownLabelValue
   retry: MarkdownLabelValue

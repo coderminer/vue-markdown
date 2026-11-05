@@ -170,7 +170,15 @@ The block SHALL export the currently rendered diagram as a PNG when export is av
 
 ### Requirement: Customization and parts
 
-The block SHALL expose documented tokens for preview background, border, controls, pending, and error states; stable parts for the root, header, tabs, actions, preview viewport, source view, pending overlay, and error region; slots for `header`, `tabs`, `actions`, `mermaid`, and `mermaid-error`; and labels for all controls.
+The block SHALL expose documented tokens for preview background, border, controls, pending, and error states; stable parts for the root, header, tabs, actions, preview viewport, source view, pending overlay, and error region; slots for `header`, `tabs`, `actions`, `mermaid`, and `mermaid-error`; and labels for all controls, including the pending placeholder and error states. The block SHALL accept a local `labels` prop so standalone usage can override labels without a renderer context.
+
+#### Scenario: Custom pending label
+- **WHEN** a host supplies a label for the pending state
+- **THEN** the placeholder text is replaced while rendering behavior is unchanged
+
+#### Scenario: Standalone label overrides
+- **WHEN** a host renders the block outside `MarkdownRenderer` and supplies the `labels` prop
+- **THEN** the local labels replace the matching defaults and omitted keys keep their default values
 
 #### Scenario: Custom header
 - **WHEN** a host provides a header slot

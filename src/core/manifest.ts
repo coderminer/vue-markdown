@@ -344,6 +344,7 @@ export const COMPONENT_MANIFESTS: Record<string, MarkdownComponentManifest> = {
     labels: [
       'mermaid',
       'mermaidFallback',
+      'mermaidPending',
       'preview',
       'source',
       'retry',
@@ -398,6 +399,7 @@ export const COMPONENT_MANIFESTS: Record<string, MarkdownComponentManifest> = {
       'reset',
       'mermaid',
       'mermaidFallback',
+      'mermaidPending',
     ],
     overrideKeys: ['editor', 'diagnosticsFormatter'],
     behaviors: ['mermaidRenderer', 'diagnosticsFormatter'],
@@ -421,6 +423,7 @@ export const COMPONENT_MANIFESTS: Record<string, MarkdownComponentManifest> = {
     labels: [
       'mermaid',
       'mermaidFallback',
+      'mermaidPending',
       'preview',
       'source',
       'retry',
