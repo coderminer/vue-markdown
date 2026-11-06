@@ -42,6 +42,47 @@ export function validatePipeline(pipeline: unknown): MarkdownDiagnostic[] {
       ),
     )
   }
+  if (candidate.capabilities !== undefined) {
+    const capabilities = candidate.capabilities
+    if (
+      !capabilities ||
+      typeof capabilities !== 'object' ||
+      Array.isArray(capabilities)
+    ) {
+      diagnostics.push(
+        createDiagnostic(
+          'pipeline-capabilities',
+          '`capabilities` must be an object when provided.',
+          { phase: 'pipeline' },
+        ),
+      )
+    } else {
+      if (
+        capabilities.sync !== undefined &&
+        typeof capabilities.sync !== 'boolean'
+      ) {
+        diagnostics.push(
+          createDiagnostic(
+            'pipeline-capabilities',
+            '`capabilities.sync` must be a boolean when provided.',
+            { phase: 'pipeline' },
+          ),
+        )
+      }
+      if (
+        capabilities.plugins !== undefined &&
+        typeof capabilities.plugins !== 'boolean'
+      ) {
+        diagnostics.push(
+          createDiagnostic(
+            'pipeline-capabilities',
+            '`capabilities.plugins` must be a boolean when provided.',
+            { phase: 'pipeline' },
+          ),
+        )
+      }
+    }
+  }
   if (typeof candidate.process !== 'function') {
     diagnostics.push(
       createDiagnostic(

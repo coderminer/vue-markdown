@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import rehypeRaw from 'rehype-raw'
 import GithubSlugger from 'github-slugger'
-import { createOfficialPipeline } from '../../src/pipeline'
+import { createOfficialPipeline, defineMarkdownPipeline } from '../../src/pipeline'
 import { normalizeHast } from '../../src/core/normalize'
 import { buildDocument } from '../../src/core/model'
 import { useMarkdownDocument } from '../../src/composables/useMarkdownDocument'
@@ -15,11 +15,12 @@ import {
 } from '../../src/plugins/builtin'
 import { defineMarkdownPlugin } from '../../src/plugins/define'
 import { resolvePlugins } from '../../src/plugins/registry'
-import { exportMarkdownHtmlSync } from '../../src/export'
+import { exportMarkdownHtml, exportMarkdownHtmlSync } from '../../src/export'
 import type {
   MarkdownNode,
   MarkdownPipeline,
   PipelineContext,
+  PipelineResult,
   PluginContext,
 } from '../../src/core/types'
 
@@ -67,6 +68,22 @@ function text(nodes: MarkdownNode[]): string {
       return ''
     })
     .join('')
+}
+
+function paragraphResult(value: string): PipelineResult {
+  return {
+    hast: {
+      type: 'root',
+      children: [
+        {
+          type: 'element',
+          tagName: 'p',
+          properties: {},
+          children: [{ type: 'text', value }],
+        },
+      ],
+    },
+  }
 }
 
 describe('pipeline stages and raw HTML', () => {
@@ -881,6 +898,214 @@ describe('plugin registry', () => {
         plugin: 'customTags',
       }),
     ])
+  })
+})
+
+describe('pipeline capabilities', () => {
+  it('never calls processSync when a pipeline declares sync: false', async () => {
+    let syncCalls = 0
+    let asyncCalls = 0
+    const pipeline: MarkdownPipeline = {
+      name: 'async-only',
+      capabilities: { sync: false },
+      async process() {
+        asyncCalls += 1
+        return paragraphResult('Async output')
+      },
+      processSync() {
+        syncCalls += 1
+        return paragraphResult('Sync output')
+      },
+    }
+
+    const result = useMarkdownDocument('ignored', { pipeline })
+    await result.refresh()
+
+    expect(syncCalls).toBe(0)
+    expect(asyncCalls).toBeGreaterThan(0)
+    expect(JSON.stringify(result.document.value)).toContain('Async output')
+    expect(JSON.stringify(result.document.value)).not.toContain('Sync output')
+  })
+
+  it('uses the synchronous path when a pipeline declares sync: true', () => {
+    let syncCalls = 0
+    let asyncCalls = 0
+    const pipeline: MarkdownPipeline = {
+      name: 'sync-only',
+      capabilities: { sync: true },
+      async process() {
+        asyncCalls += 1
+        return paragraphResult('Async output')
+      },
+      processSync() {
+        syncCalls += 1
+        return paragraphResult('Sync output')
+      },
+    }
+
+    const result = useMarkdownDocument('ignored', { pipeline })
+
+    expect(syncCalls).toBe(1)
+    expect(asyncCalls).toBe(0)
+    expect(JSON.stringify(result.document.value)).toContain('Sync output')
+  })
+
+  it('keeps the error-message fallback when capabilities are undeclared', async () => {
+    let syncCalls = 0
+    let asyncCalls = 0
+    const pipeline: MarkdownPipeline = {
+      name: 'undeclared',
+      async process() {
+        asyncCalls += 1
+        return paragraphResult('Async output')
+      },
+      processSync() {
+        syncCalls += 1
+        throw new Error('Cannot run processSync on a processor that finished async.')
+      },
+    }
+
+    const result = useMarkdownDocument('ignored', { pipeline })
+    await result.refresh()
+
+    expect(syncCalls).toBeGreaterThan(0)
+    expect(asyncCalls).toBeGreaterThan(0)
+    expect(JSON.stringify(result.document.value)).toContain('Async output')
+  })
+
+  it('reports malformed capabilities and falls back to the official pipeline', () => {
+    const pipeline = {
+      name: 'bad-capabilities',
+      capabilities: { sync: 'yes' },
+      async process() {
+        return paragraphResult('Custom output')
+      },
+      processSync() {
+        return paragraphResult('Custom output')
+      },
+    } as unknown as MarkdownPipeline
+
+    const result = useMarkdownDocument('# Title', { pipeline })
+
+    expect(result.document.value?.pipeline).toBe('official')
+    expect(
+      result.diagnostics.value.some(
+        (item) => item.code === 'pipeline-capabilities',
+      ),
+    ).toBe(true)
+  })
+
+  it.each([
+    { label: 'null', capabilities: null },
+    { label: 'an array', capabilities: [] },
+    { label: 'a string', capabilities: 'sync' },
+    { label: 'a non-boolean plugins field', capabilities: { plugins: 'yes' } },
+  ])('reports $label capabilities and falls back', ({ capabilities }) => {
+    const pipeline = {
+      name: 'bad-shape',
+      capabilities,
+      async process() {
+        return paragraphResult('Custom output')
+      },
+      processSync() {
+        return paragraphResult('Custom output')
+      },
+    } as unknown as MarkdownPipeline
+
+    const result = useMarkdownDocument('# Title', { pipeline })
+
+    expect(result.document.value?.pipeline).toBe('official')
+    expect(
+      result.diagnostics.value.some(
+        (item) => item.code === 'pipeline-capabilities',
+      ),
+    ).toBe(true)
+    expect(JSON.stringify(result.document.value)).not.toContain('Custom output')
+  })
+
+  it('throws from defineMarkdownPipeline when capabilities are malformed', () => {
+    const pipeline = {
+      name: 'bad-capabilities-defined',
+      capabilities: { sync: 'yes' },
+      async process() {
+        return paragraphResult('Custom output')
+      },
+    } as unknown as MarkdownPipeline
+
+    expect(() => defineMarkdownPipeline(pipeline)).toThrow(/capabilities\.sync/)
+  })
+
+  it('falls back to process when sync: true is declared without processSync', async () => {
+    let asyncCalls = 0
+    const pipeline: MarkdownPipeline = {
+      name: 'sync-declared-without-sync',
+      capabilities: { sync: true },
+      async process() {
+        asyncCalls += 1
+        return paragraphResult('Async output')
+      },
+    }
+
+    const result = useMarkdownDocument('ignored', { pipeline })
+    await result.refresh()
+
+    expect(asyncCalls).toBeGreaterThan(0)
+    expect(JSON.stringify(result.document.value)).toContain('Async output')
+  })
+
+  it('rejects malformed capabilities during static export', async () => {
+    const pipeline = {
+      name: 'bad-export-capabilities',
+      capabilities: { sync: 'yes' },
+      async process() {
+        return paragraphResult('Custom output')
+      },
+      processSync() {
+        return paragraphResult('Custom output')
+      },
+    } as unknown as MarkdownPipeline
+
+    await expect(exportMarkdownHtml('ignored', { pipeline })).rejects.toThrow(
+      /capabilities\.sync/,
+    )
+    expect(() => exportMarkdownHtmlSync('ignored', { pipeline })).toThrow(
+      /capabilities\.sync/,
+    )
+  })
+
+  it('refuses synchronous export when the pipeline declares sync: false', () => {
+    const pipeline: MarkdownPipeline = {
+      name: 'async-export',
+      capabilities: { sync: false },
+      async process() {
+        return paragraphResult('Async output')
+      },
+      processSync() {
+        return paragraphResult('Sync output')
+      },
+    }
+
+    expect(() => exportMarkdownHtmlSync('ignored', { pipeline })).toThrow(
+      /synchronous/i,
+    )
+  })
+
+  it('uses process for asynchronous export when the pipeline declares sync: false', async () => {
+    const pipeline: MarkdownPipeline = {
+      name: 'async-export-resolved',
+      capabilities: { sync: false },
+      async process() {
+        return paragraphResult('Async output')
+      },
+      processSync() {
+        return paragraphResult('Sync output')
+      },
+    }
+
+    const html = await exportMarkdownHtml('ignored', { pipeline })
+
+    expect(html).toContain('Async output')
+    expect(html).not.toContain('Sync output')
   })
 })
 

@@ -45,6 +45,25 @@ create an observer.
 Keep SSR output deterministic: avoid `Date.now()`, random IDs, and
 request-specific state inside plugins.
 
+## Memo cache and request isolation
+
+Parsed documents are memoized in a **process-level** cache shared by every
+renderer in the same JavaScript process. The key covers the source, pipeline
+identity, plugin identities, and parse-affecting options; presentation-only
+changes such as tokens, labels, or the active heading do not re-parse.
+
+The cache is an optimization, not a request boundary. Do not share cached
+documents that depend on request-specific data, including plugins that read
+ambient state outside the source. When a request must start from a clean slate,
+call `memoClear()` before rendering. Per-instance caches, byte budgets, and
+per-request isolation are planned for `1.2.0`; they are not part of this patch.
+
+```ts
+import { memoClear } from '@coderminer/vue-markdown'
+
+memoClear()
+```
+
 ## Static HTML export
 
 ```ts

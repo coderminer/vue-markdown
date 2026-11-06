@@ -402,6 +402,85 @@ describe('malformed input corpus', () => {
   })
 })
 
+describe('security regression corpus', () => {
+  it('filters mixed srcset candidates individually', () => {
+    expect(
+      sanitizeUrlValue('safe.png 1x, javascript:alert(1) 2x', 'srcset'),
+    ).toBe('safe.png 1x')
+    expect(
+      sanitizeUrlValue(
+        'data:image/svg+xml,<svg/> 1x, safe.png 2x',
+        'srcset',
+      ),
+    ).toBe('safe.png 2x')
+
+    const result = parse(
+      '<img srcset="safe.png 1x, javascript:alert(1) 2x, data:image/svg+xml,<svg/> 3x">',
+      { plugins: [...defaultPlugins, htmlPlugin()] },
+    )
+    const json = serialized(result.nodes)
+    expect(json).toContain('safe.png 1x')
+    expect(json).not.toContain('javascript:')
+    expect(json).not.toContain('image/svg+xml')
+  })
+
+  it('removes SVG and MathML subtrees with external references and handlers', () => {
+    const result = parse(
+      [
+        '<svg><image href="https://evil.example/x.png"/>',
+        '<use xlink:href="https://evil.example/y.svg#a"/>',
+        '<a xlink:href="javascript:alert(1)">link</a>',
+        '<circle onload="alert(1)"/></svg>',
+        '<math><mtext><a href="javascript:alert(1)">math</a></mtext></math>',
+      ].join(''),
+      { plugins: [...defaultPlugins, htmlPlugin()] },
+    )
+    const json = serialized(result.nodes)
+    expect(json).not.toContain('"tag":"svg"')
+    expect(json).not.toContain('"tag":"math"')
+    expect(json).not.toContain('evil.example')
+    expect(json).not.toContain('javascript:')
+    expect(json).not.toContain('onload')
+  })
+
+  it('strips CSS URL, escape, comment, and expression vectors', () => {
+    const result = parse(
+      [
+        '<div style="background:url(javascript:alert(1))">a</div>',
+        '<div style="width:expression(alert(1))">b</div>',
+        '<style>@import "https://evil.example/x.css";',
+        'body{background:url(https://evil.example/y)}</style>',
+        '<p style="color:red;/*x*/background:url(\\6a avascript:alert(1))">c</p>',
+      ].join(''),
+      { plugins: [...defaultPlugins, htmlPlugin()] },
+    )
+    const json = serialized(result.nodes)
+    expect(json).not.toContain('"style"')
+    expect(json).not.toContain('@import')
+    expect(json).not.toContain('expression')
+    expect(json).not.toContain('evil.example')
+    expect(json).not.toContain('javascript:')
+
+    expect(
+      sanitizeStyleValue('color:red;background:url(javascript:alert(1))'),
+    ).toBe('color: red')
+    expect(sanitizeStyleValue('color:expression(alert(1))')).toBeUndefined()
+  })
+
+  it('rejects URL-bearing and event attributes outside the allowlist', () => {
+    const result = parse(
+      '<div formaction="javascript:alert(1)" onclick="alert(1)" data-safe="1" aria-label="x">content</div>',
+      { plugins: [...defaultPlugins, htmlPlugin()] },
+    )
+    const json = serialized(result.nodes)
+    expect(json).toContain('"data-safe":"1"')
+    expect(json).toContain('"aria-label":"x"')
+    expect(json).not.toContain('formaction')
+    expect(json).not.toContain('onclick')
+    expect(json).not.toContain('javascript:')
+  })
+})
+
 describe('trusted engine styles', () => {
   it('keeps constrained token styles and strips unsafe declarations', () => {
     expect(sanitizeStyleValue('color:#D73A49;--shiki-dark:#F97583')).toBe(

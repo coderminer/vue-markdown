@@ -138,7 +138,9 @@ Mermaid 生成的主题样式表会作为作用域内的 `<style>` 元素保留�
 （允许后代和子组合器；兄弟组合器和未限定选择器会导致该样式元素被丢弃）。直接指向根
 SVG 的规则只保留展示类声明，后代规则会移除布局声明（`position`、`inset`、
 `top`/`left`/`right`/`bottom`、`z-index`、`overflow`），因此图表样式表无法把 SVG
-变成全屏遮罩。外部 CSS import/URL 和主动型 CSS 构造会被移除。接受 `<url>` 值的展示属性
+变成全屏遮罩。外部 CSS import、`url()` 引用、接受裸字符串的 image 函数（`image()`、
+`image-set()`、`cross-fade()`）和主动型 CSS 构造都会被移除；检查前会先解析 CSS 转义
+和注释。接受 `<url>` 值的展示属性
 （`fill`、`stroke`、`filter`、`mask`、`clip-path`、marker 属性和 `cursor`）只保留
 同文档片段引用。SVG 元素和属性的大小写会在渲染前归一化，因此 `linearGradient`、
 `viewBox`、`stroke-width`、`marker-end` 和 `aria-*` 能保留下来。

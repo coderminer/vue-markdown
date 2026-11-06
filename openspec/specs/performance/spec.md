@@ -19,7 +19,7 @@ The Vue adapter SHALL store the document model in a `shallowRef` and SHALL repla
 
 ### Requirement: Parse memoization
 
-The library SHALL memoize parsing by source string, pipeline identity, ordered plugin identities, and parse-affecting options. The pipeline identity SHALL include the pipeline name, its optional `version`, and its process-local instance identity, so two pipelines that share a name cannot reuse each other's cached documents. A cache hit SHALL reuse the previous document without re-running the pipeline and SHALL replay the diagnostics of the run that produced it. The cache SHALL be bounded and SHALL be invalidated when any key component changes.
+The library SHALL memoize parsing by source string, pipeline identity, ordered plugin identities, and parse-affecting options. The pipeline identity SHALL include the pipeline name, its optional `version`, and its process-local instance identity, so two pipelines that share a name cannot reuse each other's cached documents. A cache hit SHALL reuse the previous document without re-running the pipeline and SHALL replay the diagnostics of the run that produced it. The default cache SHALL be process-level and SHALL be clearable with `memoClear()`. The cache SHALL be bounded and SHALL be invalidated when any key component changes.
 
 #### Scenario: Same input
 - **WHEN** the same source and configuration are rendered again

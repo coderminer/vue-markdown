@@ -354,6 +354,9 @@ export function useMarkdownDocument(
     key: string,
     cache: boolean,
   ): 'done' | 'async' => {
+    // A pipeline that declares no synchronous path must never be called
+    // synchronously, even if the method happens to exist.
+    if (snapshot.pipeline.capabilities?.sync === false) return 'async'
     const sync = snapshot.pipeline.processSync
     if (!sync) return 'async'
 

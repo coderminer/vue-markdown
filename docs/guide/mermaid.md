@@ -169,7 +169,9 @@ unscoped selectors reject the element). Rules that target the root SVG keep only
 presentation declarations, and descendant rules drop layout declarations
 (`position`, `inset`, `top`/`left`/`right`/`bottom`, `z-index`, `overflow`), so
 a diagram stylesheet cannot turn the SVG into a full-page overlay. External CSS
-imports and URLs plus active CSS constructs are removed. Presentation
+imports, `url()` references, image functions that accept a bare string
+(`image()`, `image-set()`, `cross-fade()`), and active CSS constructs are
+removed; CSS escapes and comments are resolved before that check. Presentation
 attributes that accept `<url>` values (`fill`, `stroke`, `filter`, `mask`,
 `clip-path`, marker attributes, `cursor`) keep only same-document fragment
 references. SVG element and attribute casing is normalized before rendering, so

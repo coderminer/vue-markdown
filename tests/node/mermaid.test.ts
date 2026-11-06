@@ -91,6 +91,8 @@ describe('Mermaid sanitization', () => {
         '<rect cursor="url(https://evil.example/c.cur), auto"/>' +
         '<rect clip-path="url(https://evil.example/c.svg#c)"/>' +
         '<rect marker-start="url(https://evil.example/m.svg#m)"/>' +
+        '<rect fill="u\\72 l(https://evil.example/e.svg#e)"/>' +
+        '<rect stroke="u\\72 l(#a)"/>' +
         '<rect fill="url(#a) red"/></svg>',
     )
     const html = JSON.stringify(nodes)
@@ -269,6 +271,140 @@ describe('Mermaid sanitization', () => {
 
     const noId = sanitizeMermaidNodes([svg('rect{fill:#0f0}')])
     expect(JSON.stringify(noId)).not.toContain('"tag":"style"')
+  })
+})
+
+describe('adversarial SVG corpus', () => {
+  it('drops CSS-escaped external url() references', () => {
+    const nodes = sanitizeSvg(
+      '<svg id="d"><style>#d{fill:u\\72 l(https://evil.example/x.svg#a);stroke:url(#a)}</style><rect/></svg>',
+    )
+    const html = JSON.stringify(nodes)
+    expect(html).not.toContain('evil.example')
+    expect(html).toContain('url(#a)')
+  })
+
+  it('drops escaped layout declarations in descendant rules', () => {
+    const nodes = sanitizeSvg(
+      '<svg id="d"><style>#d .node{p\\6f sition:fixed;i\\6e set:0;z-\\69 ndex:9;overflow:hidden;fill:#0f0}</style><g class="node"><rect/></g></svg>',
+    )
+    const html = JSON.stringify(nodes)
+    expect(html).not.toContain('fixed')
+    expect(html).not.toContain('overflow')
+    expect(html).toContain('fill:#0f0')
+  })
+
+  it('keeps scoped selectors with CSS escapes', () => {
+    const nodes = sanitizeSvg(
+      '<svg id="d"><style>#d .node\\:label{fill:#0f0}</style><g class="node:label"><rect/></g></svg>',
+    )
+    const html = JSON.stringify(nodes)
+    expect(html).toContain('"tag":"style"')
+    expect(html).toContain('fill:#0f0')
+  })
+
+  it('drops unclosed comments and CDATA without throwing', () => {
+    expect(() =>
+      sanitizeSvg('<svg id="d"><style>#d{fill:#f00} /* unclosed</style><rect/></svg>'),
+    ).not.toThrow()
+    const cdata = sanitizeSvg(
+      '<svg id="d"><style><![CDATA[#d{fill:#f00}]]></style><rect/></svg>',
+    )
+    expect(JSON.stringify(cdata)).not.toContain('evil.example')
+  })
+
+  it('handles nested at-rules and namespaced tags', () => {
+    const nodes = sanitizeSvg(
+      [
+        '<svg id="d"><style>@media (min-width:1px){@supports (fill:red){#d .node{fill:#0f0}}}</style>',
+        '<svg:script>alert(1)</svg:script>',
+        '<svg:foreignObject><div>label</div></svg:foreignObject>',
+        '<g class="node"><rect onLoad="alert(1)"/></g></svg>',
+      ].join(''),
+    )
+    const html = JSON.stringify(nodes)
+    expect(html).not.toContain('"tag":"script"')
+    expect(html).not.toContain('"tag":"foreignObject"')
+    expect(html).not.toContain('onLoad')
+    expect(html).not.toContain('onload')
+    expect(html).toContain('@supports')
+  })
+
+  it('keeps only same-document xlink references and deep nesting is safe', () => {
+    const depth = 200
+    const nested = `${'<g>'.repeat(depth)}<rect/>${'</g>'.repeat(depth)}`
+    const nodes = sanitizeSvg(
+      `<svg><use xlink:href="https://evil.example/x.svg#a"/><use xlink:href="#local"/>${nested}</svg>`,
+    )
+    const html = JSON.stringify(nodes)
+    expect(html).not.toContain('evil.example')
+    expect(html).toContain('#local')
+    expect(html.match(/"tag":"g"/g) ?? []).toHaveLength(depth)
+  })
+
+  it('drops image functions that accept a bare external string', () => {
+    const values = [
+      '#d .n{background-image:image-set("https://evil.example/x.png" 1x)}',
+      '#d .n{background-image:image("https://evil.example/x.png")}',
+      '#d .n{background-image:cross-fade("https://evil.example/x.png", red)}',
+      '#d .n{background-image:-webkit-image-set("https://evil.example/x.png" 1x)}',
+    ]
+    for (const value of values) {
+      const html = JSON.stringify(
+        sanitizeSvg(
+          `<svg id="d"><style>${value}</style><g class="n"><rect/></g></svg>`,
+        ),
+      )
+      expect(html).not.toContain('evil.example')
+    }
+  })
+
+  it('drops data: and pseudo-fragment external references', () => {
+    const nodes = sanitizeSvg(
+      '<svg id="d"><style>#d{fill:url(data:image/svg+xml,<svg/>);stroke:url(https://evil.example/x#a);mask:url(#ok);background:url(#not-a-fragment?x=1)}</style><rect/></svg>',
+    )
+    const html = JSON.stringify(nodes)
+    expect(html).not.toContain('data:image')
+    expect(html).not.toContain('evil.example')
+    expect(html).toContain('url(#ok)')
+  })
+
+  it('drops escaped at-rules and expression functions', () => {
+    const css = [
+      '@im\\70 ort url(https://evil.example/x.css);#d{fill:#f00}',
+      '#d{fill:express\\69 on(alert(1))}',
+      '#d{fill:url(jav\\61 script:alert(1))}',
+    ]
+    for (const value of css) {
+      const html = JSON.stringify(
+        sanitizeSvg(`<svg id="d"><style>${value}</style><rect/></svg>`),
+      )
+      expect(html).not.toContain('evil.example')
+      expect(html).not.toContain('expression')
+      expect(html).not.toContain('javascript')
+    }
+  })
+
+  it('never throws or emits active content for the corpus', () => {
+    const corpus = [
+      '<svg><SCRIPT>alert(1)</SCRIPT></svg>',
+      '<svg><foreignObject><div>x</div></foreignObject></svg>',
+      '<svg><rect onLoad="alert(1)" onerror="alert(1)"/></svg>',
+      '<svg id="d"><style>#d{background:url(https://evil.example/x.png)}</style></svg>',
+      '<svg id="d"><style>#d{background:url(data:image/svg+xml,<svg/>)}</style></svg>',
+      '<svg id="d"><style>#d{position:fixed;inset:0;z-index:9;overflow:hidden}</style></svg>',
+      '<svg id="d"><style>#d{fill:#f00} /* unclosed</style></svg>',
+      '<svg id="d"><style>@media (min-width:1px){@supports (fill:red){#d{fill:#0f0}}}</style></svg>',
+      `<svg>${'<g>'.repeat(500)}<rect/>${'</g>'.repeat(500)}</svg>`,
+    ]
+
+    for (const source of corpus) {
+      const html = JSON.stringify(sanitizeSvg(source))
+      expect(html).not.toMatch(/"(?:script|foreignObject|iframe|object|embed)"/i)
+      expect(html).not.toMatch(/"on[a-z]+"/i)
+      expect(html).not.toContain('javascript:')
+      expect(html).not.toContain('evil.example')
+    }
   })
 })
 

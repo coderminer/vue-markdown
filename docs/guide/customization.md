@@ -382,6 +382,25 @@ import { customTagsPlugin } from '@coderminer/vue-markdown/plugins'
 const plugins = [customTagsPlugin({ tags: ['x-note'] })]
 ```
 
+When the custom tags come from raw HTML, allow the same tags and the attributes
+you accept in the sanitizer as well. `customTagsPlugin` decides which elements
+become custom nodes; `htmlPlugin({ schema })` decides which raw elements and
+attributes survive sanitization:
+
+```ts
+import { htmlPlugin } from '@coderminer/vue-markdown/html'
+
+const plugins = [
+  customTagsPlugin({ tags: ['x-note'] }),
+  htmlPlugin({
+    schema: {
+      tags: ['x-note'],
+      attributes: { 'x-note': ['tone', 'title', 'start-line'] },
+    },
+  }),
+]
+```
+
 Custom-tag attribute names normalize from kebab-case to camelCase, so
 `<x-note start-line="2">` reaches the component and the `custom-tag-click`
 payload as `startLine`. `data-*` and `aria-*` attributes keep their hyphenated

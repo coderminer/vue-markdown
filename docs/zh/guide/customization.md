@@ -369,6 +369,24 @@ import { customTagsPlugin } from '@coderminer/vue-markdown/plugins'
 const plugins = [customTagsPlugin({ tags: ['x-note'] })]
 ```
 
+如果自定义标签来自原始 HTML，还需要在净化器中放行相同的标签和你接受的属性。
+`customTagsPlugin` 决定哪些元素转换成自定义节点；`htmlPlugin({ schema })` 决定哪些
+原始元素和属性通过净化：
+
+```ts
+import { htmlPlugin } from '@coderminer/vue-markdown/html'
+
+const plugins = [
+  customTagsPlugin({ tags: ['x-note'] }),
+  htmlPlugin({
+    schema: {
+      tags: ['x-note'],
+      attributes: { 'x-note': ['tone', 'title', 'start-line'] },
+    },
+  }),
+]
+```
+
 自定义标签属性会从 kebab-case 归一化为 camelCase：`<x-note start-line="2">` 在组件
 和 `custom-tag-click` 负载中都是 `startLine`。`data-*` 和 `aria-*` 保持带连字符的
 DOM 属性形式。HTML 解析器会把原始属性名转成小写，因此请写 `start-line` 而不是

@@ -608,6 +608,17 @@ const pipeline = defineMarkdownPipeline({
 })
 ```
 
+`capabilities.sync` 决定运行路径：
+
+- `true`：存在 `processSync` 时渲染器使用它。
+- `false`：渲染器始终调用 `process()`，即使存在 `processSync`；
+  `exportMarkdownHtmlSync` 会抛错而不是调用它。
+- 未声明：渲染器先尝试 `processSync`，若它报告只能异步执行，则回退到 `process()`。
+
+`capabilities` 必须是对象，声明字段必须是 boolean。管线传给渲染器时，非法 capabilities
+会产生 `pipeline-capabilities` 诊断，并改用官方管线。静态导出会报告管线校验错误而不是
+返回输出；`defineMarkdownPipeline()` 对同样的校验错误直接抛错。
+
 | API | 作用 |
 | --- | --- |
 | `createOfficialPipeline(options?)` | 创建官方 unified 管线 |

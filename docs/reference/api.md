@@ -621,6 +621,20 @@ const pipeline = defineMarkdownPipeline({
 })
 ```
 
+`capabilities.sync` controls which run path is used:
+
+- `true`: the renderer uses `processSync` when it exists.
+- `false`: the renderer always calls `process()`, even when `processSync`
+  exists; `exportMarkdownHtmlSync` throws instead of calling it.
+- Absent: the renderer tries `processSync` and falls back to `process()` when it
+  reports an async-only processor.
+
+`capabilities` must be an object and its declared fields must be booleans.
+When a pipeline is passed to the renderer, invalid capabilities produce a
+`pipeline-capabilities` diagnostic and the official pipeline is used instead.
+Static export reports pipeline validation errors instead of returning output,
+and `defineMarkdownPipeline()` throws on the same validation errors.
+
 | API | Purpose |
 | --- | --- |
 | `createOfficialPipeline(options?)` | Creates the official unified pipeline |

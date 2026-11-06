@@ -127,19 +127,23 @@ The library SHALL define a typed `MarkdownPipeline` contract that accepts source
 
 ### Requirement: Asynchronous and synchronous execution
 
-The pipeline SHALL use `unified().process` as the default asynchronous path. A synchronous `processSync` path SHALL be available when every configured plugin is synchronous. Asynchronous updates SHALL report a pending status, preserve the last successful document, coalesce superseded runs, and ignore stale results. Server rendering SHALL use the synchronous path or await the pipeline before rendering.
+The pipeline SHALL use `unified().process` as the default asynchronous path. A synchronous `processSync` path SHALL be available when every configured plugin is synchronous. A pipeline MAY declare `capabilities.sync`: `false` SHALL force `process()` even when `processSync` exists, `true` SHALL select `processSync` when it exists, and an absent declaration SHALL retain the error-message fallback. Invalid capabilities SHALL produce a diagnostic and fall back to the official pipeline. Synchronous export SHALL refuse a pipeline that declares `sync: false`. Asynchronous updates SHALL report a pending status, preserve the last successful document, coalesce superseded runs, and ignore stale results. Server rendering SHALL use the synchronous path or await the pipeline before rendering.
 
-#### Scenario: Async pending
-- **WHEN** an asynchronous plugin is still running for new source
-- **THEN** the last successful document remains visible and status reports pending
+#### Scenario: Async-only capability
+- **WHEN** a pipeline declares `capabilities.sync: false` and also exposes `processSync`
+- **THEN** the renderer calls `process()` and never calls `processSync`
 
-#### Scenario: Stale result
-- **WHEN** two asynchronous runs complete out of order
-- **THEN** only the result for the latest source is applied
+#### Scenario: Sync capability
+- **WHEN** a pipeline declares `capabilities.sync: true` and exposes `processSync`
+- **THEN** the renderer uses the synchronous path
 
-#### Scenario: Server rendering
-- **WHEN** a document is rendered on the server with only synchronous plugins
-- **THEN** `processSync` produces complete markup without browser globals
+#### Scenario: Undeclared capability
+- **WHEN** a pipeline does not declare capabilities and `processSync` reports an async-only processor
+- **THEN** the renderer falls back to `process()`
+
+#### Scenario: Invalid capability shape
+- **WHEN** `capabilities` is not an object or a declared field is not boolean
+- **THEN** the renderer reports `pipeline-capabilities` and uses the official pipeline
 
 ### Requirement: Pipeline security invariants
 

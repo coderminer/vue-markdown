@@ -10,6 +10,7 @@ import {
 import { htmlPlugin } from '../../src/html'
 import { defineMarkdownPlugin } from '../../src/plugins/define'
 import { createOfficialPipeline } from '../../src/pipeline'
+import { exportMarkdownHtml } from '../../src/export'
 import type {
   MarkdownDocument,
   MarkdownPipeline,
@@ -837,6 +838,32 @@ describe('search and raw HTML', () => {
     })
     expect(dangerous.html()).not.toContain('<script')
     expect(dangerous.html()).not.toContain('alert(1)')
+  })
+
+  it('matches static export for the same hostile input', async () => {
+    const source = [
+      '<img src="javascript:alert(1)" onerror="alert(1)">',
+      '<a href="javascript:alert(1)">bad</a>',
+      '<svg><script>alert(1)</script></svg>',
+      '<div id="note" style="background:url(https://evil.example/x)">note</div>',
+    ].join('')
+    const options = { plugins: [...defaultPlugins, htmlPlugin()] }
+
+    const wrapper = renderer({ source, ...options })
+    const html = await exportMarkdownHtml(source, options)
+
+    for (const forbidden of [
+      'javascript:',
+      'onerror',
+      '<script',
+      'evil.example',
+      'background:url',
+    ]) {
+      expect(wrapper.html()).not.toContain(forbidden)
+      expect(html).not.toContain(forbidden)
+    }
+    expect(wrapper.find('#user-content-note').text()).toBe('note')
+    expect(html).toContain('id="user-content-note"')
   })
 })
 

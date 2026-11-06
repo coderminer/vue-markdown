@@ -168,8 +168,12 @@ const DROPPED_TAGS = new Set([
 // Mermaid scopes its generated stylesheet to the SVG id. Keep that scoped
 // theme CSS, but remove constructs that could load remote resources or execute
 // in older engines.
+// `image-set("https://...")`, `image("https://...")`, and `cross-fade(...)`
+// accept a bare string as an image source, so they can fetch a remote resource
+// without a `url()` token. Drop the stylesheet instead of trying to rewrite
+// values that the browser resolves as URLs.
 const UNSAFE_CSS =
-  /@import|@font-face|expression\s*\(|javascript\s*:|-moz-binding|behavior\s*:/i
+  /@import|@font-face|expression\s*\(|javascript\s*:|-moz-binding|behavior\s*:|-?(?:webkit-)?(?:image-set|cross-fade|image)\s*\(/i
 const CSS_URL = /url\(\s*([^)]*)\)/gi
 const SCOPED_AT_RULES = new Set(['media', 'supports', 'layer'])
 const SCOPED_STATEMENT_AT_RULES = new Set(['charset', 'layer'])
@@ -317,7 +321,12 @@ function safeAttributes(element: Element): Record<string, string> {
     const text = Array.isArray(value)
       ? value.map(String).join(' ')
       : String(value)
-    if (URL_VALUE_ATTRIBUTES.has(name) && !hasOnlyFragmentUrls(text)) continue
+    if (URL_VALUE_ATTRIBUTES.has(name)) {
+      const decoded = decodeCssEscapes(text)
+      if (!hasOnlyFragmentUrls(decoded)) continue
+      attrs[name] = decoded
+      continue
+    }
     attrs[name] = text
   }
   return attrs
@@ -555,6 +564,69 @@ function stripCssComments(css: string): string {
   return output
 }
 
+function isHexDigit(char: string): boolean {
+  return /[0-9a-fA-F]/.test(char)
+}
+
+/**
+ * Resolve CSS character escapes before running the safety checks. Otherwise
+ * `u\72 l(https://...)` or `p\6f sition` reaches the browser as `url(...)` or
+ * `position` while evading the literal checks.
+ */
+function decodeCssEscapes(css: string): string {
+  if (css.indexOf('\\') === -1) return css
+  let output = ''
+  let index = 0
+  while (index < css.length) {
+    const char = css.charAt(index)
+    if (char !== '\\') {
+      output += char
+      index += 1
+      continue
+    }
+    const next = css.charAt(index + 1)
+    if (next === '') {
+      index += 1
+      continue
+    }
+    if (next === '\n' || next === '\f' || next === '\r') {
+      index += 2
+      if (next === '\r' && css.charAt(index) === '\n') index += 1
+      continue
+    }
+    if (isHexDigit(next)) {
+      let hex = ''
+      let cursor = index + 1
+      while (
+        cursor < css.length &&
+        hex.length < 6 &&
+        isHexDigit(css.charAt(cursor))
+      ) {
+        hex += css.charAt(cursor)
+        cursor += 1
+      }
+      if (cursor < css.length && /[ \t\n\r\f]/.test(css.charAt(cursor))) {
+        cursor += 1
+      }
+      const code = parseInt(hex, 16)
+      if (
+        code === 0 ||
+        code > 0x10ffff ||
+        (code >= 0xd800 && code <= 0xdfff)
+      ) {
+        output += '\uFFFD'
+      } else {
+        output += String.fromCodePoint(code)
+      }
+      index = cursor
+      continue
+    }
+    output += next
+    index += 2
+  }
+  return output
+}
+
 function splitDeclarations(body: string): string[] {
   const parts: string[] = []
   let current = ''
@@ -720,9 +792,9 @@ function sanitizeStyleSheet(
   scope: string | undefined,
 ): string | undefined {
   if (!scope || !css.trim()) return undefined
-  // Strip comments first so `pos/**/ition` or `@im/**/port` cannot hide a
-  // construct from the checks below.
-  const source = stripCssComments(css)
+  // Strip comments and resolve escapes first so `pos/**/ition` or `u\72 l(...)`
+  // cannot hide a construct from the checks below.
+  const source = decodeCssEscapes(stripCssComments(css))
   if (!source.trim() || UNSAFE_CSS.test(source)) return undefined
   if (!isScopedStyleSheet(source, scope)) return undefined
   const safe = rewriteStyleSheet(source, scope).replace(
@@ -926,7 +998,10 @@ function safeModelAttributes(
       if (value.startsWith('#')) safe[name] = value
       continue
     }
-    if (URL_VALUE_ATTRIBUTES.has(name) && !hasOnlyFragmentUrls(value)) {
+    if (URL_VALUE_ATTRIBUTES.has(name)) {
+      const decoded = decodeCssEscapes(value)
+      if (!hasOnlyFragmentUrls(decoded)) continue
+      safe[name] = decoded
       continue
     }
     safe[name] = value

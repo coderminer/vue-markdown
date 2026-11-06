@@ -40,6 +40,22 @@ const html = await renderToString(app)
 
 保持 SSR 输出确定性：避免在插件里使用 `Date.now()`、随机 ID 或请求相关状态。
 
+## Memo 缓存与请求隔离
+
+解析后的文档会进入**进程级**缓存，同一 JavaScript 进程内的所有渲染器共享它。缓存 key
+包含 source、管线身份、插件身份和影响解析的选项；令牌、文案、当前标题等纯展示变化不会
+重新解析。
+
+缓存是优化手段，不是请求边界。如果文档依赖请求相关数据，或插件读取了 source 之外的环境
+状态，不要共享缓存结果。请求必须从干净状态开始时，在渲染前调用 `memoClear()`。实例级
+缓存、字节预算和每请求隔离计划在 `1.2.0` 提供，不属于本次补丁。
+
+```ts
+import { memoClear } from '@coderminer/vue-markdown'
+
+memoClear()
+```
+
 ## 静态 HTML 导出
 
 ```ts

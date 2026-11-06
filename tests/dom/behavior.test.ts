@@ -535,4 +535,27 @@ describe('async pipeline ordering', () => {
     expect(wrapper.text()).toContain('Second')
     expect(wrapper.text()).not.toContain('First')
   })
+
+  it('honors an async-only capability declaration', async () => {
+    let syncCalls = 0
+    const pipeline: MarkdownPipeline = {
+      name: 'async-only',
+      capabilities: { sync: false },
+      async process(source: string) {
+        return resultWithParagraph(source)
+      },
+      processSync() {
+        syncCalls += 1
+        return resultWithParagraph('sync output')
+      },
+    }
+
+    const wrapper = mount(MarkdownRenderer, {
+      props: { source: 'async output', pipeline },
+    })
+    await flushPromises()
+
+    expect(syncCalls).toBe(0)
+    expect(wrapper.text()).toBe('async output')
+  })
 })

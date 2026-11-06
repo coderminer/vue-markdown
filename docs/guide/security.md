@@ -83,6 +83,27 @@ untrusted and the host uses utility classes, render the output inside a shadow
 root or scope that CSS to trusted regions; `class` alone is not an isolation
 boundary.
 
+## Trust boundaries
+
+The library enforces its security policy at three separate trust levels:
+
+1. **Library-managed rendering.** Markdown and raw HTML are untrusted. The
+   official pipeline normalizes the tree, filters tags and attributes, validates
+   every URL-bearing attribute, and sanitizes raw HTML when `htmlPlugin()` is
+   enabled. `exportMarkdownHtml` applies the same policy.
+2. **Host-defined components.** Components and tag overrides are host code.
+   They receive normalized nodes and safe attributes, but whatever the component
+   itself renders or links to is the host's responsibility. Treat replacing a
+   node component as extending the trusted surface.
+3. **Trusted plugin output.** Plugin setup, transforms, remark/rehype plugins,
+   and `transformDocument` run with host privileges. A plugin can deliberately
+   emit content the default policy would not produce. Only install plugins you
+   trust, and keep their output deterministic when it participates in SSR.
+
+`class` is not a boundary at any level. A global utility stylesheet applies to
+whatever the document renders, including untrusted raw HTML; scope that CSS or
+use a shadow root when the source is untrusted.
+
 ## URL policy
 
 `defaultUrlTransform` implements the package URL policy:

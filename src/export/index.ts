@@ -59,7 +59,7 @@ export function exportMarkdownHtmlSync(
 ): string {
   const diagnostics: MarkdownDiagnostic[] = []
   const run = prepareMarkdownRun(source, options, diagnostics)
-  if (!run.pipeline.processSync) {
+  if (run.pipeline.capabilities?.sync === false || !run.pipeline.processSync) {
     throw new Error('The configured pipeline does not support synchronous export.')
   }
   run.slugger.reset?.()

@@ -160,7 +160,7 @@ Plugins SHALL be documented as trusted code. A plugin SHALL NOT be able to silen
 
 ### Requirement: Security tests
 
-The repository SHALL include automated security tests covering unsafe protocols, event handlers, raw HTML, sanitizer ordering, `data:` URLs including SVG, custom tags, plugin bypass attempts, Mermaid output, KaTeX trust, and a fuzz corpus of malformed HTML and Markdown.
+The repository SHALL include automated security tests covering unsafe protocols, event handlers, raw HTML, sanitizer ordering, `data:` URLs including SVG, custom tags, plugin bypass attempts, Mermaid output, KaTeX trust, mixed `srcset` candidates, SVG external references, CSS escape and comment bypasses, MathML, custom attributes, render/export parity, and a fuzz corpus of malformed HTML and Markdown.
 
 #### Scenario: Security suite
 - **WHEN** the security test suite runs
