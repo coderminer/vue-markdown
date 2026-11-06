@@ -4,6 +4,25 @@ description: Release notes and upgrade guidance for @coderminer/vue-markdown 1.1
 
 # Release notes
 
+## 1.1.1 — 2026-11-06
+
+Hardening patch for the `1.1.x` line. There are no public API, prop, event, slot,
+or default security-policy changes.
+
+- Custom pipelines that declare `capabilities.sync: false` now always run
+  through `process()`, even when `processSync` exists. Synchronous static export
+  refuses such a pipeline instead of calling it synchronously.
+- Invalid `capabilities` shapes report a `pipeline-capabilities` diagnostic and
+  fall back to the official pipeline.
+- The security regression corpus now covers mixed `srcset` candidates, SVG
+  external references, CSS escape/comment bypasses, MathML, custom attributes,
+  and render/export parity.
+- The Mermaid sanitizer now resolves CSS escapes before checking external
+  `url()` references and denied layout properties, and drops `image()`,
+  `image-set()`, and `cross-fade()` stylesheets with bare string sources.
+- Documentation records the three trust levels, the process-level memo cache,
+  and the `PipelineCapabilities.sync` contract.
+
 ## 1.1.0 — 2026-11-05
 
 Stable release. It includes everything in `1.1.0-beta.0` plus Mermaid label

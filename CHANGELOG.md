@@ -2,6 +2,34 @@
 
 All notable changes to `@coderminer/vue-markdown` are documented here.
 
+## [1.1.1] - 2026-11-06
+
+Hardening patch for `1.1.x`. No public API, prop, event, slot, or default
+security-policy changes.
+
+### Added
+
+- Regression tests for mixed `srcset` candidates, SVG external references,
+  CSS escape/comment bypasses, MathML, custom attributes, and Vue/export parity.
+- Adversarial Mermaid SVG coverage for escaped selectors, CDATA, unclosed
+  comments, nested at-rules, namespaced tags, mixed casing, deep nesting, and
+  `data:`/pseudo-fragment references.
+- Documentation for the three trust levels, the process-level memo cache, and
+  `PipelineCapabilities.sync` semantics.
+
+### Fixed
+
+- A custom pipeline that declares `capabilities.sync: false` is no longer called
+  through `processSync` when that method exists. `exportMarkdownHtmlSync` now
+  refuses such a pipeline instead of calling it synchronously.
+- Invalid `capabilities` shapes now produce a `pipeline-capabilities` diagnostic
+  and fall back to the official pipeline.
+- Escaped Mermaid CSS declarations can no longer hide an external `url()`
+  reference or a denied layout property from the sanitizer.
+- Mermaid stylesheets that use `image()`, `image-set()`, or `cross-fade()` with
+  a bare string source are dropped instead of letting the browser fetch the
+  external URL.
+
 ## [1.1.0] - 2026-11-05
 
 Stable release. It includes all changes from `1.1.0-beta.0`, adds Mermaid label

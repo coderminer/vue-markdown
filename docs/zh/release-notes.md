@@ -4,6 +4,21 @@ description: '@coderminer/vue-markdown 1.1 发布说明与升级指南。'
 
 # 发布说明
 
+## 1.1.1 — 2026-11-06
+
+`1.1.x` 的硬化补丁。没有公共 API、props、events、slots 或默认安全策略变更。
+
+- 声明 `capabilities.sync: false` 的自定义 pipeline 现在始终通过 `process()`
+  运行，即使它同时提供了 `processSync`。同步静态导出会拒绝这种 pipeline，而不是
+  同步调用它。
+- 非法的 `capabilities` 形状会报告 `pipeline-capabilities` 诊断，并回退到官方
+  pipeline。
+- 安全回归语料补充了混合 `srcset` 候选、SVG 外部引用、CSS 转义/注释绕过、
+  MathML、自定义属性，以及渲染与静态导出一致性。
+- Mermaid sanitizer 在检查外部 `url()` 和禁止的布局属性前先解析 CSS 转义，并丢弃
+  使用裸字符串源的 `image()`、`image-set()` 和 `cross-fade()` 样式表。
+- 文档补充三层信任边界、进程级 memo 缓存和 `PipelineCapabilities.sync` 契约。
+
 ## 1.1.0 — 2026-11-05
 
 正式版，包含 `1.1.0-beta.0` 的全部内容，并新增 Mermaid 文案定制、一处视觉调整和两个

@@ -1,6 +1,6 @@
 {
   "name": "@coderminer/vue-markdown",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "A general-purpose, customizable, plugin-driven Vue 3 Markdown component suite.",
   "keywords": [
     "vue",
