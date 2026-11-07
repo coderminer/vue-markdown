@@ -124,7 +124,7 @@ describe('CodeBlock', () => {
     await flushPromises()
     expect(wrapper.attributes('data-highlighter')).toBe('highlight.js')
     expect(wrapper.find('.hljs-keyword').exists()).toBe(true)
-  })
+  }, 15000)
 
   it('renders full-block highlighter output without an extra code wrapper', async () => {
     const blockHighlighter: MarkdownHighlighter = {

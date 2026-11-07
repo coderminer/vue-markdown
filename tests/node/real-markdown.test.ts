@@ -39,6 +39,18 @@ function propertyText(value: unknown): string {
   return value === null || value === undefined ? '' : String(value)
 }
 
+function elementText(element: Element): string {
+  return element.children
+    .map((child) =>
+      child.type === 'text'
+        ? child.value
+        : child.type === 'element'
+          ? elementText(child)
+          : '',
+    )
+    .join('')
+}
+
 function markedPipeline(mode: 'sync' | 'async'): MarkdownPipeline {
   const official = createOfficialPipeline()
   const marker = mode === 'sync' ? 'MARKER-S' : 'MARKER-A'
@@ -93,17 +105,12 @@ describe('real-world Markdown rendering', () => {
       'A nested quote with <code>inline code</code>.',
       '<ul>',
       '<ol>',
-      '<input type="checkbox" checked disabled>',
-      '<table><thead><tr><th>Name</th>',
-      '<th align="center">Kind</th>',
-      '<th align="right">Count</th>',
       '<pre><code class="language-ts">',
       '<pre><code>indented code block',
       '<hr>',
       '<kbd>Ctrl</kbd>',
       'H<sub>2</sub>O, x<sup>2</sup>',
       '<mark>highlighted text</mark>',
-      '<div class="callout" data-kind="note">',
       '<details>',
       '<summary>More information</summary>',
       '<a href="https://example.com/auto">https://example.com/auto</a>',
@@ -111,6 +118,49 @@ describe('real-world Markdown rendering', () => {
     ]) {
       expect(html).toContain(fragment)
     }
+
+    // Structural HTML is asserted through the parsed tree so table newlines,
+    // attribute order, and serializer formatting cannot make the test flaky.
+    const elements = htmlElements(html)
+    const table = elements.find((element) => element.tagName === 'table')
+    expect(table).toBeDefined()
+    const headers = elements.filter((element) => element.tagName === 'th')
+    expect(headers.map(elementText)).toEqual(['Name', 'Kind', 'Count'])
+    expect(headers.map((header) => header.properties.align)).toEqual([
+      undefined,
+      'center',
+      'right',
+    ])
+    const cells = elements.filter((element) => element.tagName === 'td')
+    expect(cells.map(elementText)).toEqual([
+      'alpha',
+      'text',
+      '1',
+      'beta',
+      'bold',
+      '2',
+    ])
+
+    const taskCheckboxes = elements.filter(
+      (element) => element.tagName === 'input',
+    )
+    expect(taskCheckboxes).toHaveLength(2)
+    expect(taskCheckboxes[0]?.properties).toMatchObject({
+      type: 'checkbox',
+      checked: true,
+      disabled: true,
+    })
+    expect(taskCheckboxes[1]?.properties).toMatchObject({
+      type: 'checkbox',
+      disabled: true,
+    })
+
+    const callout = elements.find(
+      (element) =>
+        propertyText(element.properties.className) === 'callout' &&
+        element.properties.dataKind === 'note',
+    )
+    expect(callout?.tagName).toBe('div')
 
     // Code fences keep executable-looking text literal.
     expect(html).toContain("javascript:alert(1)")
